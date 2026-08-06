@@ -1,9 +1,9 @@
 name: ExecutiveOS Build
 
 on:
-  push:
+  pull_request:
     branches:
-      - agent/fix-vercel-build
+      - main
   workflow_dispatch:
 
 jobs:
