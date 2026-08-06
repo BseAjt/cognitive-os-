@@ -1,5 +1,5 @@
-import { ExecutiveWorkspace } from "@/components/executive-workspace";
+import { ExecutiveTwinHome } from "@/components/executive-twin-home";
 
 export default function HomePage() {
-  return <ExecutiveWorkspace />;
+  return <ExecutiveTwinHome />;
 }
