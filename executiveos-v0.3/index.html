@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>ExecutiveOS v0.3 — Decision Ledger</title>
+<style>
+:root{--bg:#07111f;--panel:#101b2f;--line:rgba(255,255,255,.09);--text:#f4f7fb;--muted:#91a2bd;--accent:#7c5cff;--green:#42d59d;--amber:#ffbc57;--red:#ff7185;--blue:#69bfff}
+*{box-sizing:border-box}body{margin:0;font-family:Inter,system-ui,sans-serif;background:radial-gradient(circle at 80% 0,rgba(124,92,255,.18),transparent 30%),var(--bg);color:var(--text)}
+button,input,textarea,select{font:inherit}.app{display:grid;grid-template-columns:270px 1fr;min-height:100vh}
+aside{padding:22px 18px;border-right:1px solid var(--line);background:rgba(5,11,21,.92);position:sticky;top:0;height:100vh}
+.brand{display:flex;gap:12px;align-items:center;margin-bottom:22px}.logo{width:42px;height:42px;border-radius:14px;display:grid;place-items:center;background:linear-gradient(135deg,#9d83ff,#5c39e8);font-weight:900}.brand span{display:block;color:var(--muted);font-size:12px}
+.nav button{width:100%;border:0;background:transparent;color:var(--muted);text-align:left;padding:11px 12px;border-radius:10px;margin:4px 0}.nav button.active{background:rgba(124,92,255,.14);color:white}
+main{padding:30px;max-width:1500px;width:100%;margin:auto}.top{display:flex;justify-content:space-between;gap:18px;align-items:flex-start}.top h1{font-size:38px;margin:4px 0}.top p{margin:0;color:var(--muted)}
+.primary,.ghost,.danger{border-radius:11px;padding:11px 14px;cursor:pointer}.primary{border:0;background:linear-gradient(135deg,#7d5dff,#5b3ae2);color:white;font-weight:800}.ghost{border:1px solid var(--line);background:#111c30;color:var(--muted)}.danger{border:1px solid rgba(255,113,133,.35);background:rgba(255,113,133,.08);color:#ffb6c2}
+.card{background:rgba(16,27,47,.94);border:1px solid var(--line);border-radius:16px;padding:18px}
+.metrics{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin:18px 0}.metric span{color:var(--muted);font-size:13px}.metric strong{display:block;font-size:29px;margin-top:7px}
+.layout{display:grid;grid-template-columns:.85fr 1.15fr;gap:18px}.row{display:flex;justify-content:space-between;gap:12px;align-items:center}.muted{color:var(--muted)}.badge{display:inline-block;font-size:11px;font-weight:900;letter-spacing:.08em}.green{color:var(--green)}.amber{color:var(--amber)}.red{color:var(--red)}.blue{color:var(--blue)}
+.reco{padding:15px;border:1px solid rgba(124,92,255,.35);border-radius:14px;background:rgba(124,92,255,.08);margin-top:12px}
+.scenarios{display:grid;gap:10px;margin-top:12px}.scenario{padding:13px;border:1px solid var(--line);border-radius:12px;background:rgba(255,255,255,.025)}.scenario.best{border-color:rgba(66,213,157,.45);background:rgba(66,213,157,.06)}
+textarea,input,select{width:100%;background:#0d1727;color:white;border:1px solid var(--line);border-radius:11px;padding:11px}.stack{display:grid;gap:12px}.actions{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:12px}
+.ledger{display:grid;gap:10px}.entry{padding:14px;border:1px solid var(--line);border-radius:13px;background:rgba(255,255,255,.025)}.entry h3{margin:6px 0}.entry p{margin:4px 0;color:#d7dfec}.entry small{color:var(--muted)}
+.exec{padding:13px;border-left:3px solid var(--green);background:rgba(66,213,157,.06);border-radius:8px}.event{padding:10px 12px;border-left:3px solid var(--accent);background:rgba(255,255,255,.025);border-radius:8px;margin-top:9px}
+@media(max-width:1050px){.layout{grid-template-columns:1fr}.metrics{grid-template-columns:repeat(2,1fr)}}@media(max-width:760px){.app{grid-template-columns:1fr}aside{display:none}main{padding:20px 14px}.top{display:block}.metrics,.actions{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<div class="app">
+<aside>
+  <div class="brand"><div class="logo">E</div><div><strong>ExecutiveOS</strong><span>Decision Operating System</span></div></div>
+  <nav class="nav">
+    <button>⌂ Dashboard</button><button>🎯 Challenges</button><button class="active">⚖️ Decision Ledger</button><button>🤖 AI Council</button><button>▶ Execution</button>
+  </nav>
+</aside>
+
+<main>
+  <div class="top">
+    <div><div class="badge amber">EXECUTIVEOS v0.3</div><h1>Du Conseil à la décision humaine.</h1><p>ExecutiveOS recommande. Le dirigeant accepte, modifie ou rejette — et le système conserve pourquoi.</p></div>
+    <button class="ghost" id="reset">Réinitialiser</button>
+  </div>
+
+  <div class="metrics">
+    <article class="card metric"><span>Recommandations</span><strong id="mReco">1</strong></article>
+    <article class="card metric"><span>Décisions humaines</span><strong id="mDecision">0</strong></article>
+    <article class="card metric"><span>Écarts documentés</span><strong id="mDivergence">0</strong></article>
+    <article class="card metric"><span>Actions lancées</span><strong id="mActions">0</strong></article>
+  </div>
+
+  <div class="layout">
+    <section class="card stack">
+      <div><div class="badge amber">RECOMMANDATION DU CONSEIL</div><h2>Réduire le périmètre du MVP</h2><p class="muted">Focaliser ExecutiveOS sur un seul Challenge, le Scheduler cognitif et le Decision Ledger.</p></div>
+
+      <div class="scenarios">
+        <div class="scenario"><div class="badge amber">SCÉNARIO A</div><h3>Continuer le plan complet</h3><p class="muted">Score 48/100 — risque de dispersion élevé.</p></div>
+        <div class="scenario best"><div class="badge green">SCÉNARIO B — RECOMMANDÉ</div><h3>Réduire le périmètre</h3><p class="muted">Score 91/100 — meilleur ratio impact, vitesse et risque.</p></div>
+        <div class="scenario"><div class="badge amber">SCÉNARIO C</div><h3>Mettre le projet en pause</h3><p class="muted">Score 72/100 — réduit le risque mais ralentit l’apprentissage.</p></div>
+      </div>
+
+      <div class="reco">
+        <strong>Justification</strong>
+        <p>Le signal marché est encore incertain. Le Conseil recommande de démontrer une seule capacité différenciante avant d’élargir le produit.</p>
+      </div>
+
+      <label>Décision finale du dirigeant</label>
+      <select id="decisionChoice">
+        <option value="accept">Accepter la recommandation</option>
+        <option value="modify">Modifier la recommandation</option>
+        <option value="reject">Rejeter la recommandation</option>
+      </select>
+
+      <label>Formulation de la décision</label>
+      <textarea id="decisionText">Réduire le MVP au Scheduler cognitif, au Decision Ledger et à un seul Challenge pilote.</textarea>
+
+      <label>Pourquoi cette décision ?</label>
+      <textarea id="rationale">Nous devons prouver la valeur du produit avant de construire les moteurs secondaires.</textarea>
+
+      <div class="actions">
+        <button class="primary" id="commitDecision">Enregistrer la décision</button>
+        <button class="ghost" id="simulateDivergence">Simuler un désaccord</button>
+        <button class="danger" id="rejectAll">Rejeter sans suite</button>
+      </div>
+    </section>
+
+    <section class="card">
+      <div class="row"><div><div class="badge amber">DECISION LEDGER</div><h2>Historique auditable</h2></div><span class="badge blue">Human-in-the-loop</span></div>
+      <div id="ledger" class="ledger"><div class="muted">Aucune décision enregistrée.</div></div>
+
+      <div style="margin-top:18px">
+        <div class="badge amber">EXECUTION ENGINE</div>
+        <h2>Actions déclenchées</h2>
+        <div id="execution"><div class="muted">Aucune action lancée.</div></div>
+      </div>
+    </section>
+  </div>
+
+  <section class="card" style="margin-top:18px">
+    <div class="badge amber">COGNITIVE BUS</div><h2>Événements système</h2>
+    <div id="events"></div>
+  </section>
+</main>
+</div>
+
+<script>
+let state={ledger:[],actions:[],events:[]};
+
+function now(){return new Date().toLocaleString('fr-FR')}
+function emit(type,detail){
+  state.events.unshift({type,detail,time:now()});
+  render();
+}
+function render(){
+  mDecision.textContent=state.ledger.length;
+  mDivergence.textContent=state.ledger.filter(x=>x.outcome!=='accept').length;
+  mActions.textContent=state.actions.length;
+
+  ledger.innerHTML=state.ledger.length?state.ledger.map((d,i)=>`<div class="entry">
+    <div class="row"><span class="badge ${d.outcome==='accept'?'green':d.outcome==='modify'?'amber':'red'}">${d.outcome.toUpperCase()}</span><small>${d.time}</small></div>
+    <h3>${d.text}</h3>
+    <p><b>Rationale :</b> ${d.rationale}</p>
+    <p><b>Recommandation initiale :</b> Réduire le périmètre du MVP.</p>
+    ${d.outcome!=='accept'?`<p><b>Écart humain :</b> ${d.divergence}</p>`:''}
+    <small>Décision ID : DEC-${String(i+1).padStart(3,'0')}</small>
+  </div>`).join(''):'<div class="muted">Aucune décision enregistrée.</div>';
+
+  execution.innerHTML=state.actions.length?state.actions.map(a=>`<div class="exec"><strong>${a.title}</strong><div>${a.owner} · échéance ${a.due}</div></div>`).join(''):'<div class="muted">Aucune action lancée.</div>';
+
+  events.innerHTML=state.events.length?state.events.map(e=>`<div class="event"><strong>${e.type}</strong><div>${e.detail}</div><small class="muted">${e.time}</small></div>`).join(''):'<div class="muted">Aucun événement.</div>';
+}
+
+function commit(outcomeOverride){
+  const outcome=outcomeOverride||decisionChoice.value;
+  const text=decisionText.value.trim();
+  const rationale=rationale.value.trim();
+  if(!text||!rationale)return alert('Complète la décision et sa justification.');
+  let divergence='';
+  if(outcome==='modify') divergence='Le dirigeant conserve le focus, mais ajoute une intégration calendrier au MVP.';
+  if(outcome==='reject') divergence='Le dirigeant estime que la validation marché justifie de maintenir le périmètre complet.';
+  state.ledger.unshift({outcome,text,rationale,divergence,time:now()});
+  emit('DecisionCommitted',text);
+
+  if(outcome!=='reject'){
+    const newActions=[
+      {title:'Définir le Challenge pilote unique',owner:'Chief of Staff',due:'J+2'},
+      {title:'Construire le flux Scheduler → Decision Ledger',owner:'CTO',due:'J+7'},
+      {title:'Tester la démonstration avec 5 dirigeants',owner:'CEO',due:'J+10'}
+    ];
+    if(outcome==='modify') newActions.push({title:'Ajouter le calendrier au périmètre pilote',owner:'Product',due:'J+10'});
+    state.actions.unshift(...newActions);
+    emit('ExecutionPlanCreated',`${newActions.length} actions générées depuis la décision.`);
+  } else {
+    emit('RecommendationRejected','Aucune action automatique générée.');
+  }
+  render();
+}
+
+commitDecision.onclick=()=>commit();
+simulateDivergence.onclick=()=>{
+  decisionChoice.value='modify';
+  decisionText.value='Réduire le MVP au Scheduler, au Decision Ledger et à une intégration calendrier minimale.';
+  rationale.value='Le calendrier est indispensable pour démontrer une priorisation réellement contextualisée.';
+  commit('modify');
+};
+rejectAll.onclick=()=>{
+  decisionChoice.value='reject';
+  decisionText.value='Maintenir le périmètre produit complet pour la prochaine démonstration.';
+  rationale.value='Le risque principal est désormais de sous-démontrer la vision plutôt que de sur-construire.';
+  commit('reject');
+};
+reset.onclick=()=>{state={ledger:[],actions:[],events:[]};render();emit('SystemReset','Decision Ledger réinitialisé.');};
+decisionChoice.onchange=()=>{
+  if(decisionChoice.value==='accept'){
+    decisionText.value='Réduire le MVP au Scheduler cognitif, au Decision Ledger et à un seul Challenge pilote.';
+    rationale.value='Nous devons prouver la valeur du produit avant de construire les moteurs secondaires.';
+  } else if(decisionChoice.value==='modify'){
+    decisionText.value='Réduire le MVP, tout en conservant une intégration calendrier minimale.';
+    rationale.value='Le calendrier renforce la démonstration de priorisation contextuelle.';
+  } else {
+    decisionText.value='Maintenir le périmètre complet du MVP.';
+    rationale.value='La vision doit être démontrée dans son ensemble pour convaincre les premiers utilisateurs.';
+  }
+};
+emit('RecommendationReady','Le Conseil IA recommande de réduire le périmètre du MVP.');
+</script>
+</body>
+</html>
