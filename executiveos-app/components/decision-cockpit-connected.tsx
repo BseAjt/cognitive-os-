@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useState, type ReactNode } from "react";
 import type { DecisionFrame } from "@/lib/decision-room";
 import type { ContextItem, ContextReadiness } from "@/lib/context-engine";
 import { buildScenarioPortfolio } from "@/lib/scenario-builder";
@@ -53,4 +53,4 @@ export function ConnectedDecisionCockpit({ frame, contextItems, readiness, onRec
 }
 
 function Metric({ label, value }: { label: string; value: string }) { return <div className="rounded-xl border border-white/10 bg-white/[.02] p-3"><span className="block text-xs text-[#91a2bd]">{label}</span><strong className="mt-1 block text-lg">{value}</strong></div>; }
-function Panel({ title, children }: { title: string; children: React.ReactNode }) { return <div className="rounded-2xl border border-white/10 p-4"><strong>{title}</strong><div className="mt-3 grid gap-2 text-sm text-[#aebbd0]">{children}</div></div>; }
+function Panel({ title, children }: { title: string; children: ReactNode }) { return <div className="rounded-2xl border border-white/10 p-4"><strong>{title}</strong><div className="mt-3 grid gap-2 text-sm text-[#aebbd0]">{children}</div></div>; }
