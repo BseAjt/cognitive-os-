@@ -1,4 +1,4 @@
-import type { Challenge } from "@/types/domain";
+import type { Challenge } from "../types/domain.ts";
 
 export interface DecisionOption {
   title: string;
@@ -8,6 +8,7 @@ export interface DecisionOption {
 
 export interface DecisionFrame {
   question: string;
+  category: "hiring" | "investment" | "launch" | "pricing" | "partnership" | "generic";
   criteria: string[];
   options: DecisionOption[];
   recommendation: string;
@@ -18,35 +19,107 @@ export interface DecisionFrame {
 
 export function buildDecisionFrame(message: string, challenge: Challenge): DecisionFrame {
   const lower = message.toLowerCase();
-  const isHiring = /recrut|embauch|directeur commercial|sales director|head of sales/.test(lower);
+  const question = message.replace(/\s+/g, " ").trim();
 
-  if (isHiring) {
-    return {
-      question: "Faut-il recruter un directeur commercial maintenant ?",
-      criteria: ["Impact sur la croissance", "Coût et trésorerie", "Vitesse d’exécution", "Réversibilité", "Maturité du pipeline"],
-      options: [
-        { title: "Recruter maintenant", description: "Lancer immédiatement le recrutement d’un directeur commercial senior.", score: 64 },
-        { title: "Nommer un responsable intérimaire", description: "Tester pendant 8 semaines un leadership commercial interne ou fractionné.", score: 82 },
-        { title: "Reporter de 3 mois", description: "Valider d’abord le pipeline, les leads et la cause réelle du ralentissement.", score: 71 }
-      ],
-      recommendation: "Nommer un responsable intérimaire pendant 8 semaines, puis recruter si le pipeline qualifié et la conversion justifient le poste.",
-      confidence: 74,
-      missingInformation: ["Pipeline qualifié actuel", "Taux de conversion", "Coût complet du recrutement", "Capacité de l’équipe existante"],
-      reviewTrigger: "Réexaminer dans 8 semaines ou dès que le pipeline qualifié dépasse le seuil défini."
-    };
+  if (/recrut|embauch|directeur commercial|sales director|head of sales|cto|cfo/.test(lower)) {
+    return createFrame(
+      "hiring",
+      question,
+      ["Impact métier", "Coût complet", "Délai de contribution", "Réversibilité", "Capacité interne"],
+      ["Recruter maintenant", "Tester une solution intérimaire", "Reporter et valider le besoin"],
+      "Tester une solution intérimaire avec des critères de déclenchement explicites.",
+      ["Besoin exact", "Budget complet", "Capacité interne", "Indicateurs de succès"],
+      74
+    );
   }
 
+  if (/achet|acquérir|investir|investissement|lever des fonds|financer/.test(lower)) {
+    return createFrame(
+      "investment",
+      question,
+      ["Valeur attendue", "Cash mobilisé", "Risque baissier", "Liquidité", "Réversibilité"],
+      ["Engager maintenant", "Investir par étapes", "Reporter"],
+      "Investir par étapes avec un plafond de perte et un jalon de revue.",
+      ["Montant", "ROI attendu", "Scénario défavorable", "Horizon"],
+      70
+    );
+  }
+
+  if (/lancer|launch|mise sur le marché|nouveau produit|nouvelle offre/.test(lower)) {
+    return createFrame(
+      "launch",
+      question,
+      ["Signal marché", "Vitesse", "Coût", "Risque de marque", "Capacité d’exécution"],
+      ["Lancement complet", "Pilote limité", "Reporter"],
+      "Lancer un pilote limité avec critères de passage à l’échelle.",
+      ["Segment cible", "Critère de succès", "Budget pilote", "Capacité support"],
+      76
+    );
+  }
+
+  if (/prix|pricing|tarif|augmenter.*prix|baisser.*prix/.test(lower)) {
+    return createFrame(
+      "pricing",
+      question,
+      ["Marge", "Élasticité", "Positionnement", "Churn", "Réversibilité"],
+      ["Changer maintenant", "Tester sur un segment", "Conserver le prix"],
+      "Tester le nouveau prix sur un segment contrôlé avant généralisation.",
+      ["Marge actuelle", "Sensibilité prix", "Churn acceptable", "Segment test"],
+      72
+    );
+  }
+
+  if (/partenariat|partenaire|alliance|joint.?venture|s'associer|s’associer/.test(lower)) {
+    return createFrame(
+      "partnership",
+      question,
+      ["Accès marché", "Dépendance", "Économie du deal", "Contrôle", "Réversibilité"],
+      ["Signer maintenant", "Pilote contractuel", "Ne pas poursuivre"],
+      "Démarrer par un pilote contractuel limité et mesurable.",
+      ["Objectifs communs", "Partage de valeur", "Clauses de sortie", "Sponsor exécutif"],
+      69
+    );
+  }
+
+  return createFrame(
+    "generic",
+    question,
+    ["Impact", "Coût", "Risque", "Vitesse", "Réversibilité"],
+    ["Agir maintenant", "Tester à petite échelle", "Reporter"],
+    "Tester à petite échelle avant un engagement difficilement réversible.",
+    ["Critère de réussite", "Coût d’opportunité", "Échéance réelle"],
+    Math.max(55, challenge.confidence)
+  );
+}
+
+function createFrame(
+  category: DecisionFrame["category"],
+  question: string,
+  criteria: string[],
+  optionTitles: string[],
+  recommendation: string,
+  missingInformation: string[],
+  confidence: number
+): DecisionFrame {
+  const scores = [66, 84, 58];
   return {
-    question: message.replace(/\s+/g, " ").trim(),
-    criteria: ["Impact", "Coût", "Risque", "Vitesse", "Réversibilité"],
-    options: [
-      { title: "Agir maintenant", description: "Exécuter l’option principale immédiatement.", score: 68 },
-      { title: "Tester à petite échelle", description: "Réduire l’incertitude avec une expérimentation courte.", score: 83 },
-      { title: "Reporter", description: "Attendre davantage d’informations avant de s’engager.", score: 57 }
-    ],
-    recommendation: "Tester à petite échelle avant de prendre un engagement difficilement réversible.",
-    confidence: Math.max(55, challenge.confidence),
-    missingInformation: ["Critère de réussite", "Coût d’opportunité", "Échéance réelle"],
-    reviewTrigger: "Réexaminer après obtention des informations manquantes."
+    category,
+    question,
+    criteria,
+    options: optionTitles.map((title, index) => ({
+      title,
+      description:
+        index === 0
+          ? "Engagement immédiat."
+          : index === 1
+            ? "Réduction d’incertitude par une étape limitée."
+            : "Attendre ou abandonner selon les preuves.",
+      score: scores[index]
+    })),
+    recommendation,
+    confidence,
+    missingInformation,
+    reviewTrigger:
+      "Réexaminer après obtention des informations manquantes ou changement significatif du contexte."
   };
 }
