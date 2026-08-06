@@ -3,6 +3,7 @@
 import { useMemo, useState } from "react";
 import type { DecisionFrame } from "@/lib/decision-room";
 import { ScenarioBuilder } from "@/components/scenario-builder";
+import { ExecutiveCouncil } from "@/components/executive-council";
 import {
   answerContextItem,
   assessContext,
@@ -109,6 +110,7 @@ export function DecisionWorkbench({ frame, onContextSubmit, onCreateAction }: De
       </article>
 
       <ScenarioBuilder frame={frame} contextItems={contextItems} readiness={assessment} onCreateAction={onCreateAction} />
+      <ExecutiveCouncil frame={frame} contextItems={contextItems} readiness={assessment} onCreateAction={onCreateAction} />
     </>
   );
 }
