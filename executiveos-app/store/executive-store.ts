@@ -4,17 +4,27 @@ import { create } from "zustand";
 import { persist } from "zustand/middleware";
 import type { ActionItem, Challenge, CognitiveEvent, Decision } from "@/types/domain";
 
+export interface ConversationMessage {
+  id: string;
+  challengeId: string;
+  role: "user" | "assistant";
+  text: string;
+  createdAt: string;
+}
+
 interface ExecutiveState {
   challenges: Challenge[];
   decisions: Decision[];
   actions: ActionItem[];
   events: CognitiveEvent[];
+  messages: ConversationMessage[];
   activeChallengeId: string;
   setActiveChallenge: (id: string) => void;
   updateChallenge: (challenge: Challenge) => void;
   addDecision: (decision: Decision) => void;
   addActions: (actions: ActionItem[]) => void;
   addEvent: (type: string, detail: string) => void;
+  addMessages: (messages: ConversationMessage[]) => void;
   runCriticalSimulation: () => void;
 }
 
@@ -29,7 +39,7 @@ const initialChallenges: Challenge[] = [
     confidence: 72,
     cognitiveCost: 7,
     risk: 7,
-    context: "Le Scheduler cognitif est le principal différenciateur à valider.",
+    context: "Le Conversation Runtime devient le cœur du produit.",
     state: "decide"
   },
   {
@@ -54,6 +64,15 @@ export const useExecutiveStore = create<ExecutiveState>()(
       decisions: [],
       actions: [],
       events: [],
+      messages: [
+        {
+          id: "welcome",
+          challengeId: "executiveos",
+          role: "assistant",
+          text: "Bonjour Sébastien. Tu reprends ExecutiveOS. Le principal sujet est maintenant la validation du Conversation Runtime. Que souhaites-tu approfondir ?",
+          createdAt: new Date().toISOString()
+        }
+      ],
       activeChallengeId: "executiveos",
       setActiveChallenge: (id) => set({ activeChallengeId: id }),
       updateChallenge: (challenge) =>
@@ -66,6 +85,7 @@ export const useExecutiveStore = create<ExecutiveState>()(
         set((state) => ({
           events: [{ id: crypto.randomUUID(), type, detail, createdAt: new Date().toISOString() }, ...state.events]
         })),
+      addMessages: (messages) => set((state) => ({ messages: [...state.messages, ...messages] })),
       runCriticalSimulation: () =>
         set((state) => ({
           challenges: state.challenges.map((challenge) =>
@@ -82,6 +102,6 @@ export const useExecutiveStore = create<ExecutiveState>()(
           events: [{ id: crypto.randomUUID(), type: "CriticalSignalDetected", detail: "La disposition à payer devient incertaine.", createdAt: new Date().toISOString() }, ...state.events]
         }))
     }),
-    { name: "executiveos-v1" }
+    { name: "executiveos-v2" }
   )
 );
