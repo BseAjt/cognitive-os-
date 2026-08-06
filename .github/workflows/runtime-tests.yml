@@ -1,21 +1,18 @@
-name: ExecutiveOS Runtime Tests
+name: ExecutiveOS Full Validation
 
 on:
   pull_request:
     paths:
-      - "executiveos-app/lib/**"
-      - "executiveos-app/tests/**"
-      - "executiveos-app/package.json"
+      - "executiveos-app/**"
       - ".github/workflows/runtime-tests.yml"
   push:
     branches: [main]
     paths:
-      - "executiveos-app/lib/**"
-      - "executiveos-app/tests/**"
-      - "executiveos-app/package.json"
+      - "executiveos-app/**"
+      - ".github/workflows/runtime-tests.yml"
 
 jobs:
-  runtime-tests:
+  full-validation:
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -27,9 +24,13 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: 22
+          cache: npm
+          cache-dependency-path: executiveos-app/package-lock.json
       - name: Install dependencies
-        run: npm install
-      - name: Run runtime regression suite
+        run: npm ci
+      - name: Run runtime and application tests
         run: npm run test:runtime
       - name: TypeScript check
         run: npx tsc --noEmit
+      - name: Production build
+        run: npm run build
