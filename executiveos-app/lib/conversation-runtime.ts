@@ -1,7 +1,8 @@
-import type { Challenge } from "@/types/domain";
-import { buildDecisionFrame, type DecisionFrame } from "@/lib/decision-room";
+import type { Challenge } from "../types/domain.ts";
+import { buildDecisionFrame, type DecisionFrame } from "./decision-room.ts";
 
 export type CognitiveKind = "goal" | "hypothesis" | "risk" | "decision" | "action" | "question" | "context";
+export type RuntimeIntent = "continue" | "idea" | "decision" | "problem" | "meeting" | "general";
 
 export interface CognitiveExtraction {
   kind: CognitiveKind;
@@ -10,7 +11,7 @@ export interface CognitiveExtraction {
 }
 
 export interface RuntimeResult {
-  intent: "continue" | "idea" | "decision" | "problem" | "meeting" | "general";
+  intent: RuntimeIntent;
   extractions: CognitiveExtraction[];
   response: string;
   nextAction: string;
@@ -18,8 +19,36 @@ export interface RuntimeResult {
   decisionFrame?: DecisionFrame;
 }
 
+const DECISION_PATTERNS = [
+  /\bdois-je\b/,
+  /\bdevrais-je\b/,
+  /\bfaut-il\b/,
+  /\best-ce que je dois\b/,
+  /\best-ce une bonne idée de\b/,
+  /\bvaut-il mieux\b/,
+  /\bque choisir\b/,
+  /\bquel choix\b/,
+  /\bchoisir entre\b/,
+  /\bje dois décider\b/,
+  /\bje veux décider\b/,
+  /\bdevrions-nous\b/,
+  /\bdoit-on\b/,
+  /\bshould i\b/,
+  /\bshould we\b/
+];
+
 export function runConversationRuntime(message: string, challenge: Challenge): RuntimeResult {
   const normalized = message.trim();
+  if (!normalized) {
+    return {
+      intent: "general",
+      extractions: [],
+      response: "Décris la situation ou la décision que tu veux traiter.",
+      nextAction: "Formuler le sujet en une phrase.",
+      challengePatch: {}
+    };
+  }
+
   const lower = normalized.toLowerCase();
   const intent = detectIntent(lower);
   const sentences = normalized.split(/(?<=[.!?])\s+/).filter(Boolean);
@@ -49,26 +78,26 @@ export function runConversationRuntime(message: string, challenge: Challenge): R
   return { intent, extractions, response, nextAction, challengePatch, decisionFrame };
 }
 
-function detectIntent(lower: string): RuntimeResult["intent"] {
-  if (lower.includes("j'ai une idée") || lower.includes("j’ai une idée")) return "idea";
-  if (/je dois décider|je veux décider|dois-je|devrais-je|faut-il|quelle décision/.test(lower)) return "decision";
-  if (/j'ai un problème|j’ai un problème|bloqué|problème/.test(lower)) return "problem";
-  if (/réunion|compte rendu|meeting/.test(lower)) return "meeting";
-  if (/continue|reprendre|où en étions|où en étais/.test(lower)) return "continue";
+export function detectIntent(lower: string): RuntimeIntent {
+  if (DECISION_PATTERNS.some((pattern) => pattern.test(lower))) return "decision";
+  if (/j['’]ai une idée|nouvelle idée|idée de/.test(lower)) return "idea";
+  if (/j['’]ai un problème|problème|bloqué|blocage|incident|crise/.test(lower)) return "problem";
+  if (/réunion|compte rendu|meeting|comité|atelier/.test(lower)) return "meeting";
+  if (/continue|reprendre|où en étions|où en étais|rappelle-moi/.test(lower)) return "continue";
   return "general";
 }
 
-function classify(sentence: string, intent: RuntimeResult["intent"]): CognitiveExtraction {
+function classify(sentence: string, intent: RuntimeIntent): CognitiveExtraction {
   const lower = sentence.toLowerCase();
-  if (intent === "decision" && /dois-je|devrais-je|faut-il|je dois décider|je veux décider/.test(lower)) {
+  if (intent === "decision" && DECISION_PATTERNS.some((pattern) => pattern.test(lower))) {
     return item("decision", sentence, 95);
   }
+  if (/risque|danger|incertain|bloqu|peur|crainte|menace/.test(lower)) return item("risk", sentence, 84);
+  if (/je pense|j['’]imagine|hypothèse|probable|peut-être|je crois/.test(lower)) return item("hypothesis", sentence, 80);
+  if (/je décide|nous décidons|décision prise|nous retenons/.test(lower)) return item("decision", sentence, 88);
+  if (/il faut|prochaine étape|je dois|nous devons|action|avant vendredi|d'ici|d’ici/.test(lower)) return item("action", sentence, 86);
+  if (/objectif|je veux obtenir|résultat attendu|but est/.test(lower)) return item("goal", sentence, 82);
   if (sentence.includes("?")) return item("question", sentence, 92);
-  if (/risque|danger|incertain|bloqu|peur|crainte/.test(lower)) return item("risk", sentence, 84);
-  if (/je pense|j'imagine|j’imagine|hypothèse|probable|peut-être/.test(lower)) return item("hypothesis", sentence, 80);
-  if (/je décide|nous décidons|il faut choisir|je vais choisir/.test(lower)) return item("decision", sentence, 88);
-  if (/il faut|prochaine étape|je dois|nous devons|action/.test(lower)) return item("action", sentence, 86);
-  if (/objectif|je veux obtenir|résultat attendu/.test(lower)) return item("goal", sentence, 82);
   return item("context", sentence, 74);
 }
 
@@ -77,14 +106,13 @@ function item(kind: CognitiveKind, text: string, confidence: number): CognitiveE
 }
 
 function buildNextAction(
-  intent: RuntimeResult["intent"],
+  intent: RuntimeIntent,
   challenge: Challenge,
   risk?: CognitiveExtraction,
   hypothesis?: CognitiveExtraction
 ): string {
   if (risk) return `Réduire l'incertitude liée à : ${risk.text}`;
   if (hypothesis) return `Définir une expérience pour tester : ${hypothesis.text}`;
-  if (intent === "decision") return "Comparer trois options et expliciter le critère de choix principal.";
   if (intent === "idea") return "Formuler le problème utilisateur et identifier la première hypothèse à tester.";
   if (intent === "meeting") return "Valider les décisions, propriétaires et échéances issus de la réunion.";
   if (intent === "continue") return challenge.context || "Reprendre la dernière action ouverte du Challenge.";
@@ -95,7 +123,6 @@ function buildDecisionResponse(frame: DecisionFrame): string {
   const options = frame.options
     .map((option, index) => `${index + 1}. ${option.title} — ${option.score}/100 : ${option.description}`)
     .join("\n");
-
   return [
     `Décision cadrée : ${frame.question}`,
     "",
@@ -109,12 +136,12 @@ function buildDecisionResponse(frame: DecisionFrame): string {
 }
 
 function buildResponse(
-  intent: RuntimeResult["intent"],
+  intent: RuntimeIntent,
   challenge: Challenge,
   extractions: CognitiveExtraction[],
   nextAction: string
 ): string {
-  const labels = extractions.map((item) => item.kind).filter((value, index, array) => array.indexOf(value) === index);
+  const labels = [...new Set(extractions.map((item) => item.kind))];
   const opening = {
     continue: `Tu reprends « ${challenge.title} ».`,
     idea: "J'ai transformé ton idée en premiers objets de raisonnement.",
@@ -123,6 +150,5 @@ function buildResponse(
     meeting: "J'ai analysé cette réunion comme une source de décisions et d'actions.",
     general: "J'ai intégré ce nouveau contexte au Challenge actif."
   }[intent];
-
   return `${opening} Éléments détectés : ${labels.join(", ") || "contexte"}. Prochaine meilleure action : ${nextAction}`;
 }
