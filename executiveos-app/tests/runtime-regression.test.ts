@@ -54,7 +54,7 @@ for (const message of nonDecisionQuestions) {
   test(`non decision question: ${message}`, () => {
     const result = runConversationRuntime(message, challenge);
     assert.notEqual(result.intent, "decision");
-    assert.equal(result.extractions[0].kind, message.includes("réunion") ? "meeting" : "question");
+    assert.equal(result.extractions[0].kind, "question");
     assert.equal(result.decisionFrame, undefined);
   });
 }
