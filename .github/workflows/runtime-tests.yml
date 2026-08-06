@@ -27,10 +27,21 @@ jobs:
           cache: npm
           cache-dependency-path: executiveos-app/package-lock.json
       - name: Install dependencies
-        run: npm ci
+        run: npm install
+      - name: Install Playwright Chromium
+        run: npx playwright install --with-deps chromium
       - name: Run runtime and application tests
         run: npm run test:runtime
       - name: TypeScript check
         run: npx tsc --noEmit
       - name: Production build
         run: npm run build
+      - name: Run browser end-to-end tests
+        run: npm run test:e2e
+      - name: Upload Playwright report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: executiveos-app/playwright-report/
+          retention-days: 14
