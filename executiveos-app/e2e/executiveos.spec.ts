@@ -1,6 +1,6 @@
-import { expect, test } from "@playwright/test";
+import { expect, test, type Page } from "@playwright/test";
 
-async function openCleanWorkspace(page: Parameters<typeof test>[0]["page"]) {
+async function openCleanWorkspace(page: Page) {
   await page.addInitScript(() => window.localStorage.clear());
   await page.goto("/");
   await expect(page.getByRole("heading", { name: "Que souhaites-tu résoudre aujourd’hui ?" })).toBeVisible();
