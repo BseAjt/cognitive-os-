@@ -4,6 +4,7 @@ import { useMemo, useState } from "react";
 import type { DecisionFrame } from "@/lib/decision-room";
 import { ScenarioBuilder } from "@/components/scenario-builder";
 import { ExecutiveCouncil } from "@/components/executive-council";
+import { ConnectedDecisionCockpit } from "@/components/decision-cockpit-connected";
 import {
   answerContextItem,
   assessContext,
@@ -111,6 +112,7 @@ export function DecisionWorkbench({ frame, onContextSubmit, onCreateAction }: De
 
       <ScenarioBuilder frame={frame} contextItems={contextItems} readiness={assessment} onCreateAction={onCreateAction} />
       <ExecutiveCouncil frame={frame} contextItems={contextItems} readiness={assessment} onCreateAction={onCreateAction} />
+      <ConnectedDecisionCockpit frame={frame} contextItems={contextItems} readiness={assessment} onRecord={onContextSubmit} onCreateAction={onCreateAction} />
     </>
   );
 }
