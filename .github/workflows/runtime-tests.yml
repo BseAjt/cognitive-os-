@@ -24,18 +24,18 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: 22
-          cache: npm
-          cache-dependency-path: executiveos-app/package-lock.json
       - name: Install dependencies
         run: npm install
       - name: Install Playwright Chromium
         run: npx playwright install --with-deps chromium
       - name: Run runtime and application tests
         run: npm run test:runtime
-      - name: TypeScript check
+      - name: TypeScript check for production application
         run: npx tsc --noEmit
       - name: Production build
         run: npm run build
+      - name: TypeScript check for Playwright tests
+        run: npm run test:e2e:typecheck
       - name: Run browser end-to-end tests
         run: npm run test:e2e
       - name: Upload Playwright report
