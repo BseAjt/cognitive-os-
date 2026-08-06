@@ -25,6 +25,7 @@ interface ExecutiveState {
   addActions: (actions: ActionItem[]) => void;
   addEvent: (type: string, detail: string) => void;
   addMessages: (messages: ConversationMessage[]) => void;
+  clearConversationHistory: (challengeId: string) => void;
   runCriticalSimulation: () => void;
 }
 
@@ -86,6 +87,10 @@ export const useExecutiveStore = create<ExecutiveState>()(
           events: [{ id: crypto.randomUUID(), type, detail, createdAt: new Date().toISOString() }, ...state.events]
         })),
       addMessages: (messages) => set((state) => ({ messages: [...state.messages, ...messages] })),
+      clearConversationHistory: (challengeId) =>
+        set((state) => ({
+          messages: state.messages.filter((message) => message.challengeId !== challengeId)
+        })),
       runCriticalSimulation: () =>
         set((state) => ({
           challenges: state.challenges.map((challenge) =>
