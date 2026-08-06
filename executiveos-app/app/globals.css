@@ -1,0 +1,31 @@
+@import "tailwindcss";
+@import "@xyflow/react/dist/style.css";
+
+:root {
+  --background: #07111f;
+  --panel: #101b2f;
+  --panel-soft: #16243c;
+  --border: rgba(255,255,255,.09);
+  --text: #f4f7fb;
+  --muted: #91a2bd;
+  --accent: #7c5cff;
+  --green: #42d59d;
+  --amber: #ffbc57;
+  --red: #ff7185;
+}
+
+* { box-sizing: border-box; }
+html, body { min-height: 100%; }
+body {
+  margin: 0;
+  color: var(--text);
+  background:
+    radial-gradient(circle at 80% 0, rgba(124,92,255,.18), transparent 30%),
+    var(--background);
+  font-family: Inter, ui-sans-serif, system-ui, sans-serif;
+}
+button, input, textarea, select { font: inherit; }
+.executive-card { border: 1px solid var(--border); background: rgba(16,27,47,.94); border-radius: 18px; }
+.executive-button { border-radius: 11px; padding: 10px 14px; font-weight: 700; cursor: pointer; }
+.executive-primary { border: 0; color: white; background: linear-gradient(135deg,#7d5dff,#5b3ae2); }
+.executive-ghost { border: 1px solid var(--border); color: var(--muted); background: #111c30; }
