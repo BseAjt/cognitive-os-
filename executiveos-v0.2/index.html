@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>ExecutiveOS v0.2 — AI Council</title>
+<style>
+:root{--bg:#07111f;--panel:#101b2f;--line:rgba(255,255,255,.09);--text:#f4f7fb;--muted:#91a2bd;--accent:#7c5cff;--green:#42d59d;--amber:#ffbc57;--red:#ff7185}
+*{box-sizing:border-box}
+body{margin:0;font-family:Inter,system-ui,sans-serif;background:radial-gradient(circle at 80% 0,rgba(124,92,255,.18),transparent 30%),var(--bg);color:var(--text)}
+button,input,textarea{font:inherit}
+.app{display:grid;grid-template-columns:270px 1fr;min-height:100vh}
+aside{padding:22px 18px;border-right:1px solid var(--line);background:rgba(5,11,21,.92);position:sticky;top:0;height:100vh}
+.brand{display:flex;gap:12px;align-items:center;margin-bottom:22px}.logo{width:42px;height:42px;border-radius:14px;display:grid;place-items:center;background:linear-gradient(135deg,#9d83ff,#5c39e8);font-weight:900}.brand span{display:block;color:var(--muted);font-size:12px}
+.nav button{width:100%;border:0;background:transparent;color:var(--muted);text-align:left;padding:11px 12px;border-radius:10px;margin:4px 0}.nav button.active{background:rgba(124,92,255,.14);color:white}
+main{padding:30px;max-width:1500px;width:100%;margin:auto}.top{display:flex;justify-content:space-between;gap:18px;align-items:flex-start}.top h1{font-size:38px;margin:4px 0}.top p{margin:0;color:var(--muted)}
+.primary,.ghost{border-radius:11px;padding:11px 14px;cursor:pointer}.primary{border:0;background:linear-gradient(135deg,#7d5dff,#5b3ae2);color:white;font-weight:800}.ghost{border:1px solid var(--line);background:#111c30;color:var(--muted)}
+.card{background:rgba(16,27,47,.94);border:1px solid var(--line);border-radius:16px;padding:18px}
+.layout{display:grid;grid-template-columns:.8fr 1.2fr;gap:18px;margin-top:20px}
+.challenge{padding:14px;border:1px solid var(--line);border-radius:13px;margin-bottom:10px;background:rgba(255,255,255,.025);cursor:pointer}.challenge.active{border-color:rgba(124,92,255,.55);background:rgba(124,92,255,.09)}
+.row{display:flex;justify-content:space-between;gap:12px;align-items:center}.muted{color:var(--muted)}
+.agent-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:12px}.agent{padding:14px;border:1px solid var(--line);border-radius:13px;background:rgba(255,255,255,.025)}.agent h3{margin:0 0 6px}.agent p{margin:0;color:#d7dfec;line-height:1.45}
+.scenario-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-top:14px}.scenario{padding:14px;border:1px solid var(--line);border-radius:13px}.scenario.recommended{border-color:rgba(66,213,157,.5);background:rgba(66,213,157,.07)}
+.badge{display:inline-block;font-size:11px;font-weight:900;letter-spacing:.08em}.green{color:var(--green)}.amber{color:var(--amber)}.red{color:var(--red)}
+.recommendation{margin-top:14px;padding:16px;border-radius:14px;background:linear-gradient(145deg,rgba(124,92,255,.13),rgba(255,255,255,.02));border:1px solid rgba(124,92,255,.35)}
+.timeline{margin-top:18px;display:grid;gap:10px}.event{padding:10px 12px;border-left:3px solid var(--accent);background:rgba(255,255,255,.025);border-radius:8px}
+textarea{width:100%;min-height:90px;background:#0d1727;color:white;border:1px solid var(--line);border-radius:12px;padding:12px;margin-top:10px}
+@media(max-width:1050px){.layout{grid-template-columns:1fr}.agent-grid,.scenario-grid{grid-template-columns:1fr}}
+@media(max-width:760px){.app{grid-template-columns:1fr}aside{display:none}main{padding:20px 14px}.top{display:block}}
+</style>
+</head>
+<body>
+<div class="app">
+<aside>
+  <div class="brand"><div class="logo">E</div><div><strong>ExecutiveOS</strong><span>Decision Operating System</span></div></div>
+  <nav class="nav">
+    <button>⌂ Dashboard</button>
+    <button>🎯 Challenges</button>
+    <button>⚖️ Decisions</button>
+    <button class="active">🤖 AI Council</button>
+    <button>🕒 Timeline</button>
+  </nav>
+</aside>
+<main>
+  <div class="top">
+    <div><div class="badge amber">EXECUTIVEOS v0.2</div><h1>Le Scheduler convoque le Conseil.</h1><p>Un changement de contexte déclenche un débat multi-agents, trois scénarios et une recommandation finale.</p></div>
+    <button class="primary" id="runCouncil">Lancer le Conseil IA</button>
+  </div>
+
+  <div class="layout">
+    <section class="card">
+      <div class="row"><div><div class="badge amber">CHALLENGES</div><h2>Portefeuille actif</h2></div><button class="ghost" id="critical">Injecter un signal critique</button></div>
+      <div id="challengeList"></div>
+      <textarea id="contextInput" placeholder="Ajoute un nouveau signal ou changement de contexte…"></textarea>
+      <button class="ghost" id="addContext" style="width:100%;margin-top:10px">Ajouter au contexte</button>
+    </section>
+
+    <section class="card">
+      <div class="badge amber">AI COUNCIL</div><h2 id="councilTitle">Conseil en attente</h2>
+      <div id="agents" class="agent-grid"></div>
+      <div id="scenarios" class="scenario-grid"></div>
+      <div id="recommendation" class="recommendation muted">Lance le Conseil IA pour générer une recommandation.</div>
+    </section>
+  </div>
+
+  <section class="card timeline">
+    <div class="row"><div><div class="badge amber">COGNITIVE BUS</div><h2>Événements</h2></div><button class="ghost" id="reset">Réinitialiser</button></div>
+    <div id="events"></div>
+  </section>
+</main>
+</div>
+
+<script>
+const initial=[
+{id:'launch',title:'Lancer ExecutiveOS',priority:92,risk:7,confidence:72,context:['Le Scheduler est le principal différenciateur.'],decision:'Prioriser le Scheduler dans le MVP.'},
+{id:'brand',title:'Valider le positionnement',priority:65,risk:4,confidence:84,context:['ExecutiveOS est retenu comme nom produit.'],decision:'Tester Decision Operating System comme catégorie.'},
+{id:'agents',title:'Marketplace d’agents',priority:24,risk:5,confidence:52,context:['La marketplace dépend de la traction initiale.'],decision:'Reporter après validation du MVP.'}
+];
+let state=JSON.parse(JSON.stringify(initial));
+let selected='launch';
+let logs=[];
+
+function current(){return state.find(x=>x.id===selected)}
+function log(title,detail){logs.unshift({time:new Date().toLocaleTimeString('fr-FR'),title,detail});renderLogs()}
+function render(){
+  challengeList.innerHTML=state.sort((a,b)=>b.priority-a.priority).map(c=>`<div class="challenge ${c.id===selected?'active':''}" data-id="${c.id}">
+    <div class="row"><strong>${c.title}</strong><span>${c.priority}</span></div>
+    <div class="muted">Confiance ${c.confidence}% · Risque ${c.risk}/10</div>
+  </div>`).join('');
+  document.querySelectorAll('[data-id]').forEach(el=>el.onclick=()=>{selected=el.dataset.id;render();clearCouncil()});
+}
+function clearCouncil(){
+  councilTitle.textContent='Conseil en attente';
+  agents.innerHTML='';scenarios.innerHTML='';
+  recommendation.textContent='Lance le Conseil IA pour générer une recommandation.';
+  recommendation.className='recommendation muted';
+}
+function run(){
+  const c=current();
+  councilTitle.textContent=`Conseil sur : ${c.title}`;
+  log('CouncilStarted',`Analyse multi-agents lancée sur « ${c.title} ».`);
+  const council=[
+    ['CEO','Le produit doit démontrer une valeur immédiate et visible. Je privilégie un cas d’usage étroit mais spectaculaire.'],
+    ['CTO','Le Scheduler et le modèle de décision constituent la barrière technique. Il faut éviter de disperser l’architecture.'],
+    ['CFO','La priorité doit rester un MVP vendable rapidement. Toute fonctionnalité sans lien avec le revenu doit être reportée.'],
+    ['Chief of Staff','Le principal risque est la surcharge. Je recommande un seul Challenge, une seule décision et une seule prochaine action.']
+  ];
+  agents.innerHTML=council.map(a=>`<div class="agent"><h3>${a[0]}</h3><p>${a[1]}</p></div>`).join('');
+  const critical=c.risk>=8||c.confidence<60;
+  const opts=[
+    {name:'Scénario A',title:'Continuer le plan actuel',desc:'Conserver la roadmap et absorber le nouveau contexte.',score:critical?48:75},
+    {name:'Scénario B',title:'Réduire le périmètre',desc:'Focaliser le MVP sur le Scheduler et un seul Challenge.',score:critical?91:88},
+    {name:'Scénario C',title:'Mettre en pause',desc:'Suspendre le développement et approfondir la validation marché.',score:critical?72:55}
+  ];
+  const best=opts.reduce((a,b)=>a.score>b.score?a:b);
+  scenarios.innerHTML=opts.map(o=>`<div class="scenario ${o===best?'recommended':''}"><div class="badge ${o===best?'green':'amber'}">${o.name}</div><h3>${o.title}</h3><p class="muted">${o.desc}</p><strong>Score ${o.score}/100</strong></div>`).join('');
+  recommendation.className='recommendation';
+  recommendation.innerHTML=`<div class="badge green">RECOMMANDATION DU CONSEIL</div><h2>${best.title}</h2><p>${best.desc}</p><p><b>Pourquoi :</b> meilleur ratio impact / vitesse / risque dans le contexte actuel.</p><p><b>Décision concernée :</b> ${c.decision}</p>`;
+  log('ScenariosGenerated','Trois scénarios évalués.');
+  log('RecommendationIssued',best.title);
+}
+runCouncil.onclick=run;
+critical.onclick=()=>{
+  const c=current();c.risk=9;c.confidence=41;c.priority=99;c.context.push('Les utilisateurs pilotes remettent en cause la disposition à payer.');
+  log('CriticalSignalDetected','La disposition à payer devient incertaine.');
+  log('DecisionReviewRequested',c.decision);
+  render();clearCouncil();
+};
+addContext.onclick=()=>{
+  const v=contextInput.value.trim();if(!v)return;
+  const c=current();c.context.push(v);c.priority=Math.min(100,c.priority+5);
+  log('ContextUpdated',v);contextInput.value='';render();clearCouncil();
+};
+reset.onclick=()=>{state=JSON.parse(JSON.stringify(initial));selected='launch';logs=[];renderLogs();render();clearCouncil();log('SystemReset','Retour à l’état initial.')};
+function renderLogs(){events.innerHTML=logs.length?logs.map(e=>`<div class="event"><strong>${e.title}</strong><div>${e.detail}</div><small class="muted">${e.time}</small></div>`).join(''):'<div class="muted">Aucun événement.</div>'}
+render();renderLogs();
+</script>
+</body>
+</html>
