@@ -21,20 +21,29 @@ export interface RuntimeResult {
 
 const DECISION_PATTERNS = [
   /\bdois-je\b/,
+  /\bdois je\b/,
   /\bdevrais-je\b/,
   /\bfaut-il\b/,
   /\best-ce que je dois\b/,
+  /\best-ce qu['’]on devrait\b/,
   /\best-ce une bonne idée de\b/,
+  /\best-il (?:pertinent|préférable|opportun|raisonnable) de\b/,
   /\bvaut-il mieux\b/,
   /\bque choisir\b/,
   /\bquel choix\b/,
+  /\bquelle option\b.*\b(?:choisir|retenir|prendre)\b/,
+  /\bquel scénario\b.*\b(?:choisir|retenir)\b/,
   /\bchoisir entre\b/,
+  /\bnous devons choisir\b/,
   /\bje dois décider\b/,
   /\bje veux décider\b/,
+  /\bje me demande si\b.*\b(?:dois|devons|devrait|devrions|faut)\b/,
   /\bdevrions-nous\b/,
   /\bdoit-on\b/,
   /\bshould i\b/,
-  /\bshould we\b/
+  /\bshould we\b/,
+  /\bi need to decide whether\b/,
+  /\bwould it be better to\b/
 ];
 
 export function runConversationRuntime(message: string, challenge: Challenge): RuntimeResult {
@@ -51,7 +60,7 @@ export function runConversationRuntime(message: string, challenge: Challenge): R
 
   const lower = normalized.toLowerCase();
   const intent = detectIntent(lower);
-  const sentences = normalized.split(/(?<=[.!?])\s+/).filter(Boolean);
+  const sentences = normalized.split(/(?<=[.!?])\s+|\n+/).map((value) => value.trim()).filter(Boolean);
   const extractions = sentences.map((sentence) => classify(sentence, intent));
 
   const risk = extractions.find((item) => item.kind === "risk");
