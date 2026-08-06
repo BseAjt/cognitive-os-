@@ -16,7 +16,7 @@ interface ExecutiveCouncilProps {
 export function ExecutiveCouncil({ frame, contextItems, readiness, onCreateAction }: ExecutiveCouncilProps) {
   const portfolio = useMemo(() => buildScenarioPortfolio(frame, contextItems, readiness), [frame, contextItems, readiness]);
   const council = useMemo(() => conveneExecutiveCouncil(contextItems, readiness, portfolio), [contextItems, readiness, portfolio]);
-  const [activeAgent, setActiveAgent] = useState(council.assessments[0]?.agent ?? "CFO");
+  const [activeAgent, setActiveAgent] = useState("CFO");
   const active = council.assessments.find((assessment) => assessment.agent === activeAgent) ?? council.assessments[0];
 
   return (
