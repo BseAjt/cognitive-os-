@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>ExecutiveOS v0.4 — Execution Feedback Loop</title>
+<style>
+:root{--bg:#07111f;--panel:#101b2f;--line:rgba(255,255,255,.09);--text:#f4f7fb;--muted:#91a2bd;--accent:#7c5cff;--green:#42d59d;--amber:#ffbc57;--red:#ff7185;--blue:#69bfff}
+*{box-sizing:border-box}body{margin:0;font-family:Inter,system-ui,sans-serif;background:radial-gradient(circle at 80% 0,rgba(124,92,255,.18),transparent 30%),var(--bg);color:var(--text)}
+button,input,textarea,select{font:inherit}.app{display:grid;grid-template-columns:270px 1fr;min-height:100vh}
+aside{padding:22px 18px;border-right:1px solid var(--line);background:rgba(5,11,21,.92);position:sticky;top:0;height:100vh}
+.brand{display:flex;gap:12px;align-items:center;margin-bottom:22px}.logo{width:42px;height:42px;border-radius:14px;display:grid;place-items:center;background:linear-gradient(135deg,#9d83ff,#5c39e8);font-weight:900}.brand span{display:block;color:var(--muted);font-size:12px}
+.nav button{width:100%;border:0;background:transparent;color:var(--muted);text-align:left;padding:11px 12px;border-radius:10px;margin:4px 0}.nav button.active{background:rgba(124,92,255,.14);color:white}
+main{padding:30px;max-width:1500px;width:100%;margin:auto}.top{display:flex;justify-content:space-between;gap:18px;align-items:flex-start}.top h1{font-size:38px;margin:4px 0}.top p{margin:0;color:var(--muted)}
+.primary,.ghost,.danger{border-radius:11px;padding:11px 14px;cursor:pointer}.primary{border:0;background:linear-gradient(135deg,#7d5dff,#5b3ae2);color:white;font-weight:800}.ghost{border:1px solid var(--line);background:#111c30;color:var(--muted)}.danger{border:1px solid rgba(255,113,133,.35);background:rgba(255,113,133,.08);color:#ffb6c2}
+.card{background:rgba(16,27,47,.94);border:1px solid var(--line);border-radius:16px;padding:18px}
+.metrics{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin:18px 0}.metric span{color:var(--muted);font-size:13px}.metric strong{display:block;font-size:29px;margin-top:7px}
+.layout{display:grid;grid-template-columns:1fr 1fr;gap:18px}.row{display:flex;justify-content:space-between;gap:12px;align-items:center}.muted{color:var(--muted)}.badge{display:inline-block;font-size:11px;font-weight:900;letter-spacing:.08em}.green{color:var(--green)}.amber{color:var(--amber)}.red{color:var(--red)}.blue{color:var(--blue)}
+.actions-list,.learning-list,.events{display:grid;gap:10px}.action{padding:14px;border:1px solid var(--line);border-radius:13px;background:rgba(255,255,255,.025)}.action.done{border-color:rgba(66,213,157,.45);background:rgba(66,213,157,.06)}.action.blocked{border-color:rgba(255,113,133,.35);background:rgba(255,113,133,.05)}
+.progress{height:8px;background:#27344d;border-radius:99px;overflow:hidden;margin-top:10px}.progress span{display:block;height:100%;background:linear-gradient(90deg,#7250ff,#ad99ff)}
+textarea,input,select{width:100%;background:#0d1727;color:white;border:1px solid var(--line);border-radius:11px;padding:11px}.stack{display:grid;gap:12px}
+.compare{display:grid;grid-template-columns:1fr 1fr;gap:12px}.compare>div{padding:14px;border:1px solid var(--line);border-radius:13px}.compare h3{margin-top:0}.delta{font-size:32px;font-weight:900}
+.learning{padding:14px;border-left:3px solid var(--blue);background:rgba(105,191,255,.06);border-radius:8px}.policy{padding:14px;border-left:3px solid var(--amber);background:rgba(255,188,87,.06);border-radius:8px}.event{padding:10px 12px;border-left:3px solid var(--accent);background:rgba(255,255,255,.025);border-radius:8px}
+@media(max-width:1050px){.layout,.compare{grid-template-columns:1fr}.metrics{grid-template-columns:repeat(2,1fr)}}@media(max-width:760px){.app{grid-template-columns:1fr}aside{display:none}main{padding:20px 14px}.top{display:block}.metrics{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<div class="app">
+<aside>
+  <div class="brand"><div class="logo">E</div><div><strong>ExecutiveOS</strong><span>Decision Operating System</span></div></div>
+  <nav class="nav">
+    <button>⌂ Dashboard</button><button>🎯 Challenges</button><button>⚖️ Decisions</button><button class="active">▶ Execution</button><button>🧠 Learning</button>
+  </nav>
+</aside>
+
+<main>
+  <div class="top">
+    <div><div class="badge amber">EXECUTIVEOS v0.4</div><h1>La décision apprend de ses résultats.</h1><p>Les actions produisent des observations. ExecutiveOS compare l’attendu au réel et améliore ses futures recommandations.</p></div>
+    <button class="ghost" id="reset">Réinitialiser</button>
+  </div>
+
+  <div class="metrics">
+    <article class="card metric"><span>Progression du plan</span><strong id="mProgress">0%</strong></article>
+    <article class="card metric"><span>Résultats observés</span><strong id="mResults">0</strong></article>
+    <article class="card metric"><span>Learnings générés</span><strong id="mLearnings">0</strong></article>
+    <article class="card metric"><span>Politiques ajustées</span><strong id="mPolicies">0</strong></article>
+  </div>
+
+  <div class="layout">
+    <section class="card">
+      <div class="row"><div><div class="badge amber">EXECUTION ENGINE</div><h2>Plan issu de la décision</h2></div><button class="primary" id="simulateWeek">Simuler une semaine</button></div>
+      <div id="actionsList" class="actions-list"></div>
+    </section>
+
+    <section class="card stack">
+      <div><div class="badge amber">RESULT REVIEW</div><h2>Attendu vs réel</h2></div>
+      <div class="compare">
+        <div><h3>Résultat attendu</h3><p>5 entretiens dirigeants, 3 retours très positifs, validation de la valeur du Scheduler.</p><div class="delta green">80%</div><small class="muted">Confiance attendue</small></div>
+        <div><h3>Résultat réel</h3><p id="actualText">Aucun résultat observé pour le moment.</p><div class="delta" id="actualScore">—</div><small class="muted">Confiance mesurée</small></div>
+      </div>
+      <label>Observation terrain</label>
+      <textarea id="observation" placeholder="Exemple : 5 dirigeants testés, 2 comprennent immédiatement la valeur, 3 demandent une intégration calendrier."></textarea>
+      <label>Score de validation</label>
+      <input id="validationScore" type="range" min="0" max="100" value="50">
+      <div class="row"><button class="primary" id="recordResult">Enregistrer le résultat</button><button class="danger" id="simulateFailure">Simuler un échec</button></div>
+    </section>
+  </div>
+
+  <div class="layout" style="margin-top:18px">
+    <section class="card">
+      <div class="badge amber">LEARNING ENGINE</div><h2>Apprentissages générés</h2>
+      <div id="learningList" class="learning-list"><div class="muted">Aucun apprentissage.</div></div>
+    </section>
+    <section class="card">
+      <div class="badge amber">POLICY ENGINE</div><h2>Règles ajustées</h2>
+      <div id="policyList"><div class="muted">Aucune politique modifiée.</div></div>
+    </section>
+  </div>
+
+  <section class="card" style="margin-top:18px">
+    <div class="badge amber">COGNITIVE BUS</div><h2>Événements système</h2>
+    <div id="events" class="events"></div>
+  </section>
+</main>
+</div>
+
+<script>
+const initialActions=[
+{id:1,title:'Définir le Challenge pilote unique',owner:'Chief of Staff',due:'J+2',status:'todo',progress:0},
+{id:2,title:'Construire le flux Scheduler → Decision Ledger',owner:'CTO',due:'J+7',status:'todo',progress:0},
+{id:3,title:'Tester la démonstration avec 5 dirigeants',owner:'CEO',due:'J+10',status:'todo',progress:0}
+];
+let state={actions:JSON.parse(JSON.stringify(initialActions)),results:[],learnings:[],policies:[],events:[]};
+
+function now(){return new Date().toLocaleString('fr-FR')}
+function emit(type,detail){state.events.unshift({type,detail,time:now()});render()}
+function progress(){
+  return Math.round(state.actions.reduce((s,a)=>s+a.progress,0)/state.actions.length)
+}
+function render(){
+  mProgress.textContent=progress()+'%';
+  mResults.textContent=state.results.length;
+  mLearnings.textContent=state.learnings.length;
+  mPolicies.textContent=state.policies.length;
+
+  actionsList.innerHTML=state.actions.map(a=>`<div class="action ${a.status}">
+    <div class="row"><div><strong>${a.title}</strong><div class="muted">${a.owner} · ${a.due}</div></div><span class="badge ${a.status==='done'?'green':a.status==='blocked'?'red':'amber'}">${a.status.toUpperCase()}</span></div>
+    <div class="progress"><span style="width:${a.progress}%"></span></div>
+    <div class="row" style="margin-top:10px"><button class="ghost" data-progress="${a.id}">+25%</button><button class="ghost" data-done="${a.id}">Terminer</button><button class="danger" data-block="${a.id}">Bloquer</button></div>
+  </div>`).join('');
+
+  document.querySelectorAll('[data-progress]').forEach(b=>b.onclick=()=>{
+    const a=state.actions.find(x=>x.id==b.dataset.progress);a.progress=Math.min(100,a.progress+25);a.status=a.progress===100?'done':'doing';emit('ActionProgressed',`${a.title} → ${a.progress}%`);
+  });
+  document.querySelectorAll('[data-done]').forEach(b=>b.onclick=()=>{
+    const a=state.actions.find(x=>x.id==b.dataset.done);a.progress=100;a.status='done';emit('ActionCompleted',a.title);
+  });
+  document.querySelectorAll('[data-block]').forEach(b=>b.onclick=()=>{
+    const a=state.actions.find(x=>x.id==b.dataset.block);a.status='blocked';emit('ActionBlocked',a.title);
+  });
+
+  learningList.innerHTML=state.learnings.length?state.learnings.map(l=>`<div class="learning"><strong>${l.title}</strong><p>${l.text}</p><small class="muted">${l.time}</small></div>`).join(''):'<div class="muted">Aucun apprentissage.</div>';
+  policyList.innerHTML=state.policies.length?state.policies.map(p=>`<div class="policy"><strong>${p.name}</strong><p>${p.rule}</p></div>`).join(''):'<div class="muted">Aucune politique modifiée.</div>';
+  events.innerHTML=state.events.length?state.events.map(e=>`<div class="event"><strong>${e.type}</strong><div>${e.detail}</div><small class="muted">${e.time}</small></div>`).join(''):'<div class="muted">Aucun événement.</div>';
+
+  const latest=state.results[0];
+  if(latest){actualText.textContent=latest.observation;actualScore.textContent=latest.score+'%';actualScore.className='delta '+(latest.score>=70?'green':latest.score>=45?'amber':'red')}
+  else {actualText.textContent='Aucun résultat observé pour le moment.';actualScore.textContent='—';actualScore.className='delta'}
+}
+
+function learn(observation,score){
+  let learning,policy;
+  if(score>=70){
+    learning={title:'Pattern confirmé',text:'Le Scheduler crée de la valeur lorsqu’il réduit immédiatement le nombre de sujets actifs.',time:now()};
+    policy={name:'FocusPolicy',rule:'Lors d’un premier usage, limiter le portefeuille présenté à trois Challenges maximum.'};
+  } else if(score>=45){
+    learning={title:'Valeur partiellement comprise',text:'La valeur du Scheduler est perçue, mais elle dépend d’un contexte externe concret comme le calendrier.',time:now()};
+    policy={name:'ContextRequirementPolicy',rule:'Une recommandation de priorité doit inclure au moins une donnée de calendrier ou d’échéance.'};
+  } else {
+    learning={title:'Hypothèse fragilisée',text:'Le Scheduler seul ne suffit pas à démontrer une valeur claire aux dirigeants testés.',time:now()};
+    policy={name:'ValidationGatePolicy',rule:'Avant tout développement supplémentaire, exiger cinq entretiens confirmant le problème prioritaire.'};
+  }
+  state.learnings.unshift(learning);
+  state.policies.unshift(policy);
+  emit('LearningGenerated',learning.title);
+  emit('PolicyUpdated',`${policy.name} : ${policy.rule}`);
+}
+
+recordResult.onclick=()=>{
+  const obs=observation.value.trim();const score=Number(validationScore.value);
+  if(!obs)return alert('Ajoute une observation terrain.');
+  state.results.unshift({observation:obs,score,time:now()});
+  emit('ResultObserved',`${score}% de validation`);
+  learn(obs,score);
+  observation.value='';
+};
+simulateFailure.onclick=()=>{
+  observation.value='5 dirigeants testés : aucun n’utilise spontanément le Scheduler sans données de calendrier ou d’email.';
+  validationScore.value=28;
+  recordResult.click();
+};
+simulateWeek.onclick=()=>{
+  state.actions[0].progress=100;state.actions[0].status='done';
+  state.actions[1].progress=75;state.actions[1].status='doing';
+  state.actions[2].progress=50;state.actions[2].status='doing';
+  emit('WeekSimulated','Le plan avance à 75% environ, avec premiers tests utilisateurs en cours.');
+};
+reset.onclick=()=>{state={actions:JSON.parse(JSON.stringify(initialActions)),results:[],learnings:[],policies:[],events:[]};render();emit('SystemReset','Boucle d’exécution réinitialisée.');};
+emit('ExecutionPlanLoaded','Plan issu de la décision DEC-001 chargé.');
+</script>
+</body>
+</html>
