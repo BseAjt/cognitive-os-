@@ -1,7 +1,6 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "framework": "nextjs",
-  "installCommand": "cd executiveos-app && npm install",
-  "buildCommand": "cd executiveos-app && npm run build",
-  "outputDirectory": "executiveos-app/.next"
+  "installCommand": "if [ -d executiveos-app ]; then cd executiveos-app && npm install; else npm install; fi",
+  "buildCommand": "if [ -d executiveos-app ]; then cd executiveos-app && npm run build && cd .. && rm -rf .next && cp -R executiveos-app/.next .next; else npm run build; fi"
 }
