@@ -1,4 +1,5 @@
 import type { StateCreator } from "zustand";
+import { projectKnowledgeGraph } from "../lib/knowledge-graph-runtime.ts";
 import type { ExecutiveCommands, ExecutiveState } from "./types.ts";
 
 export const createExecutiveCommands: StateCreator<ExecutiveState, [], [], ExecutiveCommands> = (set, get) => ({
@@ -64,6 +65,21 @@ export const createExecutiveCommands: StateCreator<ExecutiveState, [], [], Execu
         };
       });
 
+      const currentCase = state.cases.find((cognitiveCase) => cognitiveCase.id === caseId);
+      const projectedCase = currentCase
+        ? { ...currentCase, ...result.conversation.casePatch }
+        : undefined;
+      const graph = projectedCase
+        ? projectKnowledgeGraph({
+            cognitiveCase: projectedCase,
+            knowledgeRecords,
+            memories,
+            decision,
+            actions,
+            createdAt: timestamp
+          })
+        : { entities: [], relations: [] };
+
       const events = [
         {
           id: crypto.randomUUID(),
@@ -73,6 +89,7 @@ export const createExecutiveCommands: StateCreator<ExecutiveState, [], [], Execu
         },
         ...(memories.length ? [{ id: crypto.randomUUID(), type: "MemoryPersisted", detail: `${memories.length} mémoire(s) persistée(s)`, createdAt: timestamp }] : []),
         ...(knowledgeRecords.length ? [{ id: crypto.randomUUID(), type: "KnowledgePersisted", detail: `${knowledgeRecords.length} connaissance(s) persistée(s)`, createdAt: timestamp }] : []),
+        ...(graph.entities.length ? [{ id: crypto.randomUUID(), type: "KnowledgeGraphProjected", detail: `${graph.entities.length} entité(s) · ${graph.relations.length} relation(s)`, createdAt: timestamp }] : []),
         ...(decision ? [{ id: crypto.randomUUID(), type: "DecisionCaptured", detail: decision.outcome, createdAt: timestamp }] : []),
         ...actions.map((action) => ({ id: crypto.randomUUID(), type: "ActionCreated", detail: action.title, createdAt: timestamp }))
       ];
@@ -90,6 +107,8 @@ export const createExecutiveCommands: StateCreator<ExecutiveState, [], [], Execu
         actions: actions.length ? [...actions, ...state.actions] : state.actions,
         memories: memories.length ? [...memories, ...state.memories] : state.memories,
         knowledgeRecords: knowledgeRecords.length ? [...knowledgeRecords, ...state.knowledgeRecords] : state.knowledgeRecords,
+        knowledgeEntities: mergeById(state.knowledgeEntities, graph.entities),
+        knowledgeRelations: mergeById(state.knowledgeRelations, graph.relations),
         reasoningRevisions: reasoningRevisions.length ? [...state.reasoningRevisions, ...reasoningRevisions] : state.reasoningRevisions,
         events: [...events, ...state.events]
       };
@@ -171,3 +190,9 @@ export const createExecutiveCommands: StateCreator<ExecutiveState, [], [], Execu
     }));
   }
 });
+
+function mergeById<T extends { id: string }>(current: T[], incoming: T[]): T[] {
+  const map = new Map(current.map((item) => [item.id, item]));
+  for (const item of incoming) map.set(item.id, item);
+  return [...map.values()];
+}
