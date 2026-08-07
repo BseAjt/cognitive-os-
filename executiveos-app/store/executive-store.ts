@@ -12,12 +12,24 @@ export interface ConversationMessage {
   createdAt: string;
 }
 
+export type ReasoningStepId = "question" | "hypothesis" | "evidence" | "options" | "objections" | "decision" | "consequences";
+
+export interface ReasoningRevision {
+  id: string;
+  challengeId: string;
+  stepId: ReasoningStepId;
+  version: number;
+  content: string;
+  createdAt: string;
+}
+
 interface ExecutiveState {
   challenges: Challenge[];
   decisions: Decision[];
   actions: ActionItem[];
   events: CognitiveEvent[];
   messages: ConversationMessage[];
+  reasoningRevisions: ReasoningRevision[];
   activeChallengeId: string;
   setActiveChallenge: (id: string) => void;
   updateChallenge: (challenge: Challenge) => void;
@@ -25,6 +37,7 @@ interface ExecutiveState {
   addActions: (actions: ActionItem[]) => void;
   addEvent: (type: string, detail: string) => void;
   addMessages: (messages: ConversationMessage[]) => void;
+  addReasoningRevision: (revision: Omit<ReasoningRevision, "id" | "version" | "createdAt">) => void;
   clearConversationHistory: (challengeId: string) => void;
   runCriticalSimulation: () => void;
 }
@@ -74,6 +87,7 @@ export const useExecutiveStore = create<ExecutiveState>()(
           createdAt: new Date().toISOString()
         }
       ],
+      reasoningRevisions: [],
       activeChallengeId: "executiveos",
       setActiveChallenge: (id) => set({ activeChallengeId: id }),
       updateChallenge: (challenge) =>
@@ -87,6 +101,20 @@ export const useExecutiveStore = create<ExecutiveState>()(
           events: [{ id: crypto.randomUUID(), type, detail, createdAt: new Date().toISOString() }, ...state.events]
         })),
       addMessages: (messages) => set((state) => ({ messages: [...state.messages, ...messages] })),
+      addReasoningRevision: (revision) =>
+        set((state) => {
+          const versions = state.reasoningRevisions.filter((item) => item.challengeId === revision.challengeId && item.stepId === revision.stepId);
+          const next: ReasoningRevision = {
+            ...revision,
+            id: crypto.randomUUID(),
+            version: versions.length + 1,
+            createdAt: new Date().toISOString()
+          };
+          return {
+            reasoningRevisions: [...state.reasoningRevisions, next],
+            events: [{ id: crypto.randomUUID(), type: "ReasoningRevisionAdded", detail: `${revision.stepId} · v${next.version}`, createdAt: next.createdAt }, ...state.events]
+          };
+        }),
       clearConversationHistory: (challengeId) =>
         set((state) => ({
           messages: state.messages.filter((message) => message.challengeId !== challengeId)
