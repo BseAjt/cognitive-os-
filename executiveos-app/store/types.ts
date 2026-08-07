@@ -1,4 +1,4 @@
-import type { ActionRecord, AgentContract, CognitiveCase, CognitiveEventRecord, DecisionRecord, KnowledgeEntity, KnowledgeRecord, KnowledgeRelation, MemoryRecord } from "../domain/canonical.ts";
+import type { ActionRecord, AgentContract, AgentRunRecord, CognitiveCase, CognitiveEventRecord, DecisionRecord, KnowledgeEntity, KnowledgeRecord, KnowledgeRelation, MemoryRecord } from "../domain/canonical.ts";
 import type { UnifiedRuntimeResult } from "../lib/unified-runtime.ts";
 
 export interface ConversationMessage {
@@ -69,6 +69,7 @@ export interface KnowledgeGraphSlice {
 
 export interface RuntimeSlice {
   agents: AgentContract[];
+  agentRuns: AgentRunRecord[];
   reasoningRevisions: ReasoningRevision[];
   addReasoningRevision: (revision: Omit<ReasoningRevision, "id" | "version" | "createdAt">) => void;
   assignRuntimeAction: (actionId: string) => void;
