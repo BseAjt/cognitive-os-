@@ -1,9 +1,9 @@
-import { executiveTwinSeed } from "@/lib/executive-twin-domain";
+import { executiveKnowledgeSeed } from "@/lib/knowledge-snapshot";
 
 const MEMORY_ENTITY_TYPES = new Set(["memory", "learning", "context_item"]);
 
 export function ExecutiveOSMemoryView() {
-  const memories = executiveTwinSeed.entities.filter((item) => MEMORY_ENTITY_TYPES.has(item.type));
+  const memories = executiveKnowledgeSeed.entities.filter((item) => MEMORY_ENTITY_TYPES.has(item.type));
 
   return (
     <section>
