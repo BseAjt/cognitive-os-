@@ -34,7 +34,7 @@ export const createExecutiveCommands: StateCreator<ExecutiveState, [], [], Execu
     }));
   },
 
-  createAction: ({ caseId, title, owner }) => {
+  createAction: ({ caseId, title, owner, requiredCapability }) => {
     const timestamp = new Date().toISOString();
     set((state) => ({
       actions: [{
@@ -43,7 +43,8 @@ export const createExecutiveCommands: StateCreator<ExecutiveState, [], [], Execu
         title,
         owner: owner ?? "À assigner",
         progress: 0,
-        status: "todo"
+        status: "todo",
+        requiredCapability
       }, ...state.actions],
       events: [{ id: crypto.randomUUID(), type: "ActionCreated", detail: title, createdAt: timestamp }, ...state.events]
     }));
