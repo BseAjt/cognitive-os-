@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "build": "next build",
+    "build": "npm run test:runtime && next build",
     "start": "next start",
     "test:runtime": "node --experimental-strip-types --test tests/*.test.ts domain/*.test.ts",
     "test:e2e": "playwright test",
