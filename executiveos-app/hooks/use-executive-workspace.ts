@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { runConversationRuntime, type CognitiveExtraction } from "@/lib/conversation-runtime";
-import type { DecisionFrame } from "@/lib/decision-room";
+import type { DecisionFrame } from "@/lib/decision-runtime";
 import { challengeScore } from "@/lib/scheduler";
 import { useExecutiveStore } from "@/store/executive-store";
 
