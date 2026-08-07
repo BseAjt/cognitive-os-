@@ -10,6 +10,15 @@ export interface ConsolidatedKnowledge {
   kind: "fact" | "hypothesis" | "risk" | "decision" | "learning" | "context";
 }
 
+type Candidate = {
+  key: string;
+  title: string;
+  detail: string;
+  confidence: number;
+  sourceId: string;
+  kind: ConsolidatedKnowledge["kind"];
+};
+
 export function consolidateLiveKnowledge(input: {
   cognitiveCase: CognitiveCase;
   caseObjects: DossierObjectRecord[];
@@ -18,7 +27,7 @@ export function consolidateLiveKnowledge(input: {
   learningEvents: LearningEventRecord[];
 }): ConsolidatedKnowledge[] {
   const caseId = input.cognitiveCase.id;
-  const candidates = [
+  const candidates: Candidate[] = [
     ...input.caseObjects.filter((item) => item.caseId === caseId).map((item) => ({
       key: normalize(item.title),
       title: item.title,
@@ -38,7 +47,7 @@ export function consolidateLiveKnowledge(input: {
     ...input.knowledgeRecords.filter((item) => item.caseId === caseId).map((item) => ({
       key: normalize(item.title),
       title: item.title,
-      detail: item.detail ?? item.title,
+      detail: item.title,
       confidence: item.confidence,
       sourceId: item.id,
       kind: knowledgeKind(item.type)
@@ -47,13 +56,13 @@ export function consolidateLiveKnowledge(input: {
       key: normalize(item.detail),
       title: item.title,
       detail: item.detail,
-      confidence: item.confidence,
+      confidence: item.confidence ?? 50,
       sourceId: item.id,
       kind: "learning" as const
     }))
   ].filter((item) => item.key.length >= 6);
 
-  const groups = new Map<string, typeof candidates>();
+  const groups = new Map<string, Candidate[]>();
   for (const candidate of candidates) {
     const existing = groups.get(candidate.key) ?? [];
     existing.push(candidate);
