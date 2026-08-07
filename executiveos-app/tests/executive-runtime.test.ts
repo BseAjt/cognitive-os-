@@ -1,16 +1,16 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { assignAction, buildRuntimeGraph, canHandle, executeAction, transitionAction, validateAgentContract } from "../lib/executive-runtime.ts";
-import type { ActionItem, AgentContract, Challenge, CognitiveEvent, Decision } from "../types/domain.ts";
+import type { ActionRecord, AgentContract, CognitiveCase, CognitiveEventRecord, DecisionRecord } from "../domain/canonical.ts";
 
 const agents: AgentContract[] = [
   { id: "orion", name: "ORION", role: "Orchestrator", specialty: "Executive orchestration", capabilities: ["analysis", "synthesis", "coordination"], status: "online", version: "1.0.0" },
   { id: "turing", name: "TURING", role: "CTO", specialty: "Technology", capabilities: ["technology", "architecture"], status: "online", version: "1.0.0" }
 ];
 
-const action: ActionItem = {
+const action: ActionRecord = {
   id: "action-1",
-  challengeId: "challenge-1",
+  caseId: "case-1",
   title: "Analyser le contexte",
   owner: "Unassigned",
   progress: 0,
@@ -54,12 +54,15 @@ test("executing a todo action assigns, runs and completes it", () => {
 });
 
 test("runtime graph projects live entities and ownership edges", () => {
-  const challenges: Challenge[] = [{ id: "challenge-1", title: "RC1", goal: "Stabiliser", hypothesis: "", impact: 8, urgency: 7, confidence: 80, cognitiveCost: 4, risk: 3, context: "", state: "execute" }];
-  const decisions: Decision[] = [{ id: "decision-1", challengeId: "challenge-1", recommendation: "Refactor", finalDecision: "Stabiliser RC1", rationale: "Réduire la dette", confidence: 90, createdAt: new Date().toISOString() }];
-  const actions: ActionItem[] = [{ ...action, assignedAgentId: "orion", owner: "ORION" }];
-  const events: CognitiveEvent[] = [{ id: "event-1", type: "ActionAssigned", detail: "ORION affecté", createdAt: new Date().toISOString() }];
-  const graph = buildRuntimeGraph({ challenges, decisions, actions, agents, events });
+  const cases: CognitiveCase[] = [{
+    id: "case-1", title: "RC1", objective: "Stabiliser", workingHypothesis: "", context: "", state: "execute",
+    signals: { impact: 8, urgency: 7, confidence: 80, cognitiveCost: 4, risk: 3 }
+  }];
+  const decisions: DecisionRecord[] = [{ id: "decision-1", caseId: "case-1", recommendation: "Refactor", outcome: "Stabiliser RC1", rationale: "Réduire la dette", confidence: 90, createdAt: new Date().toISOString() }];
+  const actions: ActionRecord[] = [{ ...action, assignedAgentId: "orion", owner: "ORION" }];
+  const events: CognitiveEventRecord[] = [{ id: "event-1", type: "ActionAssigned", detail: "ORION affecté", createdAt: new Date().toISOString() }];
+  const graph = buildRuntimeGraph({ cases, decisions, actions, agents, events });
   assert.equal(graph.nodes.some((node) => node.id === "agent:orion"), true);
   assert.equal(graph.edges.some((edge) => edge.type === "owns" && edge.source === "agent:orion"), true);
-  assert.equal(graph.stats.nodes, challenges.length + decisions.length + actions.length + agents.length + events.length);
+  assert.equal(graph.stats.nodes, cases.length + decisions.length + actions.length + agents.length + events.length);
 });
