@@ -27,7 +27,7 @@ export interface DecisionRuntimeResult {
   nextAction: string;
 }
 
-const WORKFORCE_RESTRUCTURING_PATTERN = /plan social|\bpse\b|licenciement(?:s)? économique(?:s)?|suppression(?:s)? de postes?|réduction d['’]effectifs?|restructuration|compression d['’]effectifs?|départs? contraints?/i;
+const WORKFORCE_RESTRUCTURING_PATTERN = /plan social|\bpse\b|licenciement(?:s)? économique(?:s)?|suppression(?:s)? de postes?|réduction d['’]effectifs?|réduire (?:les |des )?effectifs|restructuration|compression d['’]effectifs?|départs? contraints?/i;
 
 export function runDecisionRuntime(message: string, cognitiveCase: CognitiveCase, existingContext?: ContextRecord[]): DecisionRuntimeResult {
   const frame = buildDecisionFrame(message, cognitiveCase);
