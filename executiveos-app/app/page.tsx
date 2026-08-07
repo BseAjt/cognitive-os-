@@ -1,5 +1,5 @@
-import { ExecutiveHomeV2 } from "@/components/executive-home-v2";
+import { ExecutiveHomeV3 } from "@/components/executive-home-v3";
 
 export default function HomePage() {
-  return <ExecutiveHomeV2 />;
+  return <ExecutiveHomeV3 />;
 }
