@@ -37,9 +37,9 @@ const canonical=source("domain/canonical.ts"),types=source("store/types.ts"),sli
 for(const [name,file,expected] of [
  ["canonical cognitive profile exists",canonical,"interface CognitiveProfileRecord"],
  ["state exposes cognitive profiles",types,"cognitiveProfiles: CognitiveProfileRecord[]"],
- ["profile slice initializes",slices,"cognitiveProfiles: []"],
+ ["profile slice is seeded",slices,"cognitiveProfiles: initialCognitiveProfiles"],
  ["runtime recalibrates profile",commands,"buildCognitiveProfile"],
  ["runtime persists profile",commands,"cognitiveProfiles: [profile"],
  ["runtime projects profile graph node",commands,"type: \"cognitive_profile\""],
- ["persistence schema is v13",store,"version: 13"]
+ ["persistence schema is v14",store,"version: 14"]
 ] as const) test(name,()=>assert.ok(file.includes(expected),`Missing cognitive DNA contract: ${expected}`));
