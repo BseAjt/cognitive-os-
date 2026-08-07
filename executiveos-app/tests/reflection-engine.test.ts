@@ -47,5 +47,5 @@ for (const [name,file,expected] of [
   ["runtime emits reflection event",commands,"ReflectionPersisted"],
   ["recall consumes reflections",recall,"lastReflection"],
   ["graph projects reflection insight",graph,"reflection:${reflection.id}"],
-  ["persistence schema includes cognitive DNA v13",store,"version:13"]
+  ["persistence schema includes cognitive DNA v13",store,"version: 13"]
 ] as const) test(name,()=>assert.ok(file.includes(expected),`Missing reflection contract: ${expected}`));
