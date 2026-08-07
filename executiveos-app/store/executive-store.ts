@@ -2,11 +2,11 @@
 
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
-import { createActionSlice, createCaseSlice, createConversationSlice, createDecisionSlice, createEventSlice, createKnowledgeGraphSlice, createKnowledgeSlice, createLearningSlice, createMemorySlice } from "./slices";
+import { createActionSlice, createCaseSlice, createConversationSlice, createDecisionSlice, createEventSlice, createKnowledgeGraphSlice, createKnowledgeSlice, createLearningSlice, createMemorySlice, createReflectionSlice } from "./slices";
 import { createExecutiveCommands } from "./commands";
 import { createRuntimeSlice } from "./runtime-slice";
 import { defaultExecutiveAgents } from "../lib/agent-runtime";
-import type { ActionRecord, AgentContract, AgentRunRecord, CognitiveCase, DecisionRecord, KnowledgeEntity, KnowledgeRecord, KnowledgeRelation, LearningEventRecord, MemoryRecord } from "../domain/canonical";
+import type { ActionRecord, AgentContract, AgentRunRecord, CognitiveCase, DecisionRecord, KnowledgeEntity, KnowledgeRecord, KnowledgeRelation, LearningEventRecord, MemoryRecord, ReflectionRecord } from "../domain/canonical";
 import type { ConversationMessage, ExecutiveState, ReasoningRevision } from "./types";
 
 export type { ConversationMessage, ExecutiveState, ReasoningRevision, ReasoningStepId } from "./types";
@@ -29,6 +29,7 @@ type PersistedExecutiveState = {
   agents?: AgentContract[];
   agentRuns?: AgentRunRecord[];
   learningEvents?: LearningEventRecord[];
+  reflections?: ReflectionRecord[];
   reasoningRevisions?: PersistedLegacyRevision[];
   memories?: MemoryRecord[];
   knowledgeRecords?: KnowledgeRecord[];
@@ -38,7 +39,7 @@ type PersistedExecutiveState = {
 
 function migratePersistedState(persistedState: unknown, version: number): ExecutiveState {
   const state = (persistedState ?? {}) as PersistedExecutiveState;
-  if (version >= 11) return state as ExecutiveState;
+  if (version >= 12) return state as ExecutiveState;
 
   const migratedCases: CognitiveCase[] = state.cases ?? (state.challenges ?? []).map((challenge) => ({
     id: challenge.id, title: challenge.title, objective: challenge.goal, workingHypothesis: challenge.hypothesis,
@@ -60,6 +61,7 @@ function migratePersistedState(persistedState: unknown, version: number): Execut
     agents: state.agents?.length ? state.agents : defaultExecutiveAgents,
     agentRuns: state.agentRuns ?? [],
     learningEvents: state.learningEvents ?? [],
+    reflections: state.reflections ?? [],
     reasoningRevisions: migratedRevisions,
     memories: state.memories ?? [],
     knowledgeRecords: state.knowledgeRecords ?? [],
@@ -77,12 +79,13 @@ export const useExecutiveStore = create<ExecutiveState>()(
       ...createActionSlice(...args),
       ...createEventSlice(...args),
       ...createLearningSlice(...args),
+      ...createReflectionSlice(...args),
       ...createMemorySlice(...args),
       ...createKnowledgeSlice(...args),
       ...createKnowledgeGraphSlice(...args),
       ...createRuntimeSlice(...args),
       ...createExecutiveCommands(...args)
     }),
-    { name: "executiveos-v2", version: 11, migrate: migratePersistedState }
+    { name: "executiveos-v2", version: 12, migrate: migratePersistedState }
   )
 );
