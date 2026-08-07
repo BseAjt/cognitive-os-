@@ -1,6 +1,6 @@
-import { executiveTwinSeed } from "@/lib/executive-twin-domain";
+import { executiveKnowledgeSeed } from "@/lib/knowledge-snapshot";
 
-const ENTITY_BY_ID = new Map(executiveTwinSeed.entities.map((entity) => [entity.id, entity]));
+const ENTITY_BY_ID = new Map(executiveKnowledgeSeed.entities.map((entity) => [entity.id, entity]));
 
 export function ExecutiveOSGraphView() {
   return (
@@ -12,7 +12,7 @@ export function ExecutiveOSGraphView() {
       </div>
       <div className="executive-card overflow-auto p-5">
         <div className="grid min-w-[900px] grid-cols-[.8fr_1.2fr_1fr] gap-4">
-          {executiveTwinSeed.relations.map((edge) => {
+          {executiveKnowledgeSeed.relations.map((edge) => {
             const source = ENTITY_BY_ID.get(edge.sourceId);
             const target = ENTITY_BY_ID.get(edge.targetId);
 
