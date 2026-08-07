@@ -1,5 +1,5 @@
 import type { StateCreator } from "zustand";
-import type { ExecutiveState, CaseSlice, ConversationSlice, DecisionSlice, ActionSlice, EventSlice } from "./types.ts";
+import type { ExecutiveState, CaseSlice, ConversationSlice, DecisionSlice, ActionSlice, EventSlice, MemorySlice, KnowledgeSlice } from "./types.ts";
 import { initialCases, initialMessages, initialRuntimeActions } from "./seed.ts";
 
 export const createCaseSlice: StateCreator<ExecutiveState, [], [], CaseSlice> = (set) => ({
@@ -34,4 +34,14 @@ export const createActionSlice: StateCreator<ExecutiveState, [], [], ActionSlice
 export const createEventSlice: StateCreator<ExecutiveState, [], [], EventSlice> = (set) => ({
   events: [],
   prependEvent: (event) => set((state) => ({ events: [event, ...state.events] }))
+});
+
+export const createMemorySlice: StateCreator<ExecutiveState, [], [], MemorySlice> = (set) => ({
+  memories: [],
+  prependMemories: (records) => set((state) => ({ memories: [...records, ...state.memories] }))
+});
+
+export const createKnowledgeSlice: StateCreator<ExecutiveState, [], [], KnowledgeSlice> = (set) => ({
+  knowledgeRecords: [],
+  prependKnowledge: (records) => set((state) => ({ knowledgeRecords: [...records, ...state.knowledgeRecords] }))
 });
