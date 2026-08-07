@@ -2,7 +2,8 @@
 
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
-import type { ActionItem, Challenge, CognitiveEvent, Decision } from "@/types/domain";
+import { assignAction, executeAction, transitionAction } from "@/lib/executive-runtime";
+import type { ActionItem, AgentContract, Challenge, CognitiveEvent, Decision } from "@/types/domain";
 
 export interface ConversationMessage {
   id: string;
@@ -29,6 +30,7 @@ interface ExecutiveState {
   challenges: Challenge[];
   decisions: Decision[];
   actions: ActionItem[];
+  agents: AgentContract[];
   events: CognitiveEvent[];
   messages: ConversationMessage[];
   reasoningRevisions: ReasoningRevision[];
@@ -41,6 +43,10 @@ interface ExecutiveState {
   addMessages: (messages: ConversationMessage[]) => void;
   addReasoningRevision: (revision: Omit<ReasoningRevision, "id" | "version" | "createdAt">) => void;
   clearConversationHistory: (challengeId: string) => void;
+  assignRuntimeAction: (actionId: string) => void;
+  transitionRuntimeAction: (actionId: string, status: ActionItem["status"]) => void;
+  executeRuntimeAction: (actionId: string) => void;
+  clearRuntimeActions: () => void;
   runCriticalSimulation: () => void;
 }
 
@@ -73,12 +79,25 @@ const initialChallenges: Challenge[] = [
   }
 ];
 
+const initialAgents: AgentContract[] = [
+  { id: "orion", name: "ORION", role: "Orchestrateur exécutif", specialty: "Synthèse et orchestration", capabilities: ["analysis", "orchestration", "decision"], status: "online", version: "2.0.0" },
+  { id: "athena", name: "ATHENA", role: "Chief Strategy Officer", specialty: "Stratégie", capabilities: ["analysis", "strategy", "decision"], status: "online", version: "2.0.0" },
+  { id: "turing", name: "TURING", role: "CTO", specialty: "Technologie et architecture", capabilities: ["analysis", "technology", "execution"], status: "online", version: "2.0.0" },
+  { id: "seneca", name: "SENECA", role: "Chief Reflection Officer", specialty: "Critique et risques", capabilities: ["analysis", "reflection", "risk"], status: "online", version: "2.0.0" }
+];
+
+const initialActions: ActionItem[] = [
+  { id: "runtime-context", challengeId: "executiveos", title: "Valider le contrat du Context Engine", owner: "Non affecté", progress: 0, status: "todo", requiredCapability: "analysis" },
+  { id: "runtime-architecture", challengeId: "executiveos", title: "Vérifier l’architecture du runtime agentique", owner: "Non affecté", progress: 0, status: "todo", requiredCapability: "technology" }
+];
+
 export const useExecutiveStore = create<ExecutiveState>()(
   persist(
     (set) => ({
       challenges: initialChallenges,
       decisions: [],
-      actions: [],
+      actions: initialActions,
+      agents: initialAgents,
       events: [],
       messages: [
         {
@@ -121,6 +140,22 @@ export const useExecutiveStore = create<ExecutiveState>()(
         set((state) => ({
           messages: state.messages.filter((message) => message.challengeId !== challengeId)
         })),
+      assignRuntimeAction: (actionId) =>
+        set((state) => ({
+          actions: state.actions.map((action) => action.id === actionId ? assignAction(action, state.agents) : action),
+          events: [{ id: crypto.randomUUID(), type: "RuntimeTaskAssigned", detail: `Affectation de ${actionId}`, createdAt: new Date().toISOString() }, ...state.events]
+        })),
+      transitionRuntimeAction: (actionId, status) =>
+        set((state) => ({
+          actions: state.actions.map((action) => action.id === actionId ? transitionAction(action, status) : action),
+          events: [{ id: crypto.randomUUID(), type: "RuntimeTaskTransitioned", detail: `${actionId} → ${status}`, createdAt: new Date().toISOString() }, ...state.events]
+        })),
+      executeRuntimeAction: (actionId) =>
+        set((state) => ({
+          actions: state.actions.map((action) => action.id === actionId ? executeAction(action, state.agents) : action),
+          events: [{ id: crypto.randomUUID(), type: "RuntimeTaskExecuted", detail: `Exécution de ${actionId}`, createdAt: new Date().toISOString() }, ...state.events]
+        })),
+      clearRuntimeActions: () => set({ actions: initialActions }),
       runCriticalSimulation: () =>
         set((state) => ({
           challenges: state.challenges.map((challenge) =>
