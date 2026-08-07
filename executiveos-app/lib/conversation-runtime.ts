@@ -1,5 +1,5 @@
 import type { Challenge } from "../types/domain.ts";
-import { buildDecisionFrame, type DecisionFrame } from "./decision-room.ts";
+import { runDecisionRuntime, type DecisionFrame } from "./decision-runtime.ts";
 
 export type CognitiveKind = "goal" | "hypothesis" | "risk" | "decision" | "action" | "question" | "context";
 export type RuntimeIntent = "continue" | "idea" | "decision" | "problem" | "meeting" | "general";
@@ -45,7 +45,8 @@ export function runConversationRuntime(message: string, challenge: Challenge): R
   const hypothesis = extractions.find((item) => item.kind === "hypothesis");
   const decision = extractions.find((item) => item.kind === "decision");
   const action = extractions.find((item) => item.kind === "action");
-  const decisionFrame = intent === "decision" ? buildDecisionFrame(normalized, challenge) : undefined;
+  const decisionRuntime = intent === "decision" ? runDecisionRuntime(normalized, challenge) : undefined;
+  const decisionFrame = decisionRuntime?.frame;
 
   const challengePatch: Partial<Challenge> = {
     context: normalized,
@@ -55,11 +56,9 @@ export function runConversationRuntime(message: string, challenge: Challenge): R
     state: intent === "decision" || decision ? "decide" : action ? "execute" : challenge.state
   };
 
-  const nextAction = decisionFrame?.requiresContext
-    ? `Documenter le contexte avec ${decisionFrame.requiredAgents.join(", ")} avant toute recommandation.`
-    : decisionFrame
-      ? `Collecter les informations manquantes : ${decisionFrame.missingInformation.join(", ")}.`
-      : action?.text || buildNextAction(intent, challenge, risk, hypothesis);
+  const nextAction = decisionRuntime?.nextAction
+    ?? action?.text
+    ?? buildNextAction(intent, challenge, risk, hypothesis);
   const response = decisionFrame ? buildDecisionResponse(decisionFrame) : buildResponse(intent, challenge, extractions, nextAction);
 
   return { intent, extractions, response, nextAction, challengePatch, decisionFrame };
