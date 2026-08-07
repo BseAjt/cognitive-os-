@@ -1,4 +1,4 @@
-import type { ActionRecord, CognitiveCase, CognitiveEventRecord, DecisionRecord } from "@/domain/canonical";
+import type { ActionRecord, CognitiveCase, CognitiveEventRecord, DecisionRecord } from "../domain/canonical.ts";
 
 export interface ConversationMessage {
   id: string;
