@@ -1,4 +1,4 @@
-import type { Challenge } from "../types/domain.ts";
+import type { CognitiveCase } from "../domain/canonical.ts";
 import { runDecisionRuntime, type DecisionFrame } from "./decision-runtime.ts";
 
 export type CognitiveKind = "goal" | "hypothesis" | "risk" | "decision" | "action" | "question" | "context";
@@ -15,7 +15,7 @@ export interface RuntimeResult {
   extractions: CognitiveExtraction[];
   response: string;
   nextAction: string;
-  challengePatch: Partial<Challenge>;
+  casePatch: Partial<CognitiveCase>;
   decisionFrame?: DecisionFrame;
 }
 
@@ -31,10 +31,10 @@ const DECISION_PATTERNS = [
   /\bi need to decide whether\b/, /\bwould it be better to\b/
 ];
 
-export function runConversationRuntime(message: string, challenge: Challenge): RuntimeResult {
+export function runConversationRuntime(message: string, cognitiveCase: CognitiveCase): RuntimeResult {
   const normalized = message.trim();
   if (!normalized) {
-    return { intent: "general", extractions: [], response: "Décris la situation ou la décision que tu veux traiter.", nextAction: "Formuler le sujet en une phrase.", challengePatch: {} };
+    return { intent: "general", extractions: [], response: "Décris la situation ou la décision que tu veux traiter.", nextAction: "Formuler le sujet en une phrase.", casePatch: {} };
   }
 
   const lower = normalized.toLowerCase();
@@ -45,23 +45,26 @@ export function runConversationRuntime(message: string, challenge: Challenge): R
   const hypothesis = extractions.find((item) => item.kind === "hypothesis");
   const decision = extractions.find((item) => item.kind === "decision");
   const action = extractions.find((item) => item.kind === "action");
-  const decisionRuntime = intent === "decision" ? runDecisionRuntime(normalized, challenge) : undefined;
+  const decisionRuntime = intent === "decision" ? runDecisionRuntime(normalized, cognitiveCase) : undefined;
   const decisionFrame = decisionRuntime?.frame;
 
-  const challengePatch: Partial<Challenge> = {
+  const casePatch: Partial<CognitiveCase> = {
     context: normalized,
-    confidence: hypothesis ? Math.max(35, challenge.confidence - 8) : challenge.confidence,
-    risk: risk ? Math.min(10, challenge.risk + 2) : challenge.risk,
-    urgency: intent === "decision" || decision || action ? Math.min(10, challenge.urgency + 1) : challenge.urgency,
-    state: intent === "decision" || decision ? "decide" : action ? "execute" : challenge.state
+    state: intent === "decision" || decision ? "decide" : action ? "execute" : cognitiveCase.state,
+    signals: {
+      ...cognitiveCase.signals,
+      confidence: hypothesis ? Math.max(35, cognitiveCase.signals.confidence - 8) : cognitiveCase.signals.confidence,
+      risk: risk ? Math.min(10, cognitiveCase.signals.risk + 2) : cognitiveCase.signals.risk,
+      urgency: intent === "decision" || decision || action ? Math.min(10, cognitiveCase.signals.urgency + 1) : cognitiveCase.signals.urgency
+    }
   };
 
   const nextAction = decisionRuntime?.nextAction
     ?? action?.text
-    ?? buildNextAction(intent, challenge, risk, hypothesis);
-  const response = decisionFrame ? buildDecisionResponse(decisionFrame) : buildResponse(intent, challenge, extractions, nextAction);
+    ?? buildNextAction(intent, cognitiveCase, risk, hypothesis);
+  const response = decisionFrame ? buildDecisionResponse(decisionFrame) : buildResponse(intent, cognitiveCase, extractions, nextAction);
 
-  return { intent, extractions, response, nextAction, challengePatch, decisionFrame };
+  return { intent, extractions, response, nextAction, casePatch, decisionFrame };
 }
 
 export function detectIntent(lower: string): RuntimeIntent {
@@ -89,13 +92,13 @@ function item(kind: CognitiveKind, text: string, confidence: number): CognitiveE
   return { kind, text: text.trim(), confidence };
 }
 
-function buildNextAction(intent: RuntimeIntent, challenge: Challenge, risk?: CognitiveExtraction, hypothesis?: CognitiveExtraction): string {
+function buildNextAction(intent: RuntimeIntent, cognitiveCase: CognitiveCase, risk?: CognitiveExtraction, hypothesis?: CognitiveExtraction): string {
   if (risk) return `Réduire l'incertitude liée à : ${risk.text}`;
   if (hypothesis) return `Définir une expérience pour tester : ${hypothesis.text}`;
   if (intent === "idea") return "Formuler le problème utilisateur et identifier la première hypothèse à tester.";
   if (intent === "meeting") return "Valider les décisions, propriétaires et échéances issus de la réunion.";
-  if (intent === "continue") return challenge.context || "Reprendre la dernière action ouverte du Challenge.";
-  return "Préciser ce qui doit être vrai pour considérer ce Challenge comme réussi.";
+  if (intent === "continue") return cognitiveCase.context || "Reprendre la dernière action ouverte du dossier.";
+  return "Préciser ce qui doit être vrai pour considérer ce dossier comme réussi.";
 }
 
 function buildDecisionResponse(frame: DecisionFrame): string {
@@ -130,15 +133,15 @@ function buildDecisionResponse(frame: DecisionFrame): string {
   ].join("\n");
 }
 
-function buildResponse(intent: RuntimeIntent, challenge: Challenge, extractions: CognitiveExtraction[], nextAction: string): string {
+function buildResponse(intent: RuntimeIntent, cognitiveCase: CognitiveCase, extractions: CognitiveExtraction[], nextAction: string): string {
   const labels = [...new Set(extractions.map((item) => item.kind))];
   const opening = {
-    continue: `Tu reprends « ${challenge.title} ».`,
+    continue: `Tu reprends « ${cognitiveCase.title} ».`,
     idea: "J'ai transformé ton idée en premiers objets de raisonnement.",
     decision: "J'ai identifié une décision à structurer.",
     problem: "J'ai isolé le problème, ses risques et la prochaine réduction d'incertitude.",
     meeting: "J'ai analysé cette réunion comme une source de décisions et d'actions.",
-    general: "J'ai intégré ce nouveau contexte au Challenge actif."
+    general: "J'ai intégré ce nouveau contexte au dossier actif."
   }[intent];
   return `${opening} Éléments détectés : ${labels.join(", ") || "contexte"}. Prochaine meilleure action : ${nextAction}`;
 }
