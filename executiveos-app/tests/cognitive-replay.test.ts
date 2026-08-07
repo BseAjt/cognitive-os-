@@ -13,7 +13,7 @@ const events:CognitiveTimelineEvent[] = [
   event("h1","hypothesis","2026-08-07T10:01:00.000Z","Le marché est prêt",60),
   event("e1","evidence","2026-08-07T10:02:00.000Z","Trois pilotes sont positifs",72),
   event("d1","decision","2026-08-07T10:03:00.000Z","Lancer un pilote limité",80),
-  event("future","learning","2026-08-07T12:00:00.000Z","Le pilote a dépassé les attentes",90),
+  event("future","learning","2026-08-07T20:00:00.000Z","Le pilote a dépassé les attentes",90),
   event("foreign","risk","2026-08-07T10:01:30.000Z","Risque étranger",40,"case-b")
 ];
 
