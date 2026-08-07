@@ -1,20 +1,20 @@
 "use client";
 
 import { Background, Controls, ReactFlow, type Edge, type Node } from "@xyflow/react";
-import type { Challenge } from "@/types/domain";
+import type { CognitiveCase } from "@/domain/canonical";
 
-export function ReasoningGraph({ challenge }: { challenge: Challenge }) {
+export function ReasoningGraph({ cognitiveCase }: { cognitiveCase: CognitiveCase }) {
   const nodes: Node[] = [
-    { id: "challenge", position: { x: 260, y: 40 }, data: { label: challenge.title }, style: nodeStyle("#7c5cff") },
-    { id: "hypothesis", position: { x: 20, y: 170 }, data: { label: challenge.hypothesis }, style: nodeStyle("#69bfff") },
-    { id: "context", position: { x: 260, y: 210 }, data: { label: challenge.context }, style: nodeStyle("#ffbc57") },
+    { id: "case", position: { x: 260, y: 40 }, data: { label: cognitiveCase.title }, style: nodeStyle("#7c5cff") },
+    { id: "hypothesis", position: { x: 20, y: 170 }, data: { label: cognitiveCase.workingHypothesis }, style: nodeStyle("#69bfff") },
+    { id: "context", position: { x: 260, y: 210 }, data: { label: cognitiveCase.context }, style: nodeStyle("#ffbc57") },
     { id: "decision", position: { x: 500, y: 170 }, data: { label: "Décision à prendre" }, style: nodeStyle("#42d59d") }
   ];
 
   const edges: Edge[] = [
-    { id: "e1", source: "hypothesis", target: "challenge", label: "supports" },
-    { id: "e2", source: "context", target: "challenge", label: "updates" },
-    { id: "e3", source: "challenge", target: "decision", label: "requires" }
+    { id: "e1", source: "hypothesis", target: "case", label: "supports" },
+    { id: "e2", source: "context", target: "case", label: "updates" },
+    { id: "e3", source: "case", target: "decision", label: "requires" }
   ];
 
   return (
