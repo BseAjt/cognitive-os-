@@ -1,6 +1,6 @@
 "use client";
 
-import { executiveTwinSeed } from "@/lib/executive-twin-domain";
+import { executiveKnowledgeSeed } from "@/lib/knowledge-snapshot";
 import { MetricCard, SmallMetric } from "./metric-card";
 
 export function ExecutiveOSHomeDashboard({
@@ -10,7 +10,7 @@ export function ExecutiveOSHomeDashboard({
   onMemory,
   onGraph
 }: {
-  briefing: typeof executiveTwinSeed.briefing;
+  briefing: typeof executiveKnowledgeSeed.briefing;
   counts: Record<string, number>;
   onDecision: () => void;
   onMemory: () => void;
@@ -71,8 +71,8 @@ export function ExecutiveOSHomeDashboard({
             <button onClick={onGraph} className="text-xs text-[#b8acf8]">Voir le graphe →</button>
           </div>
           <div className="mt-4 grid grid-cols-2 gap-3 md:grid-cols-4">
-            <SmallMetric label="Objets" value={executiveTwinSeed.entities.length} />
-            <SmallMetric label="Relations" value={executiveTwinSeed.relations.length} />
+            <SmallMetric label="Objets" value={executiveKnowledgeSeed.entities.length} />
+            <SmallMetric label="Relations" value={executiveKnowledgeSeed.relations.length} />
             <SmallMetric label="Mémoires" value={counts.memory ?? 0} />
             <SmallMetric label="Learnings" value={counts.learning ?? 0} />
           </div>
