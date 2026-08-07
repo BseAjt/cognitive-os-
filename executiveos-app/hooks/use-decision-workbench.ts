@@ -1,7 +1,8 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { answerContextItem, type ContextItem } from "@/lib/context-engine";
+import type { ContextRecord } from "@/domain/canonical";
+import { answerContextItem } from "@/lib/context-engine";
 import {
   createDecisionContext,
   evaluateDecisionContext,
@@ -11,14 +12,14 @@ import {
 export function useDecisionWorkbench(frame: DecisionFrame, onContextSubmit: (summary: string) => void) {
   const [selectedOption, setSelectedOption] = useState<number | null>(null);
   const [saved, setSaved] = useState(false);
-  const [contextItems, setContextItems] = useState<ContextItem[]>(() => createDecisionContext(frame));
+  const [contextItems, setContextItems] = useState<ContextRecord[]>(() => createDecisionContext(frame));
 
   const decisionState = useMemo(
     () => evaluateDecisionContext(frame, contextItems),
     [frame, contextItems]
   );
 
-  function updateItem(item: ContextItem, value: string) {
+  function updateItem(item: ContextRecord, value: string) {
     setSaved(false);
     setContextItems((current) =>
       current.map((candidate) => candidate.id === item.id ? answerContextItem(candidate, value) : candidate)
