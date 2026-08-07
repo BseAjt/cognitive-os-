@@ -40,7 +40,7 @@ test("reflection engine converts learning evolution into structured reflection",
 const here = dirname(fileURLToPath(import.meta.url)); const root = resolve(here, ".."); const source = (path:string)=>readFileSync(resolve(root,path),"utf8");
 const types=source("store/types.ts"), slices=source("store/slices.ts"), commands=source("store/commands.ts"), recall=source("lib/cognitive-recall.ts"), graph=source("lib/knowledge-graph-runtime.ts"), store=source("store/executive-store.ts");
 for (const [name,file,expected] of [
-  ["state exposes reflection records",types,"reflections:ReflectionRecord[]"],
+  ["state exposes reflection records",types,"reflections: ReflectionRecord[]"],
   ["reflection slice is initialized",slices,"reflections: []"],
   ["runtime builds reflection from cognitive diff",commands,"buildReflection"],
   ["runtime persists reflection atomically",commands,"reflections: reflection ? [reflection, ...state.reflections]"],
