@@ -19,11 +19,15 @@ const graph = source("components/reasoning-graph.tsx");
 const layout = source("app/layout.tsx");
 
 const contracts: Array<[string, string, string]> = [
-  ["workspace invokes unified runtime", workspace, "runUnifiedRuntime({ message: clean, cognitiveCase: active })"],
+  ["workspace invokes unified runtime", workspace, "const result = runUnifiedRuntime({"],
+  ["workspace feeds runtime agent catalogue", workspace, "agents: store.agents"],
+  ["workspace feeds persistent memory", workspace, "memories: store.memories.filter"],
+  ["workspace feeds persistent knowledge", workspace, "knowledgeRecords: store.knowledgeRecords.filter"],
   ["workspace applies runtime cycle atomically", workspace, "store.applyRuntimeCycle({"],
   ["workspace switches canonical cases", workspace, "store.setActiveCase(cognitiveCase.id)"],
   ["workspace uses canonical case score", workspace, "caseScore("],
   ["unified runtime delegates conversation analysis", unifiedRuntime, "runConversationRuntime(input.message, input.cognitiveCase)"],
+  ["unified runtime exposes agent orchestration", unifiedRuntime, "agents: AgentOrchestrationResult"],
   ["unified runtime exposes memory candidates", unifiedRuntime, "memory: MemoryCandidate[]"],
   ["unified runtime exposes knowledge candidates", unifiedRuntime, "knowledge: KnowledgeCandidate[]"],
   ["command layer persists runtime cycle", commands, "applyRuntimeCycle:"],
