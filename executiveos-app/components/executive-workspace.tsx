@@ -7,6 +7,7 @@ import { ReasoningGraph } from "@/components/reasoning-graph";
 import { buildCognitiveRecall } from "@/lib/cognitive-recall";
 import type { CognitiveExtraction } from "@/lib/conversation-runtime";
 import { buildDecisionFrame, type DecisionFrame } from "@/lib/decision-runtime";
+import { buildExecutiveCaseBrief } from "@/lib/executive-brief";
 import { caseScore } from "@/lib/scheduler";
 import { runUnifiedRuntime } from "@/lib/unified-runtime";
 import { useExecutiveStore } from "@/store/executive-store";
@@ -31,6 +32,7 @@ export function ExecutiveWorkspace() {
   const decisions = store.decisions.filter((decision) => decision.caseId === active.id);
   const actions = store.actions.filter((action) => action.caseId === active.id);
   const caseObjects = store.caseObjects.filter((item) => item.caseId === active.id);
+  const brief = buildExecutiveCaseBrief({ cognitiveCase: active, decisions: store.decisions, actions: store.actions, caseObjects: store.caseObjects, learningEvents: store.learningEvents, reflections: store.reflections });
   const recall = buildCognitiveRecall({
     cognitiveCase: active,
     decisions: store.decisions,
@@ -69,6 +71,24 @@ export function ExecutiveWorkspace() {
 
   return (
     <div className="space-y-6 text-white">
+      <article className={`executive-card p-5 ${brief.health === "critical" ? "border-red-400/30" : brief.health === "watch" ? "border-amber-300/25" : ""}`}>
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <div><div className="text-xs font-black tracking-[.14em] text-[#8d7ce4]">EXECUTIVE BRIEF</div><p className="mt-1 text-xs text-[#71839e]">La situation du dossier en un regard, recalculée depuis les objets réels.</p></div>
+          <span className="rounded-full border border-white/10 bg-white/[.025] px-3 py-1 text-xs uppercase text-[#a9b7ca]">{brief.health} · {brief.state}</span>
+        </div>
+        <div className="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+          <BriefCard label="Objectif" value={brief.objective}/>
+          <BriefCard label="Dernière décision" value={brief.latestDecision} meta={brief.decisionConfidence ? `${brief.decisionConfidence}% confiance` : undefined}/>
+          <BriefCard label="Prochaine action" value={brief.nextAction}/>
+          <BriefCard label="Dernier apprentissage" value={brief.latestLearning}/>
+        </div>
+        <div className="mt-3 grid gap-3 lg:grid-cols-3">
+          <BriefList label="Blocages" values={brief.blockers} empty="Aucun blocage actif"/>
+          <BriefList label="Risques critiques" values={brief.criticalRisks} empty="Aucun risque critique identifié"/>
+          <div className="rounded-2xl border border-[#7c5cff]/25 bg-[#7c5cff]/10 p-4"><span className="text-[10px] font-black uppercase tracking-[.12em] text-[#b7a9ff]">Recommandation ORION</span><strong className="mt-2 block text-sm leading-6">{brief.recommendation}</strong></div>
+        </div>
+      </article>
+
       <article className="executive-card p-5">
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div>
@@ -159,6 +179,14 @@ export function ExecutiveWorkspace() {
       {decisionFrame && <DecisionWorkbench frame={decisionFrame} onContextSubmit={(summary) => processMessage(summary)} onCreateAction={createAction}/>} 
     </div>
   );
+}
+
+function BriefCard({ label, value, meta }: { label: string; value: string; meta?: string }) {
+  return <div className="rounded-2xl border border-white/10 bg-white/[.025] p-4"><span className="text-[10px] font-black uppercase tracking-[.12em] text-[#71839e]">{label}</span><strong className="mt-2 block text-sm leading-6">{value}</strong>{meta && <span className="mt-1 block text-[10px] text-[#8d7ce4]">{meta}</span>}</div>;
+}
+
+function BriefList({ label, values, empty }: { label: string; values: string[]; empty: string }) {
+  return <div className="rounded-2xl border border-white/10 bg-white/[.025] p-4"><span className="text-[10px] font-black uppercase tracking-[.12em] text-[#71839e]">{label}</span><div className="mt-2 space-y-1">{values.length ? values.map((value, index) => <p key={`${label}-${index}`} className="text-sm leading-5 text-[#d6dfed]">• {value}</p>) : <p className="text-sm text-[#71839e]">{empty}</p>}</div></div>;
 }
 
 function DossierObjectGroup({ type, records }: { type: DossierObjectRecord["type"]; records: DossierObjectRecord[] }) {
