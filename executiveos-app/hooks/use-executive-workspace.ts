@@ -20,17 +20,18 @@ export function useExecutiveWorkspace() {
   );
 
   const activeChallenge = store.challenges.find((item) => item.id === store.activeChallengeId) ?? rankedChallenges[0];
+  const activeCaseId = activeChallenge.id;
   const messages = useMemo(
-    () => store.messages.filter((message) => message.challengeId === activeChallenge.id),
-    [store.messages, activeChallenge.id]
+    () => store.messages.filter((message) => message.caseId === activeCaseId),
+    [store.messages, activeCaseId]
   );
   const decisions = useMemo(
-    () => store.decisions.filter((decision) => decision.challengeId === activeChallenge.id),
-    [store.decisions, activeChallenge.id]
+    () => store.decisions.filter((decision) => decision.challengeId === activeCaseId),
+    [store.decisions, activeCaseId]
   );
   const actions = useMemo(
-    () => store.actions.filter((action) => action.challengeId === activeChallenge.id),
-    [store.actions, activeChallenge.id]
+    () => store.actions.filter((action) => action.challengeId === activeCaseId),
+    [store.actions, activeCaseId]
   );
 
   function resetTransientReasoning() {
@@ -39,13 +40,13 @@ export function useExecutiveWorkspace() {
     setDecisionFrame(null);
   }
 
-  function selectChallenge(challengeId: string) {
-    store.setActiveChallenge(challengeId);
+  function selectChallenge(caseId: string) {
+    store.setActiveChallenge(caseId);
     resetTransientReasoning();
   }
 
   function createAction(title: string) {
-    store.createAction({ challengeId: activeChallenge.id, title });
+    store.createAction({ caseId: activeCaseId, title });
   }
 
   function processMessage(message: string) {
@@ -56,7 +57,7 @@ export function useExecutiveWorkspace() {
     const createdAt = new Date().toISOString();
 
     store.recordConversationTurn({
-      challengeId: activeChallenge.id,
+      caseId: activeCaseId,
       userText: clean,
       assistantText: result.response,
       intent: result.intent,
@@ -68,7 +69,7 @@ export function useExecutiveWorkspace() {
     const decision = result.extractions.find((item) => item.kind === "decision");
     if (decision) {
       store.captureDecision({
-        challengeId: activeChallenge.id,
+        caseId: activeCaseId,
         text: decision.text,
         recommendation: result.nextAction,
         confidence: decision.confidence,
@@ -77,7 +78,7 @@ export function useExecutiveWorkspace() {
     }
 
     const action = result.extractions.find((item) => item.kind === "action");
-    if (action) store.createAction({ challengeId: activeChallenge.id, title: action.text });
+    if (action) store.createAction({ caseId: activeCaseId, title: action.text });
 
     setLastExtractions(result.extractions);
     setLastNextAction(result.nextAction);
@@ -92,6 +93,7 @@ export function useExecutiveWorkspace() {
     setShowGraph,
     rankedChallenges,
     activeChallenge,
+    activeCaseId,
     messages,
     decisions,
     actions,
