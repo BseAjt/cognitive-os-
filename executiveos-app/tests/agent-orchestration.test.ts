@@ -9,16 +9,31 @@ import type { CognitiveCase, MemoryRecord } from "../domain/canonical.ts";
 
 const cognitiveCase: CognitiveCase = { id:"agent-case", title:"Architecture ExecutiveOS", objective:"Choisir une architecture robuste et différenciante", workingHypothesis:"Le runtime unifié réduit la dette technique", context:"Le produit doit intégrer mémoire, graphe et agents.", state:"decide", signals:{ impact:9, urgency:7, confidence:72, cognitiveCost:6, risk:8 } };
 
-test("ORION selects technology and reflection specialists for a risky architecture question", () => {
+test("ORION classifies intent and selects technology and reflection specialists internally", () => {
   const result = runAgentOrchestration({ message:"Nous devons choisir l'architecture du runtime. Le risque est un couplage trop fort.", cognitiveCase, agents:defaultExecutiveAgents, extractions:[{ kind:"risk", text:"Couplage trop fort", confidence:88 }, { kind:"action", text:"Vérifier l'architecture du runtime", confidence:91 }] });
-  assert.equal(result.orchestratorId, "orion"); assert.ok(result.selectedAgentIds.includes("turing")); assert.ok(result.selectedAgentIds.includes("seneca")); assert.ok(result.contributions.some((item) => item.agentId === "turing")); assert.ok(result.contributions.some((item) => item.agentId === "seneca")); assert.match(result.synthesis, /ORION/);
+  assert.equal(result.orchestratorId, "orion");
+  assert.ok(["decision", "risk", "technology"].includes(result.intent));
+  assert.ok(result.selectedAgentIds.includes("turing"));
+  assert.ok(result.selectedAgentIds.includes("seneca"));
+  assert.match(result.synthesis, /^ORION recommande/);
+  assert.ok(result.selectionRationale.includes("perspective(s) interne(s)"));
 });
-test("persisted cognitive memory can trigger SENECA even when the new message omits the risk", () => {
+
+test("persisted cognitive memory can trigger risk analysis even when the new message omits the risk", () => {
   const memories: MemoryRecord[] = [{ id:"m-risk", caseId:"agent-case", kind:"risk", content:"Risque historique de verrouillage architectural", confidence:90, durable:true, source:"unified_runtime", createdAt:"2026-08-07T13:00:00.000Z" }];
-  const result = runAgentOrchestration({ message:"Quelle option devons-nous privilégier ?", cognitiveCase:{ ...cognitiveCase, signals:{ ...cognitiveCase.signals, risk:4 } }, agents:defaultExecutiveAgents, extractions:[], memories }); assert.ok(result.selectedAgentIds.includes("seneca"));
+  const result = runAgentOrchestration({ message:"Quelle option devons-nous privilégier ?", cognitiveCase:{ ...cognitiveCase, signals:{ ...cognitiveCase.signals, risk:4 } }, agents:defaultExecutiveAgents, extractions:[], memories });
+  assert.ok(result.selectedAgentIds.includes("seneca"));
 });
-test("unified runtime injects agent contributions and pre-assigns technical actions", () => {
-  const result = runUnifiedRuntime({ message:"Le risque est le couplage. Il faut vérifier l'architecture du runtime et les API.", cognitiveCase }); assert.equal(result.trace.some((item) => item.stage === "agents" && item.status === "completed"), true); assert.ok(result.reasoning.some((item) => item.content.startsWith("TURING —"))); assert.ok(result.knowledge.some((item) => item.type === "insight" && item.title.includes("ORION"))); const technicalAction = result.actions.find((item) => item.requiredCapability === "technology"); assert.equal(technicalAction?.preferredAgentId, "turing");
+
+test("unified runtime exposes one ORION synthesis while keeping specialist identities internal", () => {
+  const result = runUnifiedRuntime({ message:"Le risque est le couplage. Il faut vérifier l'architecture du runtime et les API.", cognitiveCase });
+  assert.equal(result.trace.some((item) => item.stage === "agents" && item.status === "completed"), true);
+  assert.ok(result.reasoning.some((item) => item.content.startsWith("Perspective spécialisée —")));
+  assert.equal(result.reasoning.some((item) => item.content.startsWith("TURING —")), false);
+  assert.ok(result.conversation.response.includes("ORION recommande"));
+  assert.ok(result.knowledge.some((item) => item.type === "insight" && item.title.includes("ORION")));
+  const technicalAction = result.actions.find((item) => item.requiredCapability === "technology");
+  assert.equal(technicalAction?.preferredAgentId, "turing");
 });
 
 const here = dirname(fileURLToPath(import.meta.url)); const root = resolve(here, ".."); const source = (path: string) => readFileSync(resolve(root, path), "utf8");
