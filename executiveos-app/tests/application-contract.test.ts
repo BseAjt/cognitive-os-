@@ -8,6 +8,7 @@ const here = dirname(fileURLToPath(import.meta.url));
 const root = resolve(here, "..");
 const source = (path: string) => readFileSync(resolve(root, path), "utf8");
 
+const home = source("components/executive-home-v4.tsx");
 const workspace = source("components/executive-workspace.tsx");
 const historyControls = source("components/history-controls.tsx");
 const store = source("store/executive-store.ts");
@@ -24,7 +25,7 @@ const contracts: Array<[string, string, string]> = [
   ["workspace feeds persistent memory", workspace, "memories: store.memories.filter"],
   ["workspace feeds persistent knowledge", workspace, "knowledgeRecords: store.knowledgeRecords.filter"],
   ["workspace applies runtime cycle atomically", workspace, "store.applyRuntimeCycle({"],
-  ["workspace switches canonical cases", workspace, "store.setActiveCase(cognitiveCase.id)"],
+  ["dossier-first shell switches canonical cases", home, "store.setActiveCase(id)"],
   ["workspace uses canonical case score", workspace, "caseScore("],
   ["unified runtime delegates conversation analysis", unifiedRuntime, "runConversationRuntime(input.message, input.cognitiveCase)"],
   ["unified runtime exposes agent orchestration", unifiedRuntime, "agents: AgentOrchestrationResult"],
