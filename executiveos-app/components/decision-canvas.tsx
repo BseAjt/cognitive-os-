@@ -1,5 +1,6 @@
 "use client";
 
+import { ReasoningFlowV3 } from "@/components/reasoning-flow-v3";
 import type { DecisionFrame } from "@/lib/decision-room";
 import type { ActionItem, Challenge, Decision } from "@/types/domain";
 
@@ -40,6 +41,8 @@ export function DecisionCanvas({ challenge, frame, decisions, actions, onCreateA
           </div>
         </div>
       </article>
+
+      <ReasoningFlowV3 challenge={challenge} frame={frame} />
 
       <div className="grid gap-5 xl:grid-cols-[1.15fr_.85fr]">
         <div className="space-y-5">
