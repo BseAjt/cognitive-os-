@@ -2,7 +2,7 @@ import type { AgentContract, CognitiveCase, ContextRecord, KnowledgeRecord, Memo
 import { defaultExecutiveAgents, preferredAgentForCapability, runAgentOrchestration, type AgentOrchestrationResult } from "./agent-runtime.ts";
 import { runConversationRuntime, type CognitiveExtraction, type RuntimeResult } from "./conversation-runtime.ts";
 
-export type RuntimeStage = "context" | "reasoning" | "agents" | "decision" | "action" | "memory" | "knowledge";
+export type RuntimeStage = "recall" | "context" | "reasoning" | "agents" | "decision" | "action" | "memory" | "knowledge";
 export type ReasoningStepId = "question" | "hypothesis" | "evidence" | "options" | "objections" | "decision" | "consequences";
 
 export interface RuntimeStageTrace {
@@ -52,6 +52,7 @@ export interface UnifiedRuntimeInput {
   agents?: AgentContract[];
   memories?: MemoryRecord[];
   knowledgeRecords?: KnowledgeRecord[];
+  recallSummary?: string;
 }
 
 export interface UnifiedRuntimeResult {
@@ -69,8 +70,9 @@ export interface UnifiedRuntimeResult {
 export function runUnifiedRuntime(input: UnifiedRuntimeInput): UnifiedRuntimeResult {
   const agents = input.agents?.length ? input.agents : defaultExecutiveAgents;
   const conversation = runConversationRuntime(input.message, input.cognitiveCase);
+  const agentMessage = input.recallSummary ? `${input.message}\n\nContexte de reprise:\n${input.recallSummary}` : input.message;
   const agentOrchestration = runAgentOrchestration({
-    message: input.message,
+    message: agentMessage,
     cognitiveCase: input.cognitiveCase,
     agents,
     extractions: conversation.extractions,
@@ -79,6 +81,7 @@ export function runUnifiedRuntime(input: UnifiedRuntimeInput): UnifiedRuntimeRes
   });
 
   const reasoning: ReasoningProposal[] = [
+    ...(input.recallSummary ? [{ stepId: "evidence" as const, content: `Recall — ${input.recallSummary}`, confidence: input.cognitiveCase.signals.confidence }] : []),
     ...conversation.extractions.map((extraction) => toReasoningProposal(extraction, input.cognitiveCase)),
     ...agentOrchestration.contributions.map((contribution) => ({
       stepId: contribution.agentId === "seneca" ? "objections" as const : contribution.agentId === "turing" ? "evidence" as const : "options" as const,
@@ -134,6 +137,7 @@ export function runUnifiedRuntime(input: UnifiedRuntimeInput): UnifiedRuntimeRes
   ];
 
   const trace: RuntimeStageTrace[] = [
+    { stage: "recall", status: input.recallSummary ? "completed" : "skipped", detail: input.recallSummary ? "État de reprise reconstruit avant analyse." : "Aucun historique cognitif à rappeler." },
     { stage: "context", status: "completed", detail: `${conversation.extractions.length} éléments cognitifs extraits.` },
     { stage: "reasoning", status: reasoning.length ? "completed" : "skipped", detail: `${reasoning.length} propositions de révision.` },
     { stage: "agents", status: agentOrchestration.contributions.length ? "completed" : "skipped", detail: `${agentOrchestration.selectedAgentIds.length} spécialiste(s) mobilisé(s) par ORION.` },
