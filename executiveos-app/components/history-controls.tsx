@@ -3,9 +3,9 @@
 import { useExecutiveStore } from "@/store/executive-store";
 
 export function HistoryControls() {
-  const activeCaseId = useExecutiveStore((state) => state.activeChallengeId);
+  const activeCaseId = useExecutiveStore((state) => state.activeCaseId);
   const messageCount = useExecutiveStore(
-    (state) => state.messages.filter((message) => message.caseId === state.activeChallengeId).length
+    (state) => state.messages.filter((message) => message.caseId === state.activeCaseId).length
   );
   const clearConversationHistory = useExecutiveStore((state) => state.clearConversationHistory);
 
