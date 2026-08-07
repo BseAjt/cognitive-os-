@@ -27,7 +27,6 @@ test("ORION selects technology and reflection specialists for a risky architectu
       { kind: "action", text: "Vérifier l'architecture du runtime", confidence: 91 }
     ]
   });
-
   assert.equal(result.orchestratorId, "orion");
   assert.ok(result.selectedAgentIds.includes("turing"));
   assert.ok(result.selectedAgentIds.includes("seneca"));
@@ -37,31 +36,13 @@ test("ORION selects technology and reflection specialists for a risky architectu
 });
 
 test("persisted cognitive memory can trigger SENECA even when the new message omits the risk", () => {
-  const memories: MemoryRecord[] = [{
-    id: "m-risk",
-    caseId: "agent-case",
-    kind: "risk",
-    content: "Risque historique de verrouillage architectural",
-    confidence: 90,
-    durable: true,
-    source: "unified_runtime",
-    createdAt: "2026-08-07T13:00:00.000Z"
-  }];
-  const result = runAgentOrchestration({
-    message: "Quelle option devons-nous privilégier ?",
-    cognitiveCase: { ...cognitiveCase, signals: { ...cognitiveCase.signals, risk: 4 } },
-    agents: defaultExecutiveAgents,
-    extractions: [],
-    memories
-  });
+  const memories: MemoryRecord[] = [{ id: "m-risk", caseId: "agent-case", kind: "risk", content: "Risque historique de verrouillage architectural", confidence: 90, durable: true, source: "unified_runtime", createdAt: "2026-08-07T13:00:00.000Z" }];
+  const result = runAgentOrchestration({ message: "Quelle option devons-nous privilégier ?", cognitiveCase: { ...cognitiveCase, signals: { ...cognitiveCase.signals, risk: 4 } }, agents: defaultExecutiveAgents, extractions: [], memories });
   assert.ok(result.selectedAgentIds.includes("seneca"));
 });
 
 test("unified runtime injects agent contributions and pre-assigns technical actions", () => {
-  const result = runUnifiedRuntime({
-    message: "Le risque est le couplage. Il faut vérifier l'architecture du runtime et les API.",
-    cognitiveCase
-  });
+  const result = runUnifiedRuntime({ message: "Le risque est le couplage. Il faut vérifier l'architecture du runtime et les API.", cognitiveCase });
   assert.equal(result.trace.some((item) => item.stage === "agents" && item.status === "completed"), true);
   assert.ok(result.reasoning.some((item) => item.content.startsWith("TURING —")));
   assert.ok(result.knowledge.some((item) => item.type === "insight" && item.title.includes("ORION")));
@@ -83,7 +64,7 @@ for (const [name, file, expected] of [
   ["runtime cycle persists ORION run", commands, "agentRuns: [agentRun, ...state.agentRuns]"],
   ["actions accept preferred agent assignment", commands, "assignedAgentId: action.preferredAgentId"],
   ["agent council emits an event", commands, "AgentCouncilCompleted"],
-  ["persistence schema includes agent migration v10", store, "version: 10"]
+  ["persistence schema includes learning migration v11", store, "version: 11"]
 ] as const) {
   test(name, () => assert.ok(file.includes(expected), `Missing agent runtime contract: ${expected}`));
 }
