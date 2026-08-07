@@ -1,25 +1,12 @@
-export type ContextDomain = "strategy" | "finance" | "people" | "operations" | "market" | "legal" | "history" | "governance";
-export type ContextKind = "fact" | "hypothesis" | "constraint" | "preference" | "uncertainty";
-export type ContextRequirement = "required" | "important" | "optional";
-export type ContextStatus = "missing" | "draft" | "verified" | "stale" | "contested";
+import type {
+  ContextDomain,
+  ContextKind,
+  ContextRecord,
+  ContextRequirement,
+  ContextStatus
+} from "../domain/canonical.ts";
 
-export interface ContextItem {
-  id: string;
-  caseId: string;
-  domain: ContextDomain;
-  kind: ContextKind;
-  key: string;
-  label: string;
-  value: string;
-  unit?: string;
-  source?: string;
-  owner?: string;
-  confidence: number;
-  requirement: ContextRequirement;
-  status: ContextStatus;
-  capturedAt?: string;
-  validUntil?: string;
-}
+export type { ContextDomain, ContextKind, ContextRequirement, ContextStatus };
 
 export interface ContextQuestion {
   id: string;
@@ -43,14 +30,11 @@ export interface ContextAssessment {
   readiness: number;
   recommendationAllowed: boolean;
   domains: ContextDomainSummary[];
-  missingRequired: ContextItem[];
-  stale: ContextItem[];
-  contested: ContextItem[];
+  missingRequired: ContextRecord[];
+  blockingItems: ContextRecord[];
+  stale: ContextRecord[];
+  contested: ContextRecord[];
   nextQuestion?: ContextQuestion;
-}
-
-export interface ContextReadiness extends ContextAssessment {
-  blockingItems: ContextItem[];
 }
 
 const domainLabels: Record<ContextDomain, string> = {
@@ -67,7 +51,7 @@ const domainLabels: Record<ContextDomain, string> = {
 const requirementWeight: Record<ContextRequirement, number> = { required: 5, important: 2, optional: 1 };
 const statusScore: Record<ContextStatus, number> = { missing: 0, draft: 0.45, verified: 1, stale: 0.3, contested: 0.15 };
 
-export function assessContext(items: ContextItem[]): ContextReadiness {
+export function assessContext(items: ContextRecord[]): ContextAssessment {
   const domains = (Object.keys(domainLabels) as ContextDomain[]).map((domain) => {
     const domainItems = items.filter((item) => item.domain === domain);
     const maximum = domainItems.reduce((sum, item) => sum + requirementWeight[item.requirement], 0);
@@ -86,23 +70,20 @@ export function assessContext(items: ContextItem[]): ContextReadiness {
   const missingRequired = items.filter((item) => item.requirement === "required" && item.status !== "verified");
   const stale = items.filter((item) => item.status === "stale");
   const contested = items.filter((item) => item.status === "contested");
-  const blockingItems = items.filter(
-    (item) => (item.requirement === "required" && item.status !== "verified") || item.status === "stale" || item.status === "contested"
-  );
 
   return {
     readiness: maximum ? Math.round((achieved / maximum) * 100) : 0,
-    recommendationAllowed: blockingItems.length === 0,
+    recommendationAllowed: missingRequired.length === 0 && stale.length === 0 && contested.length === 0,
     domains,
     missingRequired,
+    blockingItems: missingRequired,
     stale,
     contested,
-    blockingItems,
     nextQuestion: buildAdaptiveQuestions(items)[0]
   };
 }
 
-export function buildAdaptiveQuestions(items: ContextItem[]): ContextQuestion[] {
+export function buildAdaptiveQuestions(items: ContextRecord[]): ContextQuestion[] {
   return items
     .filter((item) => item.status !== "verified")
     .sort((a, b) => requirementWeight[b.requirement] - requirementWeight[a.requirement])
@@ -117,7 +98,7 @@ export function buildAdaptiveQuestions(items: ContextItem[]): ContextQuestion[] 
     }));
 }
 
-export function answerContextItem(item: ContextItem, value: string, source = "Saisie dirigeant"): ContextItem {
+export function answerContextItem(item: ContextRecord, value: string, source = "Saisie dirigeant"): ContextRecord {
   const clean = value.trim();
   return {
     ...item,
@@ -129,7 +110,7 @@ export function answerContextItem(item: ContextItem, value: string, source = "Sa
   };
 }
 
-function questionFor(item: ContextItem): string {
+function questionFor(item: ContextRecord): string {
   const prompts: Record<string, string> = {
     strategic_objective: "Quel résultat stratégique cette décision doit-elle produire ?",
     cash_runway_months: "Combien de mois de trésorerie restent disponibles ?",
@@ -147,16 +128,16 @@ function questionFor(item: ContextItem): string {
   return prompts[item.key] || `Précise : ${item.label}`;
 }
 
-function placeholderFor(item: ContextItem): string {
+function placeholderFor(item: ContextRecord): string {
   if (item.unit === "months") return "Ex. 7 mois";
-  if (item.unit === "million_EUR") return "Ex. 2,5 M€";
+  if (item.unit === "EUR") return "Ex. 2 500 000 €";
   return `Renseigner ${item.label.toLowerCase()}`;
 }
 
-export const workforceRestructuringContextSeed: ContextItem[] = [
-  { id: "ctx-objective", caseId: "executiveos", domain: "strategy", kind: "preference", key: "strategic_objective", label: "Objectif stratégique", value: "Restaurer une marge opérationnelle durable sans compromettre les activités critiques.", source: "Comité exécutif", owner: "CEO", confidence: 92, requirement: "required", status: "verified", capturedAt: "2026-08-01T09:00:00.000Z" },
+export const workforceRestructuringContextSeed: ContextRecord[] = [
+  { id: "ctx-objective", caseId: "executiveos", domain: "strategy", kind: "goal", key: "strategic_objective", label: "Objectif stratégique", value: "Restaurer une marge opérationnelle durable sans compromettre les activités critiques.", source: "Comité exécutif", owner: "CEO", confidence: 92, requirement: "required", status: "verified", capturedAt: "2026-08-01T09:00:00.000Z" },
   { id: "ctx-runway", caseId: "executiveos", domain: "finance", kind: "fact", key: "cash_runway_months", label: "Horizon de trésorerie", value: "7", unit: "months", source: "Prévision CFO juillet 2026", owner: "CFO", confidence: 86, requirement: "required", status: "verified", capturedAt: "2026-07-31T18:00:00.000Z", validUntil: "2026-09-30T00:00:00.000Z" },
-  { id: "ctx-savings", caseId: "executiveos", domain: "finance", kind: "constraint", key: "target_savings_million", label: "Économies cibles", value: "", unit: "million_EUR", owner: "CFO", confidence: 0, requirement: "required", status: "missing" },
+  { id: "ctx-savings", caseId: "executiveos", domain: "finance", kind: "constraint", key: "target_savings_million", label: "Économies cibles", value: "", unit: "EUR", owner: "CFO", confidence: 0, requirement: "required", status: "missing" },
   { id: "ctx-scope", caseId: "executiveos", domain: "people", kind: "uncertainty", key: "affected_roles_count", label: "Périmètre d’effectifs", value: "", owner: "DRH", confidence: 0, requirement: "required", status: "missing" },
   { id: "ctx-skills", caseId: "executiveos", domain: "people", kind: "constraint", key: "critical_skills", label: "Compétences critiques", value: "Architecture produit, support grands comptes et expertise sécurité.", source: "Cartographie RH", owner: "DRH", confidence: 75, requirement: "required", status: "draft", capturedAt: "2026-07-20T10:00:00.000Z" },
   { id: "ctx-alternatives", caseId: "executiveos", domain: "people", kind: "fact", key: "alternatives_reviewed", label: "Alternatives étudiées", value: "Gel des recrutements et réduction des dépenses externes engagés ; mobilité et départs volontaires non chiffrés.", source: "Revue de coûts", owner: "DRH", confidence: 72, requirement: "required", status: "draft", capturedAt: "2026-08-02T14:00:00.000Z" },
