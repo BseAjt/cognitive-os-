@@ -5,8 +5,8 @@ import { DecisionCanvas } from "@/components/decision-canvas";
 import { DecisionWorkbench } from "@/components/decision-workbench";
 import { ReasoningGraph } from "@/components/reasoning-graph";
 import { runConversationRuntime, type CognitiveExtraction } from "@/lib/conversation-runtime";
-import { buildDecisionFrame, type DecisionFrame } from "@/lib/decision-room";
-import { challengeScore } from "@/lib/scheduler";
+import { buildDecisionFrame, type DecisionFrame } from "@/lib/decision-runtime";
+import { caseScore } from "@/lib/scheduler";
 import { useExecutiveStore } from "@/store/executive-store";
 
 export function ExecutiveWorkspace() {
@@ -18,11 +18,16 @@ export function ExecutiveWorkspace() {
   const [showGraph, setShowGraph] = useState(false);
   const [mode, setMode] = useState<"canvas" | "conversation">("canvas");
 
-  const ranked = useMemo(() => [...store.challenges].sort((a, b) => challengeScore(b) - challengeScore(a)), [store.challenges]);
-  const active = store.challenges.find((item) => item.id === store.activeChallengeId) ?? ranked[0];
-  const messages = store.messages.filter((message) => message.challengeId === active.id);
-  const decisions = store.decisions.filter((decision) => decision.challengeId === active.id);
-  const actions = store.actions.filter((action) => action.challengeId === active.id);
+  const ranked = useMemo(() => [...store.cases].sort((a, b) => caseScore(b) - caseScore(a)), [store.cases]);
+  const active = store.cases.find((item) => item.id === store.activeCaseId) ?? ranked[0];
+
+  if (!active) {
+    return <div className="grid min-h-[60vh] place-items-center text-[#91a2bd]">Aucun dossier cognitif disponible.</div>;
+  }
+
+  const messages = store.messages.filter((message) => message.caseId === active.id);
+  const decisions = store.decisions.filter((decision) => decision.caseId === active.id);
+  const actions = store.actions.filter((action) => action.caseId === active.id);
   const effectiveFrame = decisionFrame ?? buildDecisionFrame(active.context || active.title, active);
 
   function processMessage(message: string) {
@@ -31,17 +36,26 @@ export function ExecutiveWorkspace() {
     const result = runConversationRuntime(clean, active);
     const now = new Date().toISOString();
 
-    store.updateChallenge({ ...active, ...result.challengePatch });
-    store.addMessages([
-      { id: crypto.randomUUID(), challengeId: active.id, role: "user", text: clean, createdAt: now },
-      { id: crypto.randomUUID(), challengeId: active.id, role: "assistant", text: result.response, createdAt: now }
-    ]);
-    store.addEvent("ConversationParsed", `${result.intent} · ${result.extractions.length} objets détectés`);
+    store.recordConversationTurn({
+      caseId: active.id,
+      userText: clean,
+      assistantText: result.response,
+      intent: result.intent,
+      extractionCount: result.extractions.length,
+      casePatch: result.casePatch,
+      createdAt: now
+    });
 
     const decision = result.extractions.find((item) => item.kind === "decision");
     if (decision) {
-      store.addDecision({ id: crypto.randomUUID(), challengeId: active.id, recommendation: result.nextAction, finalDecision: decision.text, rationale: "Décision extraite de la conversation.", confidence: decision.confidence, createdAt: now });
-      store.addEvent("DecisionCaptured", decision.text);
+      store.captureDecision({
+        caseId: active.id,
+        text: decision.text,
+        recommendation: result.decisionFrame?.recommendation ?? result.nextAction,
+        confidence: decision.confidence,
+        rationale: "Décision extraite de la conversation.",
+        createdAt: now
+      });
     }
 
     const action = result.extractions.find((item) => item.kind === "action");
@@ -54,8 +68,7 @@ export function ExecutiveWorkspace() {
   }
 
   function createAction(title: string) {
-    store.addActions([{ id: crypto.randomUUID(), challengeId: active.id, title, owner: "À assigner", progress: 0, status: "todo" }]);
-    store.addEvent("ActionCreated", title);
+    store.createAction({ caseId: active.id, title });
   }
 
   return (
@@ -72,11 +85,11 @@ export function ExecutiveWorkspace() {
 
       <main className="mx-auto max-w-[1580px] p-4 md:p-7">
         <div className="mb-5 flex gap-2 overflow-x-auto pb-1">
-          {ranked.map((challenge) => <button key={challenge.id} onClick={() => { store.setActiveChallenge(challenge.id); setLastExtractions([]); setLastNextAction(""); setDecisionFrame(null); }} className={`shrink-0 rounded-xl border px-3 py-2 text-left text-xs ${active.id === challenge.id ? "border-[#7c5cff]/45 bg-[#7c5cff]/10 text-white" : "border-white/[.08] bg-white/[.02] text-[#8393ad]"}`}><strong className="block">{challenge.title}</strong><span className="mt-1 block text-[10px]">Score {challengeScore(challenge)} · {challenge.state}</span></button>)}
+          {ranked.map((cognitiveCase) => <button key={cognitiveCase.id} onClick={() => { store.setActiveCase(cognitiveCase.id); setLastExtractions([]); setLastNextAction(""); setDecisionFrame(null); }} className={`shrink-0 rounded-xl border px-3 py-2 text-left text-xs ${active.id === cognitiveCase.id ? "border-[#7c5cff]/45 bg-[#7c5cff]/10 text-white" : "border-white/[.08] bg-white/[.02] text-[#8393ad]"}`}><strong className="block">{cognitiveCase.title}</strong><span className="mt-1 block text-[10px]">Score {caseScore(cognitiveCase)} · {cognitiveCase.state}</span></button>)}
         </div>
 
         {mode === "canvas" && (
-          <DecisionCanvas challenge={active} frame={effectiveFrame} decisions={decisions} actions={actions} onCreateAction={createAction} />
+          <DecisionCanvas cognitiveCase={active} frame={effectiveFrame} decisions={decisions} actions={actions} onCreateAction={createAction} />
         )}
 
         {mode === "conversation" && (
@@ -88,7 +101,7 @@ export function ExecutiveWorkspace() {
                 <div className="border-t border-white/10 p-4"><div className="flex gap-3 max-sm:flex-col"><textarea value={input} onChange={(event) => setInput(event.target.value)} onKeyDown={(event) => { if (event.key === "Enter" && !event.shiftKey) { event.preventDefault(); processMessage(input); } }} placeholder="Je dois prendre une décision…" className="min-h-24 flex-1 resize-none rounded-2xl border border-white/10 bg-[#0d1727] p-4 outline-none"/><button onClick={() => processMessage(input)} className="executive-button executive-primary self-end px-6 py-4">Analyser</button></div></div>
               </article>
 
-              {showGraph && <div className="grid gap-5"><article className="executive-card p-5"><div className="text-xs font-black tracking-[.14em] text-[#8d7ce4]">LIVE REASONING</div><div className="mt-4 grid grid-cols-3 gap-3"><Metric label="Priority" value={challengeScore(active)}/><Metric label="Confidence" value={`${active.confidence}%`}/><Metric label="Risk" value={`${active.risk}/10`}/></div><div className="mt-4 rounded-2xl border border-white/10 bg-white/[.025] p-4"><strong>Prochaine meilleure action</strong><p className="mt-2 text-[#d6dfed]">{lastNextAction || active.context}</p></div></article><ReasoningGraph challenge={active}/><article className="executive-card p-5"><div className="flex items-center justify-between"><div className="text-xs font-black tracking-[.14em] text-[#8d7ce4]">STRUCTURED OUTPUT</div><span className="text-xs text-[#91a2bd]">{lastExtractions.length} objets</span></div><div className="mt-3 grid gap-2">{lastExtractions.length ? lastExtractions.map((item, index) => <div key={`${item.kind}-${index}`} className="rounded-xl border border-white/10 bg-white/[.025] p-3"><div className="text-xs font-black uppercase tracking-[.12em] text-[#9d83ff]">{item.kind} · {item.confidence}%</div><p className="mt-1 text-sm text-[#d6dfed]">{item.text}</p></div>) : <span className="text-sm text-[#91a2bd]">Les extractions apparaîtront ici après ton message.</span>}</div></article></div>}
+              {showGraph && <div className="grid gap-5"><article className="executive-card p-5"><div className="text-xs font-black tracking-[.14em] text-[#8d7ce4]">LIVE REASONING</div><div className="mt-4 grid grid-cols-3 gap-3"><Metric label="Priority" value={caseScore(active)}/><Metric label="Confidence" value={`${active.signals.confidence}%`}/><Metric label="Risk" value={`${active.signals.risk}/10`}/></div><div className="mt-4 rounded-2xl border border-white/10 bg-white/[.025] p-4"><strong>Prochaine meilleure action</strong><p className="mt-2 text-[#d6dfed]">{lastNextAction || active.context}</p></div></article><ReasoningGraph cognitiveCase={active}/><article className="executive-card p-5"><div className="flex items-center justify-between"><div className="text-xs font-black tracking-[.14em] text-[#8d7ce4]">STRUCTURED OUTPUT</div><span className="text-xs text-[#91a2bd]">{lastExtractions.length} objets</span></div><div className="mt-3 grid gap-2">{lastExtractions.length ? lastExtractions.map((item, index) => <div key={`${item.kind}-${index}`} className="rounded-xl border border-white/10 bg-white/[.025] p-3"><div className="text-xs font-black uppercase tracking-[.12em] text-[#9d83ff]">{item.kind} · {item.confidence}%</div><p className="mt-1 text-sm text-[#d6dfed]">{item.text}</p></div>) : <span className="text-sm text-[#91a2bd]">Les extractions apparaîtront ici après ton message.</span>}</div></article></div>}
             </div>
 
             {decisionFrame && <DecisionWorkbench frame={decisionFrame} onContextSubmit={(summary) => processMessage(summary)} onCreateAction={createAction}/>} 
