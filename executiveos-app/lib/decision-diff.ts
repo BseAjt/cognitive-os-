@@ -43,13 +43,13 @@ function setDifference(left:string[], right:string[]):string[] {
   return left.filter((item)=>!rightSet.has(item));
 }
 
-function driverEvents(events:CognitiveTimelineEvent[], from:string, to:string):CognitiveTimelineEvent[] {
+function driverEvents(caseId:string, events:CognitiveTimelineEvent[], from:string, to:string):CognitiveTimelineEvent[] {
   const start = new Date(from).getTime();
   const end = new Date(to).getTime();
   return events
     .filter((event)=>{
       const time = new Date(event.timestamp).getTime();
-      return time > start && time <= end && ["evidence","hypothesis","risk","analysis","contradiction","learning","memory"].includes(event.type);
+      return event.caseId === caseId && time > start && time <= end && ["evidence","hypothesis","risk","analysis","contradiction","learning","memory"].includes(event.type);
     })
     .sort((a,b)=>{
       const weight = (event:CognitiveTimelineEvent) => event.impact === "critical" ? 4 : event.impact === "high" ? 3 : event.impact === "medium" ? 2 : 1;
@@ -77,7 +77,7 @@ export function buildDecisionDiffs(caseId:string, revisions:ReasoningRevisionLik
     const addedTerms = setDifference(toTerms,fromTerms).slice(0,8);
     const removedTerms = setDifference(fromTerms,toTerms).slice(0,8);
     const confidenceDelta = from.confidence !== null && to.confidence !== null ? to.confidence-from.confidence : null;
-    const drivers = driverEvents(events,from.createdAt,to.createdAt);
+    const drivers = driverEvents(caseId,events,from.createdAt,to.createdAt);
     const changed = from.content.trim() !== to.content.trim() || (confidenceDelta ?? 0) !== 0;
     const textChange = addedTerms.length || removedTerms.length
       ? `${addedTerms.length ? `Ajouts : ${addedTerms.join(", ")}` : ""}${addedTerms.length && removedTerms.length ? " · " : ""}${removedTerms.length ? `Retraits : ${removedTerms.join(", ")}` : ""}`
