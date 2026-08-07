@@ -36,9 +36,11 @@ Task execution, capability-based assignment and cognitive graph projection are i
 
 The current production product includes the Context Engine, Scenario Builder, Executive Council, Decision Cockpit, Conversation Runtime, Reasoning Flow, Decision Timeline, Impact Analysis, ORION Decision Copilot and Executive Runtime.
 
-## Historical modules
+## Historical Phase 2
 
-`modules/executiveos-phase2` is retained as an archived implementation reference only. It is not deployed, is not a source of truth and must not receive new product functionality.
+The standalone `modules/executiveos-phase2` source tree has been physically removed from the repository after its useful capabilities were ported into `executiveos-app`.
+
+The retained historical record is documentation-only under `docs/PHASE2_MIGRATION.md`; it captures the original invariants and their canonical RC1 replacements.
 
 ## Continuous validation
 
@@ -46,7 +48,7 @@ There is one canonical GitHub Actions workflow: `.github/workflows/runtime-tests
 
 Every relevant pull request and every push to `main` must run:
 
-1. dependency installation;
+1. deterministic dependency installation with `npm ci`;
 2. runtime regression tests;
 3. TypeScript application validation;
 4. production Next.js build;
@@ -57,7 +59,7 @@ The application also exposes `npm run validate` to execute the complete validati
 
 ### Dependency reproducibility
 
-RC1 currently uses `npm install --no-audit --no-fund` because no `package-lock.json` exists in the repository yet. Generating and committing a lockfile from an environment with access to the public npm registry is the next hardening step; once committed, the CI install step should be switched to `npm ci`.
+`executiveos-app/package-lock.json` is committed with lockfile version 3. Dependencies that were previously declared as `latest` are pinned to explicit stable versions in `package.json`, and CI uses `npm ci` against the committed lockfile.
 
 ## Branch and PR policy
 
