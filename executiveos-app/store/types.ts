@@ -2,7 +2,7 @@ import type { ActionItem, Challenge, CognitiveEvent, Decision } from "@/types/do
 
 export interface ConversationMessage {
   id: string;
-  challengeId: string;
+  caseId: string;
   role: "user" | "assistant";
   text: string;
   createdAt: string;
@@ -13,13 +13,13 @@ export interface ChallengeSlice {
   activeChallengeId: string;
   setActiveChallenge: (id: string) => void;
   replaceChallenge: (challenge: Challenge) => void;
-  applyChallengePatch: (challengeId: string, patch: Partial<Challenge>) => void;
+  applyChallengePatch: (caseId: string, patch: Partial<Challenge>) => void;
 }
 
 export interface ConversationSlice {
   messages: ConversationMessage[];
   appendMessages: (messages: ConversationMessage[]) => void;
-  clearConversationHistory: (challengeId: string) => void;
+  clearConversationHistory: (caseId: string) => void;
 }
 
 export interface DecisionSlice {
@@ -39,7 +39,7 @@ export interface EventSlice {
 
 export interface ExecutiveCommands {
   recordConversationTurn: (input: {
-    challengeId: string;
+    caseId: string;
     userText: string;
     assistantText: string;
     intent: string;
@@ -48,7 +48,7 @@ export interface ExecutiveCommands {
     createdAt?: string;
   }) => void;
   captureDecision: (input: {
-    challengeId: string;
+    caseId: string;
     text: string;
     recommendation: string;
     confidence: number;
@@ -56,7 +56,7 @@ export interface ExecutiveCommands {
     createdAt?: string;
   }) => void;
   createAction: (input: {
-    challengeId: string;
+    caseId: string;
     title: string;
     owner?: string;
   }) => void;
