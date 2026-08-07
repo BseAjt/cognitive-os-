@@ -6,11 +6,13 @@ import { buildCrossCaseLinks } from "@/lib/cross-case-memory";
 import { buildReusableExperiences } from "@/lib/experience-reuse";
 import { detectCrossCaseContradictions } from "@/lib/cross-case-contradictions";
 import { buildKnowledgeSuggestions } from "@/lib/knowledge-suggestions";
+import { buildLivingKnowledgeGraph, graphSummary } from "@/lib/living-knowledge-graph";
 import { useExecutiveStore } from "@/store/executive-store";
 
 export function LiveMemoryDock() {
   const store = useExecutiveStore();
   const [open, setOpen] = useState(true);
+  const [showGraph, setShowGraph] = useState(false);
   const active = store.cases.find((item) => item.id === store.activeCaseId) ?? store.cases[0];
 
   const intelligence = useMemo(() => {
@@ -44,7 +46,8 @@ export function LiveMemoryDock() {
       reusableExperiences: experiences,
       contradictions
     });
-    return { knowledge: knowledgeByCase[active.id] ?? [], links, experiences, contradictions, suggestions };
+    const graph = buildLivingKnowledgeGraph({ cases: store.cases, links, reusableExperiences: experiences, contradictions });
+    return { knowledge: knowledgeByCase[active.id] ?? [], links, experiences, contradictions, suggestions, graph };
   }, [active, store.cases, store.caseObjects, store.memories, store.knowledgeRecords, store.learningEvents, store.decisions]);
 
   if (!active || !intelligence) return null;
@@ -53,7 +56,7 @@ export function LiveMemoryDock() {
     return <button onClick={() => setOpen(true)} className="fixed bottom-20 right-5 z-40 rounded-xl border border-[#7c5cff]/40 bg-[#17152e]/95 px-4 py-3 text-sm font-semibold text-[#c9c0ff] shadow-2xl backdrop-blur">✦ Mémoire vivante</button>;
   }
 
-  return <aside className="fixed bottom-20 right-5 z-40 w-[min(420px,calc(100vw-2rem))] rounded-[24px] border border-[#7c5cff]/35 bg-[#0b1526]/95 p-4 shadow-2xl backdrop-blur-xl">
+  return <aside className="fixed bottom-20 right-5 z-40 max-h-[75vh] w-[min(440px,calc(100vw-2rem))] overflow-auto rounded-[24px] border border-[#7c5cff]/35 bg-[#0b1526]/95 p-4 shadow-2xl backdrop-blur-xl">
     <div className="flex items-start justify-between gap-3">
       <div><div className="text-[10px] font-black uppercase tracking-[.16em] text-[#a995ff]">ORION · MÉMOIRE VIVANTE</div><strong className="mt-1 block text-sm">{active.title}</strong><p className="mt-1 text-[11px] text-[#71839e]">{intelligence.knowledge.length} connaissance(s) consolidée(s) · {intelligence.links.length} dossier(s) connexe(s)</p></div>
       <button onClick={() => setOpen(false)} className="rounded-lg border border-white/10 px-2 py-1 text-xs text-[#91a2bd]">Réduire</button>
@@ -67,6 +70,19 @@ export function LiveMemoryDock() {
         <p className="mt-1 text-[10px] leading-4 text-[#65758f]">Pourquoi : {item.reason}</p>
       </div>) : <div className="rounded-2xl border border-white/[.08] bg-white/[.025] p-3 text-xs leading-5 text-[#91a2bd]">Aucun signal mémoire prioritaire. ORION continuera à consolider les apprentissages de ce dossier.</div>}
     </div>
+
+    <button onClick={() => setShowGraph(!showGraph)} className="mt-3 w-full rounded-xl border border-white/[.08] bg-white/[.03] px-3 py-2 text-left text-xs font-semibold text-[#c9c0ff]">
+      {showGraph ? "Masquer" : "Voir"} le Knowledge Graph vivant · {graphSummary(intelligence.graph)}
+    </button>
+
+    {showGraph && <div className="mt-3 rounded-2xl border border-white/[.08] bg-[#091422] p-3">
+      <div className="grid grid-cols-3 gap-2 text-center">
+        <GraphMetric label="Dossiers" value={intelligence.graph.nodes.filter((n) => n.type === "case").length}/>
+        <GraphMetric label="Expériences" value={intelligence.graph.nodes.filter((n) => n.type === "experience").length}/>
+        <GraphMetric label="Conflits" value={intelligence.graph.nodes.filter((n) => n.type === "contradiction").length}/>
+      </div>
+      <div className="mt-3 space-y-2">{intelligence.graph.edges.slice(0, 8).map((edge) => <div key={edge.id} className="rounded-xl border border-white/[.06] bg-white/[.025] p-2.5"><div className="flex items-center justify-between gap-2"><span className="text-[10px] font-black text-[#9d83ff]">{edge.type}</span><span className="text-[10px] text-[#71839e]">{edge.weight}</span></div><p className="mt-1 text-[11px] leading-4 text-[#a5b4c9]">{edge.rationale}</p></div>)}</div>
+    </div>}
   </aside>;
 }
 
@@ -75,4 +91,7 @@ function label(type: string): string {
   if (type === "reuse_experience") return "Expérience réutilisable";
   if (type === "related_case") return "Dossier connexe";
   return "À valider";
+}
+function GraphMetric({ label, value }: { label:string; value:number }) {
+  return <div className="rounded-xl border border-white/[.06] bg-white/[.025] p-2"><strong className="block text-lg">{value}</strong><span className="text-[9px] uppercase tracking-[.1em] text-[#71839e]">{label}</span></div>;
 }
