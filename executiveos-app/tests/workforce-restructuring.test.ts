@@ -1,20 +1,22 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { runConversationRuntime } from "../lib/conversation-runtime.ts";
-import type { Challenge } from "../types/domain.ts";
+import type { CognitiveCase } from "../domain/canonical.ts";
 
-const challenge: Challenge = {
+const cognitiveCase: CognitiveCase = {
   id: "workforce",
   title: "Restructuration",
-  goal: "Prendre une décision responsable",
-  hypothesis: "",
-  impact: 10,
-  urgency: 8,
-  confidence: 55,
-  cognitiveCost: 9,
-  risk: 9,
+  objective: "Prendre une décision responsable",
+  workingHypothesis: "",
   context: "Contexte incomplet",
-  state: "explore"
+  state: "explore",
+  signals: {
+    impact: 10,
+    urgency: 8,
+    confidence: 55,
+    cognitiveCost: 9,
+    risk: 9
+  }
 };
 
 const phrases = [
@@ -28,7 +30,7 @@ const phrases = [
 
 for (const message of phrases) {
   test(`detects protected workforce decision: ${message}`, () => {
-    const result = runConversationRuntime(message, challenge);
+    const result = runConversationRuntime(message, cognitiveCase);
     const frame = result.decisionFrame;
     assert.equal(frame?.category, "workforce_restructuring");
     assert.equal(frame?.requiresContext, true);
@@ -45,8 +47,8 @@ for (const message of phrases) {
 }
 
 test("does not issue a recommendation before context is collected", () => {
-  const result = runConversationRuntime("J’ai un problème : dois-je faire un plan social ou non ?", challenge);
+  const result = runConversationRuntime("J’ai un problème : dois-je faire un plan social ou non ?", cognitiveCase);
   assert.equal(result.decisionFrame?.recommendation, null);
-  assert.match(result.nextAction, /Documenter le contexte/);
+  assert.match(result.nextAction, /Documenter les informations bloquantes/);
   assert.doesNotMatch(result.response, /Recommandation :/);
 });
