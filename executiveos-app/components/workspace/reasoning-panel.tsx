@@ -1,24 +1,24 @@
-import type { Challenge } from "@/types/domain";
+import type { CognitiveCase } from "@/domain/canonical";
 import type { CognitiveExtraction } from "@/lib/conversation-runtime";
-import { challengeScore } from "@/lib/scheduler";
+import { caseScore } from "@/lib/scheduler";
 import { ReasoningGraph } from "@/components/reasoning-graph";
 
-export function ReasoningPanel({ challenge, nextAction, extractions }: { challenge: Challenge; nextAction: string; extractions: CognitiveExtraction[] }) {
+export function ReasoningPanel({ cognitiveCase, nextAction, extractions }: { cognitiveCase: CognitiveCase; nextAction: string; extractions: CognitiveExtraction[] }) {
   return (
     <div className="grid gap-5">
       <article className="executive-card p-5">
         <div className="text-xs font-black tracking-[.14em] text-[#8d7ce4]">LIVE REASONING</div>
         <div className="mt-4 grid grid-cols-3 gap-3">
-          <Metric label="Priority" value={challengeScore(challenge)} />
-          <Metric label="Confidence" value={`${challenge.confidence}%`} />
-          <Metric label="Risk" value={`${challenge.risk}/10`} />
+          <Metric label="Priority" value={caseScore(cognitiveCase)} />
+          <Metric label="Confidence" value={`${cognitiveCase.signals.confidence}%`} />
+          <Metric label="Risk" value={`${cognitiveCase.signals.risk}/10`} />
         </div>
         <div className="mt-4 rounded-2xl border border-white/10 bg-white/[.025] p-4">
           <strong>Prochaine meilleure action</strong>
-          <p className="mt-2 text-[#d6dfed]">{nextAction || challenge.context}</p>
+          <p className="mt-2 text-[#d6dfed]">{nextAction || cognitiveCase.context}</p>
         </div>
       </article>
-      <ReasoningGraph challenge={challenge} />
+      <ReasoningGraph cognitiveCase={cognitiveCase} />
       <article className="executive-card p-5">
         <div className="flex items-center justify-between">
           <div className="text-xs font-black tracking-[.14em] text-[#8d7ce4]">STRUCTURED OUTPUT</div>
