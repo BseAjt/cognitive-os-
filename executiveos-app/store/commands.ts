@@ -2,10 +2,10 @@ import type { StateCreator } from "zustand";
 import type { ExecutiveCommands, ExecutiveState } from "@/store/types";
 
 export const createExecutiveCommands: StateCreator<ExecutiveState, [], [], ExecutiveCommands> = (set, get) => ({
-  recordConversationTurn: ({ caseId, userText, assistantText, intent, extractionCount, challengePatch, createdAt }) => {
+  recordConversationTurn: ({ caseId, userText, assistantText, intent, extractionCount, casePatch, createdAt }) => {
     const timestamp = createdAt ?? new Date().toISOString();
     set((state) => ({
-      challenges: state.challenges.map((challenge) => challenge.id === caseId ? { ...challenge, ...challengePatch } : challenge),
+      cases: state.cases.map((cognitiveCase) => cognitiveCase.id === caseId ? { ...cognitiveCase, ...casePatch } : cognitiveCase),
       messages: [
         ...state.messages,
         { id: crypto.randomUUID(), caseId, role: "user", text: userText, createdAt: timestamp },
@@ -51,18 +51,21 @@ export const createExecutiveCommands: StateCreator<ExecutiveState, [], [], Execu
 
   applyCriticalSignal: () => {
     const timestamp = new Date().toISOString();
-    const activeCaseId = get().activeChallengeId;
+    const activeCaseId = get().activeCaseId;
     set((state) => ({
-      challenges: state.challenges.map((challenge) =>
-        challenge.id === activeCaseId
+      cases: state.cases.map((cognitiveCase) =>
+        cognitiveCase.id === activeCaseId
           ? {
-              ...challenge,
-              confidence: 41,
-              urgency: 10,
-              risk: 9,
-              context: "Les utilisateurs pilotes remettent en cause la disposition à payer sans intégration calendrier."
+              ...cognitiveCase,
+              context: "Les utilisateurs pilotes remettent en cause la disposition à payer sans intégration calendrier.",
+              signals: {
+                ...cognitiveCase.signals,
+                confidence: 41,
+                urgency: 10,
+                risk: 9
+              }
             }
-          : challenge
+          : cognitiveCase
       ),
       events: [{
         id: crypto.randomUUID(),
