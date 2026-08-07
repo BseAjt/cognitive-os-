@@ -1,4 +1,5 @@
 import type { ActionRecord, AgentContract, CognitiveCase, CognitiveEventRecord, DecisionRecord } from "../domain/canonical.ts";
+import type { UnifiedRuntimeResult } from "../lib/unified-runtime.ts";
 
 export interface ConversationMessage {
   id: string;
@@ -61,6 +62,12 @@ export interface RuntimeSlice {
 }
 
 export interface ExecutiveCommands {
+  applyRuntimeCycle: (input: {
+    caseId: string;
+    userText: string;
+    result: UnifiedRuntimeResult;
+    createdAt?: string;
+  }) => void;
   recordConversationTurn: (input: {
     caseId: string;
     userText: string;
