@@ -1,16 +1,16 @@
 import type { StateCreator } from "zustand";
-import type { ExecutiveState, ChallengeSlice, ConversationSlice, DecisionSlice, ActionSlice, EventSlice } from "@/store/types";
-import { initialChallenges, initialMessages } from "@/store/seed";
+import type { ExecutiveState, CaseSlice, ConversationSlice, DecisionSlice, ActionSlice, EventSlice } from "@/store/types";
+import { initialCases, initialMessages } from "@/store/seed";
 
-export const createChallengeSlice: StateCreator<ExecutiveState, [], [], ChallengeSlice> = (set) => ({
-  challenges: initialChallenges,
-  activeChallengeId: "executiveos",
-  setActiveChallenge: (id) => set({ activeChallengeId: id }),
-  replaceChallenge: (challenge) =>
-    set((state) => ({ challenges: state.challenges.map((item) => item.id === challenge.id ? challenge : item) })),
-  applyChallengePatch: (caseId, patch) =>
+export const createCaseSlice: StateCreator<ExecutiveState, [], [], CaseSlice> = (set) => ({
+  cases: initialCases,
+  activeCaseId: "executiveos",
+  setActiveCase: (id) => set({ activeCaseId: id }),
+  replaceCase: (cognitiveCase) =>
+    set((state) => ({ cases: state.cases.map((item) => item.id === cognitiveCase.id ? cognitiveCase : item) })),
+  applyCasePatch: (caseId, patch) =>
     set((state) => ({
-      challenges: state.challenges.map((item) => item.id === caseId ? { ...item, ...patch } : item)
+      cases: state.cases.map((item) => item.id === caseId ? { ...item, ...patch } : item)
     }))
 });
 
