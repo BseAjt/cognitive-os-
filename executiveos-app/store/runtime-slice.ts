@@ -23,19 +23,40 @@ export const createRuntimeSlice: StateCreator<ExecutiveState, [], [], RuntimeSli
       };
     }),
   assignRuntimeAction: (actionId) =>
-    set((state) => ({
-      actions: state.actions.map((action) => action.id === actionId ? assignAction(action, state.agents) : action),
-      events: [{ id: crypto.randomUUID(), type: "RuntimeTaskAssigned", detail: `Affectation de ${actionId}`, createdAt: new Date().toISOString() }, ...state.events]
-    })),
+    set((state) => {
+      const current = state.actions.find((action) => action.id === actionId);
+      if (!current) return state;
+      const assigned = assignAction(current, state.agents);
+      const detail = assigned.status === "blocked"
+        ? `${current.title} est bloquée : ${assigned.blockedReason}`
+        : `${current.title} est affectée à ${assigned.owner}.`;
+      return {
+        actions: state.actions.map((action) => action.id === actionId ? assigned : action),
+        events: [{ id: crypto.randomUUID(), type: "RuntimeTaskAssigned", detail, createdAt: new Date().toISOString() }, ...state.events]
+      };
+    }),
   transitionRuntimeAction: (actionId, status) =>
-    set((state) => ({
-      actions: state.actions.map((action) => action.id === actionId ? transitionAction(action, status) : action),
-      events: [{ id: crypto.randomUUID(), type: "RuntimeTaskTransitioned", detail: `${actionId} → ${status}`, createdAt: new Date().toISOString() }, ...state.events]
-    })),
+    set((state) => {
+      const current = state.actions.find((action) => action.id === actionId);
+      if (!current) return state;
+      const transitioned = transitionAction(current, status);
+      return {
+        actions: state.actions.map((action) => action.id === actionId ? transitioned : action),
+        events: [{ id: crypto.randomUUID(), type: "RuntimeTaskTransitioned", detail: `${current.title} → ${status} (${transitioned.progress}%).`, createdAt: new Date().toISOString() }, ...state.events]
+      };
+    }),
   executeRuntimeAction: (actionId) =>
-    set((state) => ({
-      actions: state.actions.map((action) => action.id === actionId ? executeAction(action, state.agents) : action),
-      events: [{ id: crypto.randomUUID(), type: "RuntimeTaskExecuted", detail: `Exécution de ${actionId}`, createdAt: new Date().toISOString() }, ...state.events]
-    })),
+    set((state) => {
+      const current = state.actions.find((action) => action.id === actionId);
+      if (!current) return state;
+      const executed = executeAction(current, state.agents);
+      const detail = executed.status === "blocked"
+        ? `${current.title} n’a pas pu être exécutée : ${executed.blockedReason}`
+        : executed.result ?? `${current.title} exécutée.`;
+      return {
+        actions: state.actions.map((action) => action.id === actionId ? executed : action),
+        events: [{ id: crypto.randomUUID(), type: "RuntimeTaskExecuted", detail, createdAt: new Date().toISOString() }, ...state.events]
+      };
+    }),
   resetRuntimeActions: () => set({ actions: initialRuntimeActions })
 });
