@@ -1,27 +1,27 @@
 import { describe, expect, it } from "vitest";
-import { caseToChallenge, challengeToCase } from "./adapters";
-import type { ActionRecord, DecisionRecord } from "./canonical";
+import type { ActionRecord, CognitiveCase, DecisionRecord } from "./canonical";
 
-const legacyChallenge = {
+const cognitiveCase: CognitiveCase = {
   id: "case-1",
   title: "Arbitrer une trajectoire",
-  goal: "Décider avec moins d'incertitude",
-  hypothesis: "Un pilote réduit le risque",
-  impact: 8,
-  urgency: 7,
-  confidence: 72,
-  cognitiveCost: 5,
-  risk: 6,
+  objective: "Décider avec moins d'incertitude",
+  workingHypothesis: "Un pilote réduit le risque",
   context: "Contexte courant",
-  state: "decide" as const
+  state: "decide",
+  signals: {
+    impact: 8,
+    urgency: 7,
+    confidence: 72,
+    cognitiveCost: 5,
+    risk: 6
+  }
 };
 
 describe("canonical ExecutiveOS domain", () => {
-  it("round-trips the remaining legacy challenge through CognitiveCase", () => {
-    const canonical = challengeToCase(legacyChallenge);
-    expect(canonical.objective).toBe(legacyChallenge.goal);
-    expect(canonical.signals.confidence).toBe(72);
-    expect(caseToChallenge(canonical)).toEqual(legacyChallenge);
+  it("represents cognitive cases directly without legacy adapters", () => {
+    expect(cognitiveCase.objective).toBe("Décider avec moins d'incertitude");
+    expect(cognitiveCase.workingHypothesis).toBe("Un pilote réduit le risque");
+    expect(cognitiveCase.signals.confidence).toBe(72);
   });
 
   it("uses canonical decision and action records directly", () => {
