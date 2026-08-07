@@ -1,7 +1,10 @@
 "use client";
 
+import { useState } from "react";
+import { DecisionTimelineV3 } from "@/components/decision-timeline-v3";
 import { ReasoningFlowV3 } from "@/components/reasoning-flow-v3";
 import type { DecisionFrame } from "@/lib/decision-room";
+import type { ReasoningStepId } from "@/store/executive-store";
 import type { ActionItem, Challenge, Decision } from "@/types/domain";
 
 type DecisionCanvasProps = {
@@ -13,6 +16,7 @@ type DecisionCanvasProps = {
 };
 
 export function DecisionCanvas({ challenge, frame, decisions, actions, onCreateAction }: DecisionCanvasProps) {
+  const [activeStepId, setActiveStepId] = useState<ReasoningStepId>("question");
   const latestDecision = decisions[0];
   const confidence = frame.confidence ?? challenge.confidence;
   const status = frame.requiresContext ? "Contexte incomplet" : latestDecision ? "Décidée" : "Prête à arbitrer";
@@ -23,7 +27,7 @@ export function DecisionCanvas({ challenge, frame, decisions, actions, onCreateA
         <div className="pointer-events-none absolute -right-16 -top-20 size-64 rounded-full bg-[#7c5cff]/12 blur-3xl" />
         <div className="relative">
           <div className="flex flex-wrap items-center gap-2">
-            <span className="rounded-full bg-[#7c5cff]/12 px-2.5 py-1 text-[10px] font-black uppercase tracking-[.14em] text-[#c2b6ff]">Decision Canvas · UX3.1</span>
+            <span className="rounded-full bg-[#7c5cff]/12 px-2.5 py-1 text-[10px] font-black uppercase tracking-[.14em] text-[#c2b6ff]">Decision Canvas · UX3</span>
             <span className="rounded-full border border-white/[.08] px-2.5 py-1 text-[10px] uppercase tracking-[.12em] text-[#8091aa]">{frame.category.replaceAll("_", " ")}</span>
             <span className={`rounded-full px-2.5 py-1 text-[10px] ${frame.requiresContext ? "bg-[#ffbc57]/10 text-[#ffd895]" : "bg-[#42d59d]/10 text-[#7de5bd]"}`}>{status}</span>
           </div>
@@ -42,7 +46,9 @@ export function DecisionCanvas({ challenge, frame, decisions, actions, onCreateA
         </div>
       </article>
 
-      <ReasoningFlowV3 challenge={challenge} frame={frame} />
+      <ReasoningFlowV3 challenge={challenge} frame={frame} activeStepId={activeStepId} onStepChange={setActiveStepId} />
+
+      <DecisionTimelineV3 challenge={challenge} decisions={decisions} actions={actions} activeStepId={activeStepId} onStepSelect={setActiveStepId} />
 
       <div className="grid gap-5 xl:grid-cols-[1.15fr_.85fr]">
         <div className="space-y-5">
