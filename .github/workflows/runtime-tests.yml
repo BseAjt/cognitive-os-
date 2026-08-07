@@ -1,4 +1,4 @@
-name: ExecutiveOS Full Validation
+name: ExecutiveOS RC1 Validation
 
 on:
   pull_request:
@@ -10,34 +10,54 @@ on:
     paths:
       - "executiveos-app/**"
       - ".github/workflows/runtime-tests.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: executiveos-rc1-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
-  full-validation:
+  validate:
     runs-on: ubuntu-latest
+    timeout-minutes: 25
     defaults:
       run:
         working-directory: executiveos-app
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
           node-version: 22
-      - name: Install dependencies
-        run: npm install
-      - name: Install Playwright Chromium
-        run: npx playwright install --with-deps chromium
-      - name: Run runtime and application tests
+          cache: npm
+          cache-dependency-path: executiveos-app/package-lock.json
+
+      - name: Install dependencies deterministically
+        run: npm ci
+
+      - name: Runtime regression suite
         run: npm run test:runtime
-      - name: TypeScript check for production application
-        run: npx tsc --noEmit
+
+      - name: TypeScript application check
+        run: npm run typecheck
+
       - name: Production build
         run: npm run build
-      - name: TypeScript check for Playwright tests
+
+      - name: Playwright typecheck
         run: npm run test:e2e:typecheck
-      - name: Run browser end-to-end tests
+
+      - name: Install Playwright Chromium
+        run: npx playwright install --with-deps chromium
+
+      - name: End-to-end tests
         run: npm run test:e2e
+
       - name: Upload Playwright report
         if: always()
         uses: actions/upload-artifact@v4
