@@ -2,12 +2,11 @@
 
 import { useMemo, useState } from "react";
 import type { DecisionFrame } from "@/lib/decision-room";
+import { useExecutiveStore, type ReasoningStepId } from "@/store/executive-store";
 import type { Challenge } from "@/types/domain";
 
 type FlowStatus = "active" | "watch" | "stable" | "future";
-type StepId = "question" | "hypothesis" | "evidence" | "options" | "objections" | "decision" | "consequences";
-type Revision = { id: string; text: string; createdAt: string };
-type Step = { id: StepId; label: string; title: string; detail: string; status: FlowStatus };
+type Step = { id: ReasoningStepId; label: string; title: string; detail: string; status: FlowStatus };
 
 type ReasoningFlowProps = {
   challenge: Challenge;
@@ -15,6 +14,8 @@ type ReasoningFlowProps = {
 };
 
 export function ReasoningFlowV3({ challenge, frame }: ReasoningFlowProps) {
+  const reasoningRevisions = useExecutiveStore((state) => state.reasoningRevisions);
+  const addReasoningRevision = useExecutiveStore((state) => state.addReasoningRevision);
   const steps = useMemo<Step[]>(() => [
     { id: "question", label: "Question", title: frame.question || challenge.title, detail: challenge.context, status: "active" },
     { id: "hypothesis", label: "Hypothèse", title: challenge.hypothesis, detail: "Hypothèse de travail actuelle. Elle peut évoluer à mesure que de nouvelles preuves apparaissent.", status: "active" },
@@ -25,16 +26,16 @@ export function ReasoningFlowV3({ challenge, frame }: ReasoningFlowProps) {
     { id: "consequences", label: "Conséquences", title: "Impacts et actions reliés à la décision finale", detail: "Les conséquences seront enrichies à partir des actions, dépendances et résultats observés après arbitrage.", status: "future" }
   ], [challenge, frame]);
 
-  const [selectedId, setSelectedId] = useState<StepId>("question");
+  const [selectedId, setSelectedId] = useState<ReasoningStepId>("question");
   const [draft, setDraft] = useState("");
-  const [revisions, setRevisions] = useState<Record<StepId, Revision[]>>({ question: [], hypothesis: [], evidence: [], options: [], objections: [], decision: [], consequences: [] });
   const selected = steps.find((step) => step.id === selectedId) ?? steps[0];
-  const selectedRevisions = revisions[selected.id];
+  const revisionsForStep = (stepId: ReasoningStepId) => reasoningRevisions.filter((item) => item.challengeId === challenge.id && item.stepId === stepId);
+  const selectedRevisions = revisionsForStep(selected.id);
 
   function addRevision() {
     const clean = draft.trim();
     if (!clean) return;
-    setRevisions((current) => ({ ...current, [selected.id]: [...current[selected.id], { id: crypto.randomUUID(), text: clean, createdAt: new Date().toISOString() }] }));
+    addReasoningRevision({ challengeId: challenge.id, stepId: selected.id, content: clean });
     setDraft("");
   }
 
@@ -44,14 +45,14 @@ export function ReasoningFlowV3({ challenge, frame }: ReasoningFlowProps) {
         <div>
           <div className="text-[10px] font-black uppercase tracking-[.18em] text-[#9d83ff]">Reasoning Flow · UX3.2</div>
           <h2 className="mt-2 text-2xl font-semibold">Du problème à la décision</h2>
-          <p className="mt-2 max-w-3xl text-sm leading-6 text-[#8192ab]">Chaque étape est cliquable, possède son propre état et peut recevoir des révisions successives sans écraser l’historique.</p>
+          <p className="mt-2 max-w-3xl text-sm leading-6 text-[#8192ab]">Chaque étape est cliquable et versionnée. Les révisions sont ajoutées sans écraser l’historique et sont persistées dans ExecutiveOS.</p>
         </div>
         <div className="text-xs text-[#667995]">Étape active · {selected.label} · v{selectedRevisions.length + 1}</div>
       </div>
 
       <div className="mt-6 overflow-x-auto pb-2">
         <div className="flex min-w-[1050px] items-stretch gap-3">
-          {steps.map((step, index) => <FlowStep key={step.id} index={index + 1} {...step} selected={step.id === selected.id} version={revisions[step.id].length + 1} isLast={index === steps.length - 1} onClick={() => setSelectedId(step.id)} />)}
+          {steps.map((step, index) => <FlowStep key={step.id} index={index + 1} {...step} selected={step.id === selected.id} version={revisionsForStep(step.id).length + 1} isLast={index === steps.length - 1} onClick={() => setSelectedId(step.id)} />)}
         </div>
       </div>
 
@@ -66,7 +67,7 @@ export function ReasoningFlowV3({ challenge, frame }: ReasoningFlowProps) {
           <div className="text-[10px] font-black uppercase tracking-[.14em] text-[#9d83ff]">Faire évoluer cette étape</div>
           <textarea value={draft} onChange={(event) => setDraft(event.target.value)} placeholder={`Ajouter une révision à « ${selected.label} »…`} className="mt-3 min-h-28 w-full resize-none rounded-xl border border-white/[.08] bg-[#0d192b] p-3 text-sm text-white outline-none placeholder:text-[#596b86] focus:border-[#7c5cff]/45" />
           <button onClick={addRevision} className="mt-3 rounded-xl bg-[#7c5cff] px-4 py-2.5 text-sm font-bold hover:bg-[#8b6dff]">Enregistrer une révision</button>
-          <div className="mt-5 border-t border-white/[.06] pt-4"><div className="text-[10px] font-black uppercase tracking-[.13em] text-[#667995]">Historique</div>{selectedRevisions.length ? <div className="mt-3 space-y-2">{[...selectedRevisions].reverse().map((revision, index) => <div key={revision.id} className="rounded-xl border border-white/[.06] bg-white/[.02] p-3"><div className="flex items-center justify-between gap-3"><span className="font-mono text-[10px] text-[#7d8da5]">v{selectedRevisions.length - index + 1}</span><span className="text-[10px] text-[#596b86]">{new Date(revision.createdAt).toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" })}</span></div><p className="mt-2 text-xs leading-5 text-[#c5cfdd]">{revision.text}</p></div>)}</div> : <p className="mt-3 text-xs leading-5 text-[#667995]">Aucune révision : cette étape est encore dans son état initial.</p>}</div>
+          <div className="mt-5 border-t border-white/[.06] pt-4"><div className="text-[10px] font-black uppercase tracking-[.13em] text-[#667995]">Historique persistant</div>{selectedRevisions.length ? <div className="mt-3 space-y-2">{[...selectedRevisions].reverse().map((revision) => <div key={revision.id} className="rounded-xl border border-white/[.06] bg-white/[.02] p-3"><div className="flex items-center justify-between gap-3"><span className="font-mono text-[10px] text-[#7d8da5]">v{revision.version + 1}</span><span className="text-[10px] text-[#596b86]">{new Date(revision.createdAt).toLocaleString("fr-FR", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" })}</span></div><p className="mt-2 text-xs leading-5 text-[#c5cfdd]">{revision.content}</p></div>)}</div> : <p className="mt-3 text-xs leading-5 text-[#667995]">Aucune révision : cette étape est encore dans son état initial.</p>}</div>
         </article>
       </div>
     </section>
