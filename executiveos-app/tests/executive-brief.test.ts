@@ -4,22 +4,38 @@ import { readFileSync } from "node:fs";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { buildExecutiveCaseBrief } from "../lib/executive-brief.ts";
-import type { ActionRecord, CognitiveCase, DecisionRecord, DossierObjectRecord, LearningEventRecord } from "../domain/canonical.ts";
+import type { ActionRecord, CognitiveCase, DecisionRecord, DossierObjectRecord, LearningEventRecord, ReflectionRecord } from "../domain/canonical.ts";
 
 const cognitiveCase:CognitiveCase={id:"brief",title:"Lancer ExecutiveOS",objective:"Décider du lancement",workingHypothesis:"Le besoin existe",context:"Pilotes en cours",state:"execute",signals:{impact:9,urgency:8,confidence:78,cognitiveCost:6,risk:8}};
 const decisions:DecisionRecord[]=[{id:"d",caseId:"brief",recommendation:"Lancer un pilote",outcome:"Pilote contrôlé",rationale:"Réduire le risque",confidence:84,createdAt:"2026-08-07T10:00:00.000Z"}];
-const actions:ActionRecord[]=[{id:"a",caseId:"brief",title:"Valider cinq utilisateurs",owner:"ORION",progress:20,status:"blocked",blockedReason:"Recrutement incomplet"}];
+const actions:ActionRecord[]=[
+ {id:"a",caseId:"brief",title:"Valider cinq utilisateurs",owner:"ORION",progress:20,status:"blocked",blockedReason:"Recrutement incomplet"},
+ {id:"done",caseId:"brief",title:"Auditer le runtime",owner:"TURING",progress:100,status:"done",result:"Audit technique livré"}
+];
 const objects:DossierObjectRecord[]=[{id:"r",caseId:"brief",type:"risk",title:"Faible disposition à payer",confidence:88,status:"active",source:"conversation",createdAt:"2026-08-07T10:00:00.000Z",updatedAt:"2026-08-07T10:00:00.000Z"}];
 const learnings:LearningEventRecord[]=[{id:"l",caseId:"brief",type:"KnowledgeLearned",title:"Apprentissage",detail:"Les pilotes veulent une intégration calendrier",significance:"medium",confidence:82,source:"cognitive_diff",createdAt:"2026-08-07T11:00:00.000Z"}];
+const reflections:ReflectionRecord[]=[{id:"ref",caseId:"brief",summary:"Le contexte a changé",whatChanged:["Le risque commercial augmente"],whyItChanged:["Retour pilote"],learned:["Intégration calendrier requise"],uncertainties:["Disposition à payer"],decisionsToReconsider:["Pilote contrôlé"],confidence:87,significance:"high",source:"reflection_engine",createdAt:"2026-08-07T12:00:00.000Z"}];
 
 test("Executive Brief derives decision, action, blockers, risk and learning from the dossier",()=>{
- const brief=buildExecutiveCaseBrief({cognitiveCase,decisions,actions,caseObjects:objects,learningEvents:learnings,reflections:[]});
+ const brief=buildExecutiveCaseBrief({cognitiveCase,decisions,actions,caseObjects:objects,learningEvents:learnings,reflections});
  assert.equal(brief.latestDecision,"Pilote contrôlé");
  assert.equal(brief.nextAction,"Valider cinq utilisateurs");
  assert.ok(brief.blockers.some((item)=>item.includes("Recrutement incomplet")));
  assert.deepEqual(brief.criticalRisks,["Faible disposition à payer"]);
  assert.match(brief.latestLearning,/calendrier/);
  assert.equal(brief.health,"critical");
+});
+
+test("B4.6 makes ORION proactive when reopening a dossier",()=>{
+ const brief=buildExecutiveCaseBrief({cognitiveCase,decisions,actions,caseObjects:objects,learningEvents:learnings,reflections});
+ assert.deepEqual(brief.decisionsToReconsider,["Pilote contrôlé"]);
+ assert.ok(brief.sinceLastSession.some((item)=>item.includes("action(s) terminée(s)")));
+ assert.ok(brief.sinceLastSession.some((item)=>item.includes("décision(s) à reconsidérer")));
+ assert.ok(brief.proactiveAlerts.some((item)=>item.startsWith("Blocage:")));
+ assert.ok(brief.proactiveAlerts.some((item)=>item.startsWith("Risque critique:")));
+ assert.ok(brief.proactiveAlerts.some((item)=>item.startsWith("Décision à revoir:")));
+ assert.match(brief.recommendation,/Depuis la dernière session/);
+ assert.match(brief.recommendation,/ORION recommande/);
  assert.match(brief.recommendation,/Lever le blocage/);
 });
 
