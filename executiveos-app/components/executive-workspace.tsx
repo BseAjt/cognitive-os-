@@ -4,9 +4,11 @@ import { useMemo, useState } from "react";
 import { DecisionCanvas } from "@/components/decision-canvas";
 import { DecisionWorkbench } from "@/components/decision-workbench";
 import { ReasoningGraph } from "@/components/reasoning-graph";
-import { runConversationRuntime, type CognitiveExtraction } from "@/lib/conversation-runtime";
+import { buildCognitiveRecall } from "@/lib/cognitive-recall";
+import type { CognitiveExtraction } from "@/lib/conversation-runtime";
 import { buildDecisionFrame, type DecisionFrame } from "@/lib/decision-runtime";
 import { caseScore } from "@/lib/scheduler";
+import { runUnifiedRuntime } from "@/lib/unified-runtime";
 import { useExecutiveStore } from "@/store/executive-store";
 
 export function ExecutiveWorkspace() {
@@ -28,42 +30,35 @@ export function ExecutiveWorkspace() {
   const messages = store.messages.filter((message) => message.caseId === active.id);
   const decisions = store.decisions.filter((decision) => decision.caseId === active.id);
   const actions = store.actions.filter((action) => action.caseId === active.id);
+  const recall = buildCognitiveRecall({
+    cognitiveCase: active,
+    decisions: store.decisions,
+    actions: store.actions,
+    memories: store.memories,
+    reasoningRevisions: store.reasoningRevisions,
+    knowledgeEntities: store.knowledgeEntities,
+    knowledgeRelations: store.knowledgeRelations,
+    agentRuns: store.agentRuns
+  });
   const effectiveFrame = decisionFrame ?? buildDecisionFrame(active.context || active.title, active);
 
   function processMessage(message: string) {
     const clean = message.trim();
     if (!clean) return;
-    const result = runConversationRuntime(clean, active);
-    const now = new Date().toISOString();
 
-    store.recordConversationTurn({
-      caseId: active.id,
-      userText: clean,
-      assistantText: result.response,
-      intent: result.intent,
-      extractionCount: result.extractions.length,
-      casePatch: result.casePatch,
-      createdAt: now
+    const result = runUnifiedRuntime({
+      message: clean,
+      cognitiveCase: active,
+      agents: store.agents,
+      memories: store.memories.filter((memory) => memory.caseId === active.id),
+      knowledgeRecords: store.knowledgeRecords.filter((record) => record.caseId === active.id),
+      recallSummary: recall.summary
     });
+    store.applyRuntimeCycle({ caseId: active.id, userText: clean, result });
 
-    const decision = result.extractions.find((item) => item.kind === "decision");
-    if (decision) {
-      store.captureDecision({
-        caseId: active.id,
-        text: decision.text,
-        recommendation: result.decisionFrame?.recommendation ?? result.nextAction,
-        confidence: decision.confidence,
-        rationale: "Décision extraite de la conversation.",
-        createdAt: now
-      });
-    }
-
-    const action = result.extractions.find((item) => item.kind === "action");
-    if (action) createAction(action.text);
-
-    setLastExtractions(result.extractions);
+    setLastExtractions(result.conversation.extractions);
     setLastNextAction(result.nextAction);
-    setDecisionFrame(result.decisionFrame ?? null);
+    setDecisionFrame(result.conversation.decisionFrame ?? null);
     setInput("");
   }
 
@@ -88,6 +83,17 @@ export function ExecutiveWorkspace() {
           {ranked.map((cognitiveCase) => <button key={cognitiveCase.id} onClick={() => { store.setActiveCase(cognitiveCase.id); setLastExtractions([]); setLastNextAction(""); setDecisionFrame(null); }} className={`shrink-0 rounded-xl border px-3 py-2 text-left text-xs ${active.id === cognitiveCase.id ? "border-[#7c5cff]/45 bg-[#7c5cff]/10 text-white" : "border-white/[.08] bg-white/[.02] text-[#8393ad]"}`}><strong className="block">{cognitiveCase.title}</strong><span className="mt-1 block text-[10px]">Score {caseScore(cognitiveCase)} · {cognitiveCase.state}</span></button>)}
         </div>
 
+        <article className="executive-card mb-5 p-5">
+          <div className="flex flex-wrap items-start justify-between gap-3">
+            <div><div className="text-xs font-black tracking-[.14em] text-[#8d7ce4]">LÀ OÙ TU EN ÉTAIS</div><p className="mt-1 text-xs text-[#71839e]">Recall automatique · confiance {recall.confidence}%</p></div>
+            <span className="rounded-full border border-[#7c5cff]/30 bg-[#7c5cff]/10 px-3 py-1 text-xs text-[#c5baff]">{recall.openActions.length} action(s) ouverte(s)</span>
+          </div>
+          <div className="mt-4 grid gap-3 lg:grid-cols-[1.35fr_.65fr]">
+            <p className="whitespace-pre-line rounded-2xl border border-white/10 bg-white/[.025] p-4 text-sm leading-6 text-[#d6dfed]">{recall.summary}</p>
+            <div className="rounded-2xl border border-white/10 bg-white/[.025] p-4"><span className="text-xs text-[#91a2bd]">Reprendre ici</span><strong className="mt-2 block text-sm leading-6">{recall.nextBestAction}</strong></div>
+          </div>
+        </article>
+
         {mode === "canvas" && (
           <DecisionCanvas cognitiveCase={active} frame={effectiveFrame} decisions={decisions} actions={actions} onCreateAction={createAction} />
         )}
@@ -101,7 +107,7 @@ export function ExecutiveWorkspace() {
                 <div className="border-t border-white/10 p-4"><div className="flex gap-3 max-sm:flex-col"><textarea value={input} onChange={(event) => setInput(event.target.value)} onKeyDown={(event) => { if (event.key === "Enter" && !event.shiftKey) { event.preventDefault(); processMessage(input); } }} placeholder="Je dois prendre une décision…" className="min-h-24 flex-1 resize-none rounded-2xl border border-white/10 bg-[#0d1727] p-4 outline-none"/><button onClick={() => processMessage(input)} className="executive-button executive-primary self-end px-6 py-4">Analyser</button></div></div>
               </article>
 
-              {showGraph && <div className="grid gap-5"><article className="executive-card p-5"><div className="text-xs font-black tracking-[.14em] text-[#8d7ce4]">LIVE REASONING</div><div className="mt-4 grid grid-cols-3 gap-3"><Metric label="Priority" value={caseScore(active)}/><Metric label="Confidence" value={`${active.signals.confidence}%`}/><Metric label="Risk" value={`${active.signals.risk}/10`}/></div><div className="mt-4 rounded-2xl border border-white/10 bg-white/[.025] p-4"><strong>Prochaine meilleure action</strong><p className="mt-2 text-[#d6dfed]">{lastNextAction || active.context}</p></div></article><ReasoningGraph cognitiveCase={active}/><article className="executive-card p-5"><div className="flex items-center justify-between"><div className="text-xs font-black tracking-[.14em] text-[#8d7ce4]">STRUCTURED OUTPUT</div><span className="text-xs text-[#91a2bd]">{lastExtractions.length} objets</span></div><div className="mt-3 grid gap-2">{lastExtractions.length ? lastExtractions.map((item, index) => <div key={`${item.kind}-${index}`} className="rounded-xl border border-white/10 bg-white/[.025] p-3"><div className="text-xs font-black uppercase tracking-[.12em] text-[#9d83ff]">{item.kind} · {item.confidence}%</div><p className="mt-1 text-sm text-[#d6dfed]">{item.text}</p></div>) : <span className="text-sm text-[#91a2bd]">Les extractions apparaîtront ici après ton message.</span>}</div></article></div>}
+              {showGraph && <div className="grid gap-5"><article className="executive-card p-5"><div className="text-xs font-black tracking-[.14em] text-[#8d7ce4]">LIVE REASONING</div><div className="mt-4 grid grid-cols-3 gap-3"><Metric label="Priority" value={caseScore(active)}/><Metric label="Confidence" value={`${active.signals.confidence}%`}/><Metric label="Risk" value={`${active.signals.risk}/10`}/></div><div className="mt-4 rounded-2xl border border-white/10 bg-white/[.025] p-4"><strong>Prochaine meilleure action</strong><p className="mt-2 text-[#d6dfed]">{lastNextAction || recall.nextBestAction}</p></div></article><ReasoningGraph cognitiveCase={active} entities={store.knowledgeEntities} relations={store.knowledgeRelations}/><article className="executive-card p-5"><div className="flex items-center justify-between"><div className="text-xs font-black tracking-[.14em] text-[#8d7ce4]">STRUCTURED OUTPUT</div><span className="text-xs text-[#91a2bd]">{lastExtractions.length} objets</span></div><div className="mt-3 grid gap-2">{lastExtractions.length ? lastExtractions.map((item, index) => <div key={`${item.kind}-${index}`} className="rounded-xl border border-white/10 bg-white/[.025] p-3"><div className="text-xs font-black uppercase tracking-[.12em] text-[#9d83ff]">{item.kind} · {item.confidence}%</div><p className="mt-1 text-sm text-[#d6dfed]">{item.text}</p></div>) : <span className="text-sm text-[#91a2bd]">Les extractions apparaîtront ici après ton message.</span>}</div></article></div>}
             </div>
 
             {decisionFrame && <DecisionWorkbench frame={decisionFrame} onContextSubmit={(summary) => processMessage(summary)} onCreateAction={createAction}/>} 
