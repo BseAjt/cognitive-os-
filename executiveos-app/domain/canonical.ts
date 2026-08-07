@@ -148,6 +148,7 @@ export type KnowledgeRelationType =
 export interface KnowledgeEntity {
   id: string;
   organizationId: string;
+  caseId?: string;
   type: KnowledgeEntityType;
   title: string;
   status: string;
@@ -159,6 +160,7 @@ export interface KnowledgeEntity {
 export interface KnowledgeRelation {
   id: string;
   organizationId: string;
+  caseId?: string;
   sourceId: string;
   sourceType: KnowledgeEntityType;
   targetId: string;
