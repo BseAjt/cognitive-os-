@@ -13,14 +13,14 @@ export function ExecutiveWorkspace() {
   return (
     <div className="grid min-h-screen grid-cols-[270px_1fr] max-md:grid-cols-1">
       <WorkspaceSidebar
-        challenges={workspace.rankedChallenges}
-        activeId={workspace.activeChallenge.id}
-        onSelect={workspace.selectChallenge}
+        cases={workspace.rankedCases}
+        activeId={workspace.activeCase.id}
+        onSelect={workspace.selectCase}
       />
 
       <main className="min-w-0">
         <WorkspaceHeader
-          title={workspace.activeChallenge.title}
+          title={workspace.activeCase.title}
           showGraph={workspace.showGraph}
           onToggleGraph={() => workspace.setShowGraph((value) => !value)}
           onCriticalSignal={workspace.runCriticalSimulation}
@@ -42,7 +42,7 @@ export function ExecutiveWorkspace() {
             />
             {workspace.showGraph ? (
               <ReasoningPanel
-                challenge={workspace.activeChallenge}
+                cognitiveCase={workspace.activeCase}
                 nextAction={workspace.lastNextAction}
                 extractions={workspace.lastExtractions}
               />
