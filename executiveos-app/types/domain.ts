@@ -24,6 +24,18 @@ export interface Decision {
   createdAt: string;
 }
 
+export type AgentStatus = "online" | "busy" | "offline";
+
+export interface AgentContract {
+  id: string;
+  name: string;
+  role: string;
+  specialty: string;
+  capabilities: string[];
+  status: AgentStatus;
+  version: string;
+}
+
 export interface ActionItem {
   id: string;
   challengeId: string;
@@ -31,6 +43,11 @@ export interface ActionItem {
   owner: string;
   progress: number;
   status: "todo" | "doing" | "done" | "blocked";
+  requiredCapability?: string;
+  assignedAgentId?: string | null;
+  blockedReason?: string;
+  dueAt?: string | null;
+  result?: string;
 }
 
 export interface CognitiveEvent {
