@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import { ExecutiveRuntimePanel } from "@/components/executive-runtime-panel";
 import { ExecutiveWorkspace } from "@/components/executive-workspace";
 import { entityCounts, executiveTwinSeed } from "@/lib/executive-twin-domain";
 
@@ -54,7 +55,7 @@ export function ExecutiveHomeV4() {
     <aside className="sticky top-0 hidden h-screen flex-col border-r border-white/[.07] bg-[#091321] px-4 py-5 md:flex">
       <button onClick={() => setView("home")} className="mb-8 flex items-center gap-3 px-2 text-left"><span className="grid size-10 place-items-center rounded-[14px] bg-gradient-to-br from-[#9b82ff] to-[#5b39e7] text-sm font-black">EO</span><span><strong className="block text-[15px]">ExecutiveOS</strong><span className="text-[10px] uppercase tracking-[.12em] text-[#6f819e]">Cognitive OS</span></span></button>
       <nav className="space-y-1">{NAV.map((item) => <button key={item.id} onClick={() => setView(item.id)} className={`w-full rounded-xl px-3 py-2.5 text-left text-sm ${view === item.id ? "bg-white/[.08] text-white" : "text-[#8393ad] hover:bg-white/[.04]"}`}>{item.label}</button>)}</nav>
-      <div className="mt-auto rounded-2xl border border-white/[.07] bg-white/[.025] p-3.5"><div className="flex items-center gap-2 text-xs text-[#a5b4c9]"><span className="size-2 rounded-full bg-[#42d59d]"/> ORION en ligne</div><p className="mt-2 text-[11px] leading-5 text-[#667995]">Executive Brain synchronisé.</p></div>
+      <div className="mt-auto rounded-2xl border border-white/[.07] bg-white/[.025] p-3.5"><div className="flex items-center gap-2 text-xs text-[#a5b4c9]"><span className="size-2 rounded-full bg-[#42d59d]"/> ORION en ligne</div><p className="mt-2 text-[11px] leading-5 text-[#667995]">Executive Runtime synchronisé.</p></div>
     </aside>
 
     <div className="min-w-0">
@@ -64,8 +65,8 @@ export function ExecutiveHomeV4() {
         {view === "home" && <Home nodes={nodes} selected={selected} selectedId={selectedId} onSelect={setSelectedId} score={executiveScore} onView={setView} />}
         {view === "decision" && <ExecutiveWorkspace />}
         {view === "understand" && <Simple title="Comprendre le contexte vivant." text="Mémoire, preuves, hypothèses et risques sont reliés ici."/>}
-        {view === "act" && <Simple title="Transformer l’arbitrage en exécution." text="Les actions restent reliées aux décisions et objectifs qui les justifient."/>}
-        {view === "explore" && <Simple title="Explorer le graphe sans perdre le fil." text="Les connexions servent le raisonnement au lieu d’être une fin en soi."/>}
+        {view === "act" && <ExecutiveRuntimePanel mode="act" />}
+        {view === "explore" && <ExecutiveRuntimePanel mode="explore" />}
         {view === "settings" && <Simple title="Configurer ExecutiveOS." text="Sources, sécurité, préférences et comportements d’ORION."/>}
       </main>
     </div>
