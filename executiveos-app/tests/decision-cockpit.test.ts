@@ -4,25 +4,21 @@ import { assessContext, workforceRestructuringContextSeed } from "../lib/context
 import { buildScenarioPortfolio } from "../lib/scenario-builder.ts";
 import { conveneExecutiveCouncil } from "../lib/executive-council.ts";
 import { buildDecisionCockpit, serializeDecisionRecord } from "../lib/decision-cockpit.ts";
-import { buildDecisionFrame } from "../lib/decision-room.ts";
-import type { Challenge } from "../types/domain.ts";
+import { buildDecisionFrame } from "../lib/decision-runtime.ts";
+import type { CognitiveCase } from "../domain/canonical.ts";
 
-const challenge: Challenge = {
+const cognitiveCase: CognitiveCase = {
   id: "cockpit",
   title: "Restructuration",
-  goal: "Décider",
-  hypothesis: "",
-  impact: 9,
-  urgency: 8,
-  confidence: 55,
-  cognitiveCost: 8,
-  risk: 9,
+  objective: "Décider",
+  workingHypothesis: "",
   context: "",
-  state: "decide"
+  state: "decide",
+  signals: { impact: 9, urgency: 8, confidence: 55, cognitiveCost: 8, risk: 9 }
 };
 
 function setup() {
-  const frame = buildDecisionFrame("Dois-je faire un plan social ?", challenge);
+  const frame = buildDecisionFrame("Dois-je faire un plan social ?", cognitiveCase);
   const readiness = assessContext(workforceRestructuringContextSeed);
   const portfolio = buildScenarioPortfolio(frame, workforceRestructuringContextSeed, readiness);
   const council = conveneExecutiveCouncil(workforceRestructuringContextSeed, readiness, portfolio);
