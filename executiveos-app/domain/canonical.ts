@@ -6,6 +6,16 @@ export type ContextKind = "fact" | "hypothesis" | "constraint" | "preference" | 
 export type ContextRequirement = "required" | "important" | "optional";
 export type ContextStatus = "missing" | "draft" | "verified" | "stale" | "contested";
 export type MemoryKind = "goal" | "hypothesis" | "risk" | "decision" | "action" | "question" | "context";
+export type LearningEventType =
+  | "BeliefAdded"
+  | "BeliefReinforced"
+  | "BeliefInvalidated"
+  | "ConfidenceChanged"
+  | "DecisionReversed"
+  | "RiskDetected"
+  | "RiskResolved"
+  | "ContradictionDetected"
+  | "KnowledgeLearned";
 
 export interface CognitiveCase {
   id: string;
@@ -80,6 +90,18 @@ export interface CognitiveEventRecord {
   id: string;
   type: string;
   detail: string;
+  createdAt: string;
+}
+
+export interface LearningEventRecord {
+  id: string;
+  caseId: string;
+  type: LearningEventType;
+  title: string;
+  detail: string;
+  significance: "none" | "low" | "medium" | "high";
+  confidence?: number;
+  source: "cognitive_diff";
   createdAt: string;
 }
 
