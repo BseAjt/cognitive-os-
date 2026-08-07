@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { ExecutiveWorkspace } from "@/components/executive-workspace";
-import { entityCounts, executiveTwinSeed } from "@/lib/executive-twin-domain";
+import { entityCounts, executiveKnowledgeSeed } from "@/lib/knowledge-snapshot";
 import { ExecutiveOSGraphView } from "./graph-view";
 import { ExecutiveOSHomeDashboard } from "./home-dashboard";
 import { ExecutiveOSMemoryView } from "./memory-view";
@@ -10,7 +10,7 @@ import { ExecutiveOSTopNav, type ExecutiveOSView } from "./top-nav";
 
 export function ExecutiveOSHome() {
   const [view, setView] = useState<ExecutiveOSView>("home");
-  const counts = useMemo(() => entityCounts(executiveTwinSeed), []);
+  const counts = useMemo(() => entityCounts(executiveKnowledgeSeed), []);
 
   return (
     <div className="min-h-screen bg-[#07111f]">
@@ -21,7 +21,7 @@ export function ExecutiveOSHome() {
         <main className="mx-auto max-w-[1500px] p-6 md:p-8">
           {view === "home" ? (
             <ExecutiveOSHomeDashboard
-              briefing={executiveTwinSeed.briefing}
+              briefing={executiveKnowledgeSeed.briefing}
               counts={counts}
               onDecision={() => setView("decision")}
               onMemory={() => setView("memory")}
