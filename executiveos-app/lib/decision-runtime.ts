@@ -1,4 +1,4 @@
-import type { Challenge } from "../types/domain.ts";
+import type { CognitiveCase } from "../domain/canonical.ts";
 import type { DecisionCategory, DecisionModel, DecisionOptionModel } from "../domain/canonical.ts";
 import {
   assessContext,
@@ -25,8 +25,8 @@ export interface DecisionRuntimeResult {
 
 const WORKFORCE_RESTRUCTURING_PATTERN = /plan social|\bpse\b|licenciement(?:s)? économique(?:s)?|suppression(?:s)? de postes?|réduction d['’]effectifs?|restructuration|compression d['’]effectifs?|départs? contraints?/i;
 
-export function runDecisionRuntime(message: string, challenge: Challenge, existingContext?: ContextItem[]): DecisionRuntimeResult {
-  const frame = buildDecisionFrame(message, challenge);
+export function runDecisionRuntime(message: string, cognitiveCase: CognitiveCase, existingContext?: ContextItem[]): DecisionRuntimeResult {
+  const frame = buildDecisionFrame(message, cognitiveCase);
   const contextItems = existingContext ?? createDecisionContext(frame);
   const assessment = assessContext(contextItems);
   const recommendationAllowed = !frame.requiresContext || assessment.recommendationAllowed;
@@ -75,7 +75,7 @@ export function createDecisionContext(frame: DecisionFrame): ContextItem[] {
   }));
 }
 
-export function buildDecisionFrame(message: string, challenge: Challenge): DecisionFrame {
+export function buildDecisionFrame(message: string, cognitiveCase: CognitiveCase): DecisionFrame {
   const lower = message.toLowerCase();
   const question = message.replace(/\s+/g, " ").trim();
 
@@ -131,7 +131,7 @@ export function buildDecisionFrame(message: string, challenge: Challenge): Decis
   if (/partenariat|partenaire|alliance|joint.?venture|s'associer|s’associer/.test(lower)) {
     return createFrame("partnership", question, ["Accès marché", "Dépendance", "Économie du deal", "Contrôle", "Réversibilité"], ["Signer maintenant", "Pilote contractuel", "Ne pas poursuivre"], "Démarrer par un pilote contractuel limité et mesurable.", ["Objectifs communs", "Partage de valeur", "Clauses de sortie", "Sponsor exécutif"], 69);
   }
-  return createFrame("generic", question, ["Impact", "Coût", "Risque", "Vitesse", "Réversibilité"], ["Agir maintenant", "Tester à petite échelle", "Reporter"], "Tester à petite échelle avant un engagement difficilement réversible.", ["Critère de réussite", "Coût d’opportunité", "Échéance réelle"], Math.max(55, challenge.confidence));
+  return createFrame("generic", question, ["Impact", "Coût", "Risque", "Vitesse", "Réversibilité"], ["Agir maintenant", "Tester à petite échelle", "Reporter"], "Tester à petite échelle avant un engagement difficilement réversible.", ["Critère de réussite", "Coût d’opportunité", "Échéance réelle"], Math.max(55, cognitiveCase.signals.confidence));
 }
 
 function buildDecisionNextAction(frame: DecisionFrame, assessment: ContextAssessment): string {
