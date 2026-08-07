@@ -1,41 +1,24 @@
-export type ChallengeState = "explore" | "decide" | "execute" | "learn";
+import type {
+  ActionRecord,
+  CognitiveCaseState,
+  CognitiveEventRecord,
+  DecisionRecord
+} from "@/domain/canonical";
+import type {
+  LegacyActionItem,
+  LegacyChallenge,
+  LegacyDecision
+} from "@/domain/adapters";
 
-export interface Challenge {
-  id: string;
-  title: string;
-  goal: string;
-  hypothesis: string;
-  impact: number;
-  urgency: number;
-  confidence: number;
-  cognitiveCost: number;
-  risk: number;
-  context: string;
-  state: ChallengeState;
-}
+/** @deprecated Prefer CognitiveCaseState from @/domain/canonical. */
+export type ChallengeState = CognitiveCaseState;
+/** @deprecated Prefer CognitiveCase from @/domain/canonical. */
+export type Challenge = LegacyChallenge;
+/** @deprecated Prefer DecisionRecord from @/domain/canonical. */
+export type Decision = LegacyDecision;
+/** @deprecated Prefer ActionRecord from @/domain/canonical. */
+export type ActionItem = LegacyActionItem;
+/** Canonical event shape retained under the historical export name for compatibility. */
+export type CognitiveEvent = CognitiveEventRecord;
 
-export interface Decision {
-  id: string;
-  challengeId: string;
-  recommendation: string;
-  finalDecision: string;
-  rationale: string;
-  confidence: number;
-  createdAt: string;
-}
-
-export interface ActionItem {
-  id: string;
-  challengeId: string;
-  title: string;
-  owner: string;
-  progress: number;
-  status: "todo" | "doing" | "done" | "blocked";
-}
-
-export interface CognitiveEvent {
-  id: string;
-  type: string;
-  detail: string;
-  createdAt: string;
-}
+export type { ActionRecord, DecisionRecord };
