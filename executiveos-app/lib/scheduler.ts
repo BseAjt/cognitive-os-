@@ -24,6 +24,3 @@ export function explainPriority(cognitiveCase: CognitiveCase): string[] {
   if (risk >= 8) reasons.push("Risque critique : attention immédiate requise");
   return reasons;
 }
-
-/** @deprecated Prefer caseScore. */
-export const challengeScore = caseScore;
