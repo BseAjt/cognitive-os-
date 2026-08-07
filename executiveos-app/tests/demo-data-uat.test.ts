@@ -63,6 +63,7 @@ const home = readFileSync(resolve(root, "components/executive-home-v4.tsx"), "ut
 const runtime = readFileSync(resolve(root, "components/executive-runtime-panel.tsx"), "utf8");
 const workspace = readFileSync(resolve(root, "components/executive-workspace.tsx"), "utf8");
 const slices = readFileSync(resolve(root, "store/slices.ts"), "utf8");
+const commands = readFileSync(resolve(root, "store/commands.ts"), "utf8");
 
 for (const label of ["Mes dossiers", "Paramètres"]) {
   test(`primary navigation exposes ${label}`, () => assert.ok(home.includes(label)));
@@ -109,6 +110,22 @@ test("execution stays operational inside dossier workspace", () => {
   assert.ok(runtime.includes('transitionRuntimeAction(action.id, "doing")'));
   assert.ok(runtime.includes("handleExecute(action.id)"));
   assert.ok(runtime.includes("executionFeedback"));
+});
+
+test("B4.1 keeps one persistent ORION conversation per dossier", () => {
+  assert.ok(workspace.includes('store.messages.filter((message) => message.caseId === active.id)'));
+  assert.ok(workspace.includes("ORION · CONVERSATION DU DOSSIER"));
+  assert.ok(workspace.includes("Historique persistant"));
+  assert.ok(workspace.includes("processMessage(input)"));
+  assert.ok(commands.includes('messages: [...state.messages, { id: crypto.randomUUID(), caseId, role: "user"'));
+  assert.ok(commands.includes('role: "assistant" as const'));
+});
+
+test("B4.1 conversation and Decision Canvas are visible in the same workspace", () => {
+  assert.ok(workspace.includes("<DecisionCanvas"));
+  assert.ok(!workspace.includes('setMode("conversation")'));
+  assert.ok(!workspace.includes('mode === "canvas"'));
+  assert.ok(!workspace.includes('mode === "conversation"'));
 });
 
 test("decision workspace remains connected to unified runtime", () => {
