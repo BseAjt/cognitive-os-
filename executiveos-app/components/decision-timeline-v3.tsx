@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { useExecutiveStore, type ReasoningRevision, type ReasoningStepId } from "@/store/executive-store";
+import { useExecutiveStore, type ReasoningStepId } from "@/store/executive-store";
 import type { ActionItem, Challenge, Decision } from "@/types/domain";
 
 type TimelineEvent = {
@@ -60,13 +60,15 @@ export function DecisionTimelineV3({ challenge, decisions, actions, activeStepId
       confidence: decision.confidence
     }));
 
+    const anchor = [...revisionEvents, ...decisionEvents].at(-1)?.createdAt ?? new Date().toISOString();
+    const anchorTime = new Date(anchor).getTime();
     const actionEvents: TimelineEvent[] = actions.map((action, index) => ({
       id: action.id,
       kind: "action",
       stepId: "consequences",
       title: action.status === "done" ? "Conséquence exécutée" : "Action issue de la décision",
       detail: `${action.title} · ${action.owner} · ${action.status}`,
-      createdAt: new Date(Date.now() - (actions.length - index) * 1000).toISOString()
+      createdAt: new Date(anchorTime + (index + 1) * 1000).toISOString()
     }));
 
     return [...revisionEvents, ...decisionEvents, ...actionEvents].sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
@@ -83,7 +85,7 @@ export function DecisionTimelineV3({ challenge, decisions, actions, activeStepId
     if (event) onStepSelect(event.stepId);
   }
 
-  if (!events.length) {
+  if (!selected) {
     return (
       <section className="rounded-[26px] border border-white/[.08] bg-[#0d192b]/82 p-5 md:p-6">
         <div className="text-[10px] font-black uppercase tracking-[.18em] text-[#8fb7ff]">Decision Timeline · UX3.3</div>
