@@ -5,7 +5,7 @@ import { buildRuntimeGraph } from "@/lib/executive-runtime";
 import { useExecutiveStore } from "@/store/executive-store";
 
 export function ExecutiveRuntimePanel({ mode }: { mode: "act" | "explore" }) {
-  const challenges = useExecutiveStore((state) => state.challenges);
+  const cases = useExecutiveStore((state) => state.cases);
   const decisions = useExecutiveStore((state) => state.decisions);
   const actions = useExecutiveStore((state) => state.actions);
   const agents = useExecutiveStore((state) => state.agents ?? []);
@@ -14,14 +14,14 @@ export function ExecutiveRuntimePanel({ mode }: { mode: "act" | "explore" }) {
   const executeRuntimeAction = useExecutiveStore((state) => state.executeRuntimeAction);
   const transitionRuntimeAction = useExecutiveStore((state) => state.transitionRuntimeAction);
 
-  const graph = useMemo(() => buildRuntimeGraph({ challenges, decisions, actions, agents, events }), [challenges, decisions, actions, agents, events]);
+  const graph = useMemo(() => buildRuntimeGraph({ cases, decisions, actions, agents, events }), [cases, decisions, actions, agents, events]);
 
   if (mode === "explore") {
     return <section>
       <div className="mb-6">
         <div className="text-[10px] font-black uppercase tracking-[.2em] text-[#7c92b2]">Executive Runtime · Cognitive Graph</div>
         <h1 className="mt-3 text-4xl font-semibold tracking-[-.035em]">Explorer le graphe vivant.</h1>
-        <p className="mt-3 max-w-3xl text-lg leading-8 text-[#91a2bd]">La projection Phase 2 est désormais calculée depuis l’état réel du produit : challenges, décisions, actions, agents et événements.</p>
+        <p className="mt-3 max-w-3xl text-lg leading-8 text-[#91a2bd]">La projection Phase 2 est désormais calculée depuis l’état réel du produit : dossiers cognitifs, décisions, actions, agents et événements.</p>
       </div>
 
       <div className="grid gap-4 md:grid-cols-3">

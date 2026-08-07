@@ -1,17 +1,10 @@
 "use client";
 
-import { useMemo, useState } from "react";
-import type { DecisionFrame } from "@/lib/decision-room";
+import type { DecisionFrame } from "@/lib/decision-runtime";
 import { ScenarioBuilder } from "@/components/scenario-builder";
 import { ExecutiveCouncil } from "@/components/executive-council";
 import { ConnectedDecisionCockpit } from "@/components/decision-cockpit-connected";
-import {
-  answerContextItem,
-  assessContext,
-  buildAdaptiveQuestions,
-  workforceRestructuringContextSeed,
-  type ContextItem
-} from "@/lib/context-engine";
+import { useDecisionWorkbench } from "@/hooks/use-decision-workbench";
 
 interface DecisionWorkbenchProps {
   frame: DecisionFrame;
@@ -20,46 +13,18 @@ interface DecisionWorkbenchProps {
 }
 
 export function DecisionWorkbench({ frame, onContextSubmit, onCreateAction }: DecisionWorkbenchProps) {
-  const [selectedOption, setSelectedOption] = useState<number | null>(null);
-  const [saved, setSaved] = useState(false);
-  const [contextItems, setContextItems] = useState<ContextItem[]>(() =>
-    frame.category === "workforce_restructuring"
-      ? workforceRestructuringContextSeed.map((item) => ({ ...item, caseId: frame.question }))
-      : frame.missingInformation.map((label, index) => ({
-          id: `generic-${index}`,
-          caseId: frame.question,
-          domain: "strategy",
-          kind: "uncertainty",
-          key: `generic_${index}`,
-          label,
-          value: "",
-          confidence: 0,
-          requirement: "required",
-          status: "missing"
-        }))
-  );
-
-  const assessment = useMemo(() => assessContext(contextItems), [contextItems]);
-  const questions = useMemo(() => buildAdaptiveQuestions(contextItems), [contextItems]);
-  const nextQuestion = questions[0];
-
-  function updateItem(item: ContextItem, value: string) {
-    setSaved(false);
-    setContextItems((current) => current.map((candidate) => candidate.id === item.id ? answerContextItem(candidate, value) : candidate));
-  }
-
-  function submitContext() {
-    const documented = contextItems.filter((item) => item.status === "verified" && item.value.trim());
-    const lines = documented.map((item) => `[${item.domain}] ${item.label} : ${item.value}${item.unit ? ` ${item.unit}` : ""} · source ${item.source ?? "non précisée"} · confiance ${item.confidence}%`);
-    onContextSubmit([
-      `Dossier contextuel pour la décision « ${frame.question} ».`,
-      `Préparation globale : ${assessment.readiness}%.`,
-      `Recommandation autorisée : ${assessment.recommendationAllowed ? "oui" : "non"}.`,
-      ...lines,
-      assessment.missingRequired.length ? `Informations bloquantes : ${assessment.missingRequired.map((item) => item.label).join(", ")}.` : "Aucune information bloquante restante."
-    ].join("\n"));
-    setSaved(true);
-  }
+  const workbench = useDecisionWorkbench(frame, onContextSubmit);
+  const {
+    selectedOption,
+    setSelectedOption,
+    saved,
+    contextItems,
+    assessment,
+    nextQuestion,
+    recommendationAllowed,
+    updateItem,
+    submitContext
+  } = workbench;
 
   return (
     <>
@@ -67,9 +32,9 @@ export function DecisionWorkbench({ frame, onContextSubmit, onCreateAction }: De
         <div className="border-b border-white/10 bg-[#101b2f] p-5">
           <div className="flex flex-wrap items-start justify-between gap-4">
             <div>
-              <div className="text-xs font-black tracking-[.14em] text-[#ffbc57]">CONTEXT ENGINE · DECISION WORKBENCH</div>
+              <div className="text-xs font-black tracking-[.14em] text-[#ffbc57]">DECISION RUNTIME · CONTEXT WORKBENCH</div>
               <h2 className="mt-2 text-2xl font-semibold">{frame.question}</h2>
-              <p className="mt-2 text-sm text-[#91a2bd]">Le moteur distingue les faits, hypothèses, contraintes et incertitudes, puis bloque toute recommandation tant que les données obligatoires ne sont pas vérifiées.</p>
+              <p className="mt-2 text-sm text-[#91a2bd]">Le Decision Runtime produit les scénarios, scores, informations manquantes et règles de recommandation. Cette vue ne fait qu’afficher et enrichir ce contrat métier.</p>
             </div>
             <div className="flex flex-wrap gap-2">{frame.classifications.map((classification) => <span key={classification} className="rounded-full border border-[#ffbc57]/30 bg-[#ffbc57]/10 px-3 py-1 text-xs text-[#ffd895]">{classification}</span>)}</div>
           </div>
@@ -79,7 +44,10 @@ export function DecisionWorkbench({ frame, onContextSubmit, onCreateAction }: De
         <div className="grid gap-5 p-5 xl:grid-cols-[.72fr_1.28fr]">
           <section className="grid content-start gap-4">
             <div className="rounded-2xl border border-white/10 bg-white/[.025] p-4">
-              <div className="flex items-end justify-between"><div><span className="text-xs font-black tracking-[.12em] text-[#8d7ce4]">CONTEXT READINESS</span><strong className="mt-2 block text-4xl">{assessment.readiness}%</strong></div><span className={`rounded-full px-3 py-1 text-xs ${assessment.recommendationAllowed ? "bg-[#42d59d]/15 text-[#7aefc2]" : "bg-[#ff7185]/15 text-[#ff9dab]"}`}>{assessment.recommendationAllowed ? "Recommandation possible" : "Recommandation bloquée"}</span></div>
+              <div className="flex items-end justify-between">
+                <div><span className="text-xs font-black tracking-[.12em] text-[#8d7ce4]">CONTEXT READINESS</span><strong className="mt-2 block text-4xl">{assessment.readiness}%</strong></div>
+                <span className={`rounded-full px-3 py-1 text-xs ${recommendationAllowed ? "bg-[#42d59d]/15 text-[#7aefc2]" : "bg-[#ff7185]/15 text-[#ff9dab]"}`}>{recommendationAllowed ? "Recommandation possible" : "Recommandation bloquée"}</span>
+              </div>
               <div className="mt-4 h-2 overflow-hidden rounded-full bg-white/5"><div className="h-full bg-[#7c5cff] transition-all" style={{ width: `${assessment.readiness}%` }}/></div>
             </div>
 
@@ -104,7 +72,10 @@ export function DecisionWorkbench({ frame, onContextSubmit, onCreateAction }: De
               </label>)}
             </div>
 
-            <div className="mt-4 flex flex-wrap gap-3"><button onClick={submitContext} className="executive-button executive-primary">{saved ? "Dossier enregistré" : "Enregistrer le dossier contextuel"}</button><button onClick={() => onCreateAction(selectedOption === null ? `Compléter les ${assessment.missingRequired.length} informations bloquantes` : `Instruire le scénario : ${frame.options[selectedOption].title}`)} className="executive-button executive-ghost">Créer la prochaine action</button></div>
+            <div className="mt-4 flex flex-wrap gap-3">
+              <button onClick={submitContext} className="executive-button executive-primary">{saved ? "Dossier enregistré" : "Enregistrer le dossier contextuel"}</button>
+              <button onClick={() => onCreateAction(selectedOption === null ? `Compléter les ${assessment.missingRequired.length} informations bloquantes` : `Instruire le scénario : ${frame.options[selectedOption].title}`)} className="executive-button executive-ghost">Créer la prochaine action</button>
+            </div>
             <p className="mt-4 text-xs leading-5 text-[#91a2bd]">Déclencheur de révision : {frame.reviewTrigger}</p>
           </section>
         </div>

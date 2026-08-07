@@ -1,5 +1,6 @@
-import type { ContextItem, ContextReadiness } from "./context-engine";
-import type { DecisionFrame } from "./decision-room";
+import type { ContextRecord } from "../domain/canonical.ts";
+import type { ContextAssessment } from "./context-engine";
+import type { DecisionFrame } from "./decision-runtime";
 
 export type ScenarioImpactDomain = "financial" | "people" | "operations" | "legal" | "strategy" | "time";
 
@@ -60,11 +61,11 @@ const DEFAULT_CRITERIA: ScenarioCriterion[] = [
   { id: "time", label: "Vitesse d'effet", weight: 5 }
 ];
 
-function itemValue(items: ContextItem[], key: string): string | undefined {
+function itemValue(items: ContextRecord[], key: string): string | undefined {
   return items.find((item) => item.key === key)?.value;
 }
 
-function numeric(items: ContextItem[], key: string): number | null {
+function numeric(items: ContextRecord[], key: string): number | null {
   const raw = itemValue(items, key);
   if (!raw) return null;
   const parsed = Number(String(raw).replace(",", ".").match(/-?\d+(?:\.\d+)?/)?.[0]);
@@ -73,8 +74,8 @@ function numeric(items: ContextItem[], key: string): number | null {
 
 export function buildScenarioPortfolio(
   frame: DecisionFrame,
-  contextItems: ContextItem[],
-  readiness: ContextReadiness,
+  contextItems: ContextRecord[],
+  readiness: ContextAssessment,
   criteria: ScenarioCriterion[] = DEFAULT_CRITERIA
 ): ScenarioPortfolio {
   if (frame.category !== "workforce_restructuring") {

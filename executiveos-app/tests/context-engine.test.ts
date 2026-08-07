@@ -11,7 +11,7 @@ test("seeded restructuring context blocks premature recommendation", () => {
   const assessment = assessContext(workforceRestructuringContextSeed);
   assert.equal(assessment.recommendationAllowed, false);
   assert.ok(assessment.readiness > 0 && assessment.readiness < 100);
-  assert.ok(assessment.missingRequired.some((item) => item.key === "target_savings"));
+  assert.ok(assessment.missingRequired.some((item) => item.key === "target_savings_million"));
   assert.ok(assessment.contested.some((item) => item.key === "operational_impact"));
 });
 
@@ -23,9 +23,9 @@ test("adaptive questions prioritize required missing context", () => {
 });
 
 test("answering a context item records provenance and verification", () => {
-  const missing = workforceRestructuringContextSeed.find((item) => item.key === "target_savings");
+  const missing = workforceRestructuringContextSeed.find((item) => item.key === "target_savings_million");
   assert.ok(missing);
-  const answered = answerContextItem(missing!, "2 500 000 €", "Budget CFO août 2026");
+  const answered = answerContextItem(missing!, "2.5", "Budget CFO août 2026");
   assert.equal(answered.status, "verified");
   assert.equal(answered.source, "Budget CFO août 2026");
   assert.ok(answered.capturedAt);

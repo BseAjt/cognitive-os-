@@ -1,20 +1,22 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { runConversationRuntime } from "../lib/conversation-runtime.ts";
-import type { Challenge } from "../types/domain.ts";
+import type { CognitiveCase } from "../domain/canonical.ts";
 
-const challenge: Challenge = {
+const cognitiveCase: CognitiveCase = {
   id: "1",
   title: "Test",
-  goal: "Décider",
-  hypothesis: "",
-  impact: 7,
-  urgency: 5,
-  confidence: 70,
-  cognitiveCost: 5,
-  risk: 4,
+  objective: "Décider",
+  workingHypothesis: "",
   context: "Contexte précédent",
-  state: "explore"
+  state: "explore",
+  signals: {
+    impact: 7,
+    urgency: 5,
+    confidence: 70,
+    cognitiveCost: 5,
+    risk: 4
+  }
 };
 
 const decisionPhrases = [
@@ -32,11 +34,11 @@ const decisionPhrases = [
 
 for (const message of decisionPhrases) {
   test(`decision: ${message}`, () => {
-    const result = runConversationRuntime(message, challenge);
+    const result = runConversationRuntime(message, cognitiveCase);
     assert.equal(result.intent, "decision");
     assert.ok(result.decisionFrame);
     assert.equal(result.extractions[0].kind, "decision");
-    assert.equal(result.challengePatch.state, "decide");
+    assert.equal(result.casePatch.state, "decide");
     assert.ok(result.response.includes("Options comparées"));
     assert.equal(result.decisionFrame.options.length, 3);
   });
@@ -52,64 +54,64 @@ const intentCases: Array<[string, string]> = [
 
 for (const [message, intent] of intentCases) {
   test(`intent ${intent}`, () => {
-    assert.equal(runConversationRuntime(message, challenge).intent, intent);
+    assert.equal(runConversationRuntime(message, cognitiveCase).intent, intent);
   });
 }
 
 test("risk raises risk", () => {
-  const result = runConversationRuntime("Le risque de churn est élevé", challenge);
+  const result = runConversationRuntime("Le risque de churn est élevé", cognitiveCase);
   assert.equal(result.extractions[0].kind, "risk");
-  assert.equal(result.challengePatch.risk, 6);
+  assert.equal(result.casePatch.signals?.risk, 6);
 });
 
 test("hypothesis lowers confidence", () => {
-  const result = runConversationRuntime("Je pense que le marché est prêt", challenge);
+  const result = runConversationRuntime("Je pense que le marché est prêt", cognitiveCase);
   assert.equal(result.extractions[0].kind, "hypothesis");
-  assert.equal(result.challengePatch.confidence, 62);
+  assert.equal(result.casePatch.signals?.confidence, 62);
 });
 
 test("action changes state", () => {
-  const result = runConversationRuntime("Il faut appeler cinq clients avant vendredi", challenge);
+  const result = runConversationRuntime("Il faut appeler cinq clients avant vendredi", cognitiveCase);
   assert.equal(result.extractions[0].kind, "action");
-  assert.equal(result.challengePatch.state, "execute");
+  assert.equal(result.casePatch.state, "execute");
 });
 
 test("ordinary question remains a question", () => {
-  const result = runConversationRuntime("Quel est notre taux de conversion ?", challenge);
+  const result = runConversationRuntime("Quel est notre taux de conversion ?", cognitiveCase);
   assert.equal(result.intent, "general");
   assert.equal(result.extractions[0].kind, "question");
 });
 
 test("empty input is safe", () => {
-  const result = runConversationRuntime("   ", challenge);
+  const result = runConversationRuntime("   ", cognitiveCase);
   assert.equal(result.extractions.length, 0);
-  assert.deepEqual(result.challengePatch, {});
+  assert.deepEqual(result.casePatch, {});
 });
 
 test("multi-sentence input extracts multiple cognitive kinds", () => {
   const result = runConversationRuntime(
     "Je pense que le marché est prêt. Le risque est le churn. Il faut tester avec 5 clients.",
-    challenge
+    cognitiveCase
   );
   assert.deepEqual(result.extractions.map((item) => item.kind), ["hypothesis", "risk", "action"]);
 });
 
 test("hiring frame is specialized", () => {
-  assert.equal(runConversationRuntime("Dois-je recruter un CTO ?", challenge).decisionFrame?.category, "hiring");
+  assert.equal(runConversationRuntime("Dois-je recruter un CTO ?", cognitiveCase).decisionFrame?.category, "hiring");
 });
 
 test("investment frame is specialized", () => {
-  assert.equal(runConversationRuntime("Devrais-je investir 100k€ ?", challenge).decisionFrame?.category, "investment");
+  assert.equal(runConversationRuntime("Devrais-je investir 100k€ ?", cognitiveCase).decisionFrame?.category, "investment");
 });
 
 test("launch frame is specialized", () => {
-  assert.equal(runConversationRuntime("Faut-il lancer une nouvelle offre ?", challenge).decisionFrame?.category, "launch");
+  assert.equal(runConversationRuntime("Faut-il lancer une nouvelle offre ?", cognitiveCase).decisionFrame?.category, "launch");
 });
 
 test("pricing frame is specialized", () => {
-  assert.equal(runConversationRuntime("Dois-je augmenter le prix ?", challenge).decisionFrame?.category, "pricing");
+  assert.equal(runConversationRuntime("Dois-je augmenter le prix ?", cognitiveCase).decisionFrame?.category, "pricing");
 });
 
 test("partnership frame is specialized", () => {
-  assert.equal(runConversationRuntime("Faut-il signer ce partenariat ?", challenge).decisionFrame?.category, "partnership");
+  assert.equal(runConversationRuntime("Faut-il signer ce partenariat ?", cognitiveCase).decisionFrame?.category, "partnership");
 });

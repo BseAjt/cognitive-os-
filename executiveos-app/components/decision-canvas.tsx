@@ -5,22 +5,22 @@ import { DecisionTimelineV3 } from "@/components/decision-timeline-v3";
 import { ImpactAnalysisV3 } from "@/components/impact-analysis-v3";
 import { OrionDecisionCopilotV3 } from "@/components/orion-decision-copilot-v3";
 import { ReasoningFlowV3 } from "@/components/reasoning-flow-v3";
-import type { DecisionFrame } from "@/lib/decision-room";
+import type { DecisionFrame } from "@/lib/decision-runtime";
 import type { ReasoningStepId } from "@/store/executive-store";
-import type { ActionItem, Challenge, Decision } from "@/types/domain";
+import type { ActionRecord, CognitiveCase, DecisionRecord } from "@/domain/canonical";
 
 type DecisionCanvasProps = {
-  challenge: Challenge;
+  cognitiveCase: CognitiveCase;
   frame: DecisionFrame;
-  decisions: Decision[];
-  actions: ActionItem[];
+  decisions: DecisionRecord[];
+  actions: ActionRecord[];
   onCreateAction: (title: string) => void;
 };
 
-export function DecisionCanvas({ challenge, frame, decisions, actions, onCreateAction }: DecisionCanvasProps) {
+export function DecisionCanvas({ cognitiveCase, frame, decisions, actions, onCreateAction }: DecisionCanvasProps) {
   const [activeStepId, setActiveStepId] = useState<ReasoningStepId>("question");
   const latestDecision = decisions[0];
-  const confidence = frame.confidence ?? challenge.confidence;
+  const confidence = frame.confidence ?? cognitiveCase.signals.confidence;
   const status = frame.requiresContext ? "Contexte incomplet" : latestDecision ? "Décidée" : "Prête à arbitrer";
 
   return (
@@ -36,33 +36,33 @@ export function DecisionCanvas({ challenge, frame, decisions, actions, onCreateA
           <div className="mt-5 grid gap-6 xl:grid-cols-[minmax(0,1fr)_260px]">
             <div>
               <div className="text-[10px] font-black uppercase tracking-[.18em] text-[#6f819e]">Question à trancher</div>
-              <h1 className="mt-2 max-w-5xl text-3xl font-semibold tracking-[-.035em] md:text-5xl">{frame.question || challenge.title}</h1>
-              <p className="mt-4 max-w-4xl text-sm leading-7 text-[#94a6c0]">{challenge.context}</p>
+              <h1 className="mt-2 max-w-5xl text-3xl font-semibold tracking-[-.035em] md:text-5xl">{frame.question || cognitiveCase.title}</h1>
+              <p className="mt-4 max-w-4xl text-sm leading-7 text-[#94a6c0]">{cognitiveCase.context}</p>
             </div>
             <div className="rounded-2xl border border-white/[.07] bg-white/[.025] p-4">
               <Metric label="Confiance" value={`${confidence}%`} />
-              <Metric label="Risque" value={`${challenge.risk}/10`} />
-              <Metric label="État" value={challenge.state} />
+              <Metric label="Risque" value={`${cognitiveCase.signals.risk}/10`} />
+              <Metric label="État" value={cognitiveCase.state} />
             </div>
           </div>
         </div>
       </article>
 
-      <ReasoningFlowV3 challenge={challenge} frame={frame} activeStepId={activeStepId} onStepChange={setActiveStepId} />
+      <ReasoningFlowV3 cognitiveCase={cognitiveCase} frame={frame} activeStepId={activeStepId} onStepChange={setActiveStepId} />
 
-      <DecisionTimelineV3 challenge={challenge} decisions={decisions} actions={actions} activeStepId={activeStepId} onStepSelect={setActiveStepId} />
+      <DecisionTimelineV3 cognitiveCase={cognitiveCase} decisions={decisions} actions={actions} activeStepId={activeStepId} onStepSelect={setActiveStepId} />
 
-      <ImpactAnalysisV3 challenge={challenge} frame={frame} decisions={decisions} actions={actions} />
+      <ImpactAnalysisV3 cognitiveCase={cognitiveCase} frame={frame} decisions={decisions} actions={actions} />
 
-      <OrionDecisionCopilotV3 challenge={challenge} frame={frame} decisions={decisions} actions={actions} onCreateAction={onCreateAction} />
+      <OrionDecisionCopilotV3 cognitiveCase={cognitiveCase} frame={frame} decisions={decisions} actions={actions} onCreateAction={onCreateAction} />
 
       <div className="grid gap-5 xl:grid-cols-[1.15fr_.85fr]">
         <div className="space-y-5">
           <CanvasSection eyebrow="Contexte" title="Ce que nous essayons d’accomplir">
-            <p className="text-sm leading-7 text-[#b7c3d5]">{challenge.goal}</p>
+            <p className="text-sm leading-7 text-[#b7c3d5]">{cognitiveCase.objective}</p>
             <div className="mt-4 rounded-2xl border border-white/[.06] bg-white/[.02] p-4">
               <div className="text-[10px] font-black uppercase tracking-[.14em] text-[#7c92b2]">Hypothèse actuelle</div>
-              <p className="mt-2 text-sm leading-6 text-[#d8e0ed]">{challenge.hypothesis}</p>
+              <p className="mt-2 text-sm leading-6 text-[#d8e0ed]">{cognitiveCase.workingHypothesis}</p>
             </div>
           </CanvasSection>
 
@@ -94,7 +94,7 @@ export function DecisionCanvas({ challenge, frame, decisions, actions, onCreateA
           </CanvasSection>
 
           <CanvasSection eyebrow="Décision" title="Historique & exécution" tone="green">
-            {latestDecision ? <div className="rounded-2xl border border-[#42d59d]/12 bg-[#42d59d]/[.035] p-4"><strong className="text-[#dff9ef]">{latestDecision.finalDecision}</strong><p className="mt-2 text-xs leading-5 text-[#91a2bd]">{latestDecision.rationale}</p></div> : <p className="text-sm text-[#8192ab]">Aucune décision finale enregistrée pour ce sujet.</p>}
+            {latestDecision ? <div className="rounded-2xl border border-[#42d59d]/12 bg-[#42d59d]/[.035] p-4"><strong className="text-[#dff9ef]">{latestDecision.outcome}</strong><p className="mt-2 text-xs leading-5 text-[#91a2bd]">{latestDecision.rationale}</p></div> : <p className="text-sm text-[#8192ab]">Aucune décision finale enregistrée pour ce sujet.</p>}
             <div className="mt-4 space-y-2">{actions.slice(0, 3).map(action => <div key={action.id} className="flex items-center justify-between gap-3 rounded-xl border border-white/[.06] bg-white/[.02] p-3"><span className="text-sm text-[#c8d2df]">{action.title}</span><span className="text-[10px] uppercase text-[#6f819e]">{action.status}</span></div>)}</div>
             <button onClick={() => onCreateAction(frame.recommendation ?? `Clarifier : ${frame.question}`)} className="mt-4 w-full rounded-xl bg-[#7c5cff] px-4 py-2.5 text-sm font-bold hover:bg-[#8b6dff]">Créer la prochaine action</button>
           </CanvasSection>

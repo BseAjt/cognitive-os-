@@ -1,4 +1,4 @@
-import type { ContextReadiness } from "./context-engine";
+import type { ContextAssessment } from "./context-engine";
 import type { ExecutiveCouncilResult } from "./executive-council";
 import type { ScenarioPortfolio } from "./scenario-builder";
 
@@ -36,7 +36,7 @@ export interface DecisionCockpitState {
 }
 
 export function buildDecisionCockpit(
-  readiness: ContextReadiness,
+  readiness: ContextAssessment,
   portfolio: ScenarioPortfolio,
   council: ExecutiveCouncilResult,
   selectedScenarioId?: string | null

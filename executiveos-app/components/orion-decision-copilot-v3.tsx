@@ -1,17 +1,17 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import type { DecisionFrame } from "@/lib/decision-room";
+import type { DecisionFrame } from "@/lib/decision-runtime";
 import { useExecutiveStore } from "@/store/executive-store";
-import type { ActionItem, Challenge, Decision } from "@/types/domain";
+import type { ActionRecord, CognitiveCase, DecisionRecord } from "@/domain/canonical";
 
 type CopilotMode = "missing" | "risks" | "changes" | "next";
 
 type Props = {
-  challenge: Challenge;
+  cognitiveCase: CognitiveCase;
   frame: DecisionFrame;
-  decisions: Decision[];
-  actions: ActionItem[];
+  decisions: DecisionRecord[];
+  actions: ActionRecord[];
   onCreateAction: (title: string) => void;
 };
 
@@ -22,20 +22,20 @@ const MODES: { id: CopilotMode; label: string }[] = [
   { id: "next", label: "Que faire maintenant ?" }
 ];
 
-export function OrionDecisionCopilotV3({ challenge, frame, decisions, actions, onCreateAction }: Props) {
+export function OrionDecisionCopilotV3({ cognitiveCase, frame, decisions, actions, onCreateAction }: Props) {
   const [mode, setMode] = useState<CopilotMode>("next");
-  const revisions = useExecutiveStore((state) => state.reasoningRevisions).filter((item) => item.challengeId === challenge.id);
+  const revisions = useExecutiveStore((state) => state.reasoningRevisions).filter((item) => item.caseId === cognitiveCase.id);
   const latestDecision = decisions[0];
 
   const analysis = useMemo(() => {
     const openActions = actions.filter((action) => action.status !== "done");
     const missing = frame.missingInformation;
     const riskSignals = [
-      challenge.risk >= 7 ? `Risque global élevé (${challenge.risk}/10).` : null,
+      cognitiveCase.signals.risk >= 7 ? `Risque global élevé (${cognitiveCase.signals.risk}/10).` : null,
       frame.requiresContext ? "Le contexte reste incomplet pour une décision irréversible." : null,
       frame.confidence !== null && frame.confidence < 70 ? `Confiance limitée (${frame.confidence}%).` : null,
       openActions.length > 3 ? `${openActions.length} actions ouvertes augmentent la charge d’exécution.` : null,
-      latestDecision && frame.recommendation && !latestDecision.finalDecision.toLowerCase().includes(frame.recommendation.toLowerCase().slice(0, 18)) ? "La décision enregistrée et la recommandation actuelle semblent avoir divergé." : null
+      latestDecision && frame.recommendation && !latestDecision.outcome.toLowerCase().includes(frame.recommendation.toLowerCase().slice(0, 18)) ? "La décision enregistrée et la recommandation actuelle semblent avoir divergé." : null
     ].filter(Boolean) as string[];
 
     const changedSteps = Array.from(new Set(revisions.map((revision) => revision.stepId)));
@@ -50,7 +50,7 @@ export function OrionDecisionCopilotV3({ challenge, frame, decisions, actions, o
           : `Clarifier la décision : ${frame.question}`;
 
     return { missing, riskSignals, changedSteps, latestRevision, nextAction, openActions };
-  }, [actions, challenge.risk, frame, latestDecision, revisions]);
+  }, [actions, cognitiveCase.signals.risk, frame, latestDecision, revisions]);
 
   const response = mode === "missing"
     ? buildMissingResponse(analysis.missing)
@@ -68,7 +68,7 @@ export function OrionDecisionCopilotV3({ challenge, frame, decisions, actions, o
           <h2 className="mt-2 text-2xl font-semibold">Interroger la décision, pas seulement les données.</h2>
           <p className="mt-2 max-w-3xl text-sm leading-6 text-[#8fa0b8]">ORION synthétise le Reasoning Flow, la Timeline, l’Impact Analysis et l’exécution pour t’aider à arbitrer.</p>
         </div>
-        <div className="rounded-full border border-[#7c5cff]/20 bg-[#7c5cff]/10 px-3 py-1.5 text-xs text-[#c9c0ff]">Confiance {frame.confidence ?? challenge.confidence}%</div>
+        <div className="rounded-full border border-[#7c5cff]/20 bg-[#7c5cff]/10 px-3 py-1.5 text-xs text-[#c9c0ff]">Confiance {frame.confidence ?? cognitiveCase.signals.confidence}%</div>
       </div>
 
       <div className="mt-5 flex flex-wrap gap-2">

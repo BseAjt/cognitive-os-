@@ -1,6 +1,12 @@
-import type { ActionItem, AgentContract, Challenge, CognitiveEvent, Decision } from "../types/domain.ts";
+import type {
+  ActionRecord,
+  AgentContract,
+  CognitiveCase,
+  CognitiveEventRecord,
+  DecisionRecord
+} from "../domain/canonical.ts";
 
-const transitions: Record<ActionItem["status"], ActionItem["status"][]> = {
+const transitions: Record<ActionRecord["status"], ActionRecord["status"][]> = {
   todo: ["doing", "blocked", "done"],
   doing: ["done", "blocked", "todo"],
   blocked: ["todo", "doing"],
@@ -22,7 +28,7 @@ export function canHandle(agent: AgentContract, capability: string): boolean {
   return agent.status === "online" && agent.capabilities.includes(capability);
 }
 
-export function transitionAction(action: ActionItem, nextStatus: ActionItem["status"]): ActionItem {
+export function transitionAction(action: ActionRecord, nextStatus: ActionRecord["status"]): ActionRecord {
   if (!transitions[action.status].includes(nextStatus)) {
     throw new Error(`Invalid transition ${action.status} -> ${nextStatus}`);
   }
@@ -33,7 +39,7 @@ export function transitionAction(action: ActionItem, nextStatus: ActionItem["sta
   };
 }
 
-export function assignAction(action: ActionItem, agents: AgentContract[]): ActionItem {
+export function assignAction(action: ActionRecord, agents: AgentContract[]): ActionRecord {
   if (action.assignedAgentId) return action;
   const capability = action.requiredCapability ?? "analysis";
   const agent = agents.find((item) => canHandle(item, capability));
@@ -52,7 +58,7 @@ export function assignAction(action: ActionItem, agents: AgentContract[]): Actio
   };
 }
 
-export function executeAction(action: ActionItem, agents: AgentContract[]): ActionItem {
+export function executeAction(action: ActionRecord, agents: AgentContract[]): ActionRecord {
   const assigned = assignAction(action, agents);
   if (assigned.status === "blocked") return assigned;
   const running = assigned.status === "todo" ? transitionAction(assigned, "doing") : assigned;
@@ -65,7 +71,7 @@ export function executeAction(action: ActionItem, agents: AgentContract[]): Acti
 
 export interface RuntimeGraphNode {
   id: string;
-  type: "challenge" | "decision" | "action" | "agent" | "event";
+  type: "case" | "decision" | "action" | "agent" | "event";
   label: string;
   status?: string;
 }
@@ -78,25 +84,25 @@ export interface RuntimeGraphEdge {
 }
 
 export function buildRuntimeGraph(input: {
-  challenges: Challenge[];
-  decisions: Decision[];
-  actions: ActionItem[];
+  cases: CognitiveCase[];
+  decisions: DecisionRecord[];
+  actions: ActionRecord[];
   agents: AgentContract[];
-  events: CognitiveEvent[];
+  events: CognitiveEventRecord[];
 }) {
   const nodes: RuntimeGraphNode[] = [];
   const edges: RuntimeGraphEdge[] = [];
 
-  for (const challenge of input.challenges) {
-    nodes.push({ id: `challenge:${challenge.id}`, type: "challenge", label: challenge.title, status: challenge.state });
+  for (const cognitiveCase of input.cases) {
+    nodes.push({ id: `case:${cognitiveCase.id}`, type: "case", label: cognitiveCase.title, status: cognitiveCase.state });
   }
   for (const decision of input.decisions) {
-    nodes.push({ id: `decision:${decision.id}`, type: "decision", label: decision.finalDecision, status: "recorded" });
-    edges.push({ id: `decision-challenge:${decision.id}`, source: `decision:${decision.id}`, target: `challenge:${decision.challengeId}`, type: "supports" });
+    nodes.push({ id: `decision:${decision.id}`, type: "decision", label: decision.outcome, status: "recorded" });
+    edges.push({ id: `decision-case:${decision.id}`, source: `decision:${decision.id}`, target: `case:${decision.caseId}`, type: "supports" });
   }
   for (const action of input.actions) {
     nodes.push({ id: `action:${action.id}`, type: "action", label: action.title, status: action.status });
-    edges.push({ id: `action-challenge:${action.id}`, source: `challenge:${action.challengeId}`, target: `action:${action.id}`, type: "creates" });
+    edges.push({ id: `action-case:${action.id}`, source: `case:${action.caseId}`, target: `action:${action.id}`, type: "creates" });
     if (action.assignedAgentId) {
       edges.push({ id: `agent-action:${action.id}`, source: `agent:${action.assignedAgentId}`, target: `action:${action.id}`, type: "owns" });
     }

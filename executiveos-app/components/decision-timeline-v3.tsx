@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { useExecutiveStore, type ReasoningStepId } from "@/store/executive-store";
-import type { ActionItem, Challenge, Decision } from "@/types/domain";
+import type { ActionRecord, CognitiveCase, DecisionRecord } from "@/domain/canonical";
 
 type TimelineEvent = {
   id: string;
@@ -17,9 +17,9 @@ type TimelineEvent = {
 };
 
 type DecisionTimelineProps = {
-  challenge: Challenge;
-  decisions: Decision[];
-  actions: ActionItem[];
+  cognitiveCase: CognitiveCase;
+  decisions: DecisionRecord[];
+  actions: ActionRecord[];
   activeStepId: ReasoningStepId;
   onStepSelect: (stepId: ReasoningStepId) => void;
 };
@@ -34,8 +34,8 @@ const STEP_LABELS: Record<ReasoningStepId, string> = {
   consequences: "Conséquences"
 };
 
-export function DecisionTimelineV3({ challenge, decisions, actions, activeStepId, onStepSelect }: DecisionTimelineProps) {
-  const revisions = useExecutiveStore((state) => state.reasoningRevisions).filter((item) => item.challengeId === challenge.id);
+export function DecisionTimelineV3({ cognitiveCase, decisions, actions, activeStepId, onStepSelect }: DecisionTimelineProps) {
+  const revisions = useExecutiveStore((state) => state.reasoningRevisions).filter((item) => item.caseId === cognitiveCase.id);
 
   const events = useMemo<TimelineEvent[]>(() => {
     const revisionEvents: TimelineEvent[] = revisions.map((revision) => ({
@@ -55,7 +55,7 @@ export function DecisionTimelineV3({ challenge, decisions, actions, activeStepId
       kind: "decision",
       stepId: "decision",
       title: "Décision enregistrée",
-      detail: decision.finalDecision,
+      detail: decision.outcome,
       createdAt: decision.createdAt,
       confidence: decision.confidence
     }));

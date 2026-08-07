@@ -1,24 +1,26 @@
-import type { Challenge } from "@/types/domain";
+import type { CognitiveCase } from "@/domain/canonical";
 
-export function challengeScore(challenge: Challenge): number {
-  const confidenceFactor = 0.5 + challenge.confidence / 100;
-  const riskMultiplier = 1 + challenge.risk / 20;
+export function caseScore(cognitiveCase: CognitiveCase): number {
+  const { confidence, risk, impact, urgency, cognitiveCost } = cognitiveCase.signals;
+  const confidenceFactor = 0.5 + confidence / 100;
+  const riskMultiplier = 1 + risk / 20;
   return Math.round(
-    ((challenge.impact * challenge.urgency * confidenceFactor * riskMultiplier) /
-      Math.max(1, challenge.cognitiveCost)) *
+    ((impact * urgency * confidenceFactor * riskMultiplier) /
+      Math.max(1, cognitiveCost)) *
       10
   );
 }
 
-export function explainPriority(challenge: Challenge): string[] {
+export function explainPriority(cognitiveCase: CognitiveCase): string[] {
+  const { impact, urgency, confidence, risk, cognitiveCost } = cognitiveCase.signals;
   const reasons = [
-    `Impact stratégique ${challenge.impact}/10`,
-    `Urgence ${challenge.urgency}/10`,
-    `Confiance des hypothèses ${challenge.confidence}%`,
-    `Risque ${challenge.risk}/10`,
-    `Coût cognitif ${challenge.cognitiveCost}/10`
+    `Impact stratégique ${impact}/10`,
+    `Urgence ${urgency}/10`,
+    `Confiance des hypothèses ${confidence}%`,
+    `Risque ${risk}/10`,
+    `Coût cognitif ${cognitiveCost}/10`
   ];
-  if (challenge.confidence < 55) reasons.push("Décision à réévaluer : confiance insuffisante");
-  if (challenge.risk >= 8) reasons.push("Risque critique : attention immédiate requise");
+  if (confidence < 55) reasons.push("Décision à réévaluer : confiance insuffisante");
+  if (risk >= 8) reasons.push("Risque critique : attention immédiate requise");
   return reasons;
 }
