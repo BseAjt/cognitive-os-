@@ -1,12 +1,12 @@
 import type { StateCreator } from "zustand";
 import { assignAction, executeAction, transitionAction } from "../lib/executive-runtime.ts";
-import { initialAgents, initialRuntimeActions } from "./seed.ts";
+import { initialAgentRuns, initialAgents, initialReasoningRevisions, initialRuntimeActions } from "./seed.ts";
 import type { ExecutiveState, RuntimeSlice } from "./types.ts";
 
 export const createRuntimeSlice: StateCreator<ExecutiveState, [], [], RuntimeSlice> = (set) => ({
   agents: initialAgents,
-  agentRuns: [],
-  reasoningRevisions: [],
+  agentRuns: initialAgentRuns,
+  reasoningRevisions: initialReasoningRevisions,
   addReasoningRevision: (revision) =>
     set((state) => {
       const versions = state.reasoningRevisions.filter((item) => item.caseId === revision.caseId && item.stepId === revision.stepId);

@@ -41,11 +41,11 @@ const here = dirname(fileURLToPath(import.meta.url)); const root = resolve(here,
 const types=source("store/types.ts"), slices=source("store/slices.ts"), commands=source("store/commands.ts"), recall=source("lib/cognitive-recall.ts"), graph=source("lib/knowledge-graph-runtime.ts"), store=source("store/executive-store.ts");
 for (const [name,file,expected] of [
   ["state exposes reflection records",types,"reflections: ReflectionRecord[]"],
-  ["reflection slice is initialized",slices,"reflections: []"],
+  ["reflection slice is seeded",slices,"reflections: initialReflections"],
   ["runtime builds reflection from cognitive diff",commands,"buildReflection"],
   ["runtime persists reflection atomically",commands,"reflections: reflection ? [reflection, ...state.reflections]"],
   ["runtime emits reflection event",commands,"ReflectionPersisted"],
   ["recall consumes reflections",recall,"lastReflection"],
   ["graph projects reflection insight",graph,"reflection:${reflection.id}"],
-  ["persistence schema includes cognitive DNA v13",store,"version: 13"]
+  ["persistence schema migrates demo state to v14",store,"version: 14"]
 ] as const) test(name,()=>assert.ok(file.includes(expected),`Missing reflection contract: ${expected}`));

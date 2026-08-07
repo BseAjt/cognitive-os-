@@ -25,9 +25,9 @@ const here = dirname(fileURLToPath(import.meta.url)); const root = resolve(here,
 const types = source("store/types.ts"), runtimeSlice = source("store/runtime-slice.ts"), commands = source("store/commands.ts"), store = source("store/executive-store.ts");
 for (const [name, file, expected] of [
   ["state exposes persistent agent runs", types, "agentRuns: AgentRunRecord[]"],
-  ["runtime initializes agent run history", runtimeSlice, "agentRuns: []"],
+  ["runtime initializes seeded agent run history", runtimeSlice, "agentRuns: initialAgentRuns"],
   ["runtime cycle persists ORION run", commands, "agentRuns: [agentRun, ...state.agentRuns]"],
   ["actions accept preferred agent assignment", commands, "assignedAgentId: action.preferredAgentId"],
   ["agent council emits an event", commands, "AgentCouncilCompleted"],
-  ["persistence schema includes cognitive DNA migration v13", store, "version: 13"]
+  ["persistence schema includes demo migration v14", store, "version: 14"]
 ] as const) test(name, () => assert.ok(file.includes(expected), `Missing agent runtime contract: ${expected}`));
