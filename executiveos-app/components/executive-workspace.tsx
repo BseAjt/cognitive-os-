@@ -4,9 +4,10 @@ import { useMemo, useState } from "react";
 import { DecisionCanvas } from "@/components/decision-canvas";
 import { DecisionWorkbench } from "@/components/decision-workbench";
 import { ReasoningGraph } from "@/components/reasoning-graph";
-import { runConversationRuntime, type CognitiveExtraction } from "@/lib/conversation-runtime";
+import type { CognitiveExtraction } from "@/lib/conversation-runtime";
 import { buildDecisionFrame, type DecisionFrame } from "@/lib/decision-runtime";
 import { caseScore } from "@/lib/scheduler";
+import { runUnifiedRuntime } from "@/lib/unified-runtime";
 import { useExecutiveStore } from "@/store/executive-store";
 
 export function ExecutiveWorkspace() {
@@ -33,37 +34,13 @@ export function ExecutiveWorkspace() {
   function processMessage(message: string) {
     const clean = message.trim();
     if (!clean) return;
-    const result = runConversationRuntime(clean, active);
-    const now = new Date().toISOString();
 
-    store.recordConversationTurn({
-      caseId: active.id,
-      userText: clean,
-      assistantText: result.response,
-      intent: result.intent,
-      extractionCount: result.extractions.length,
-      casePatch: result.casePatch,
-      createdAt: now
-    });
+    const result = runUnifiedRuntime({ message: clean, cognitiveCase: active });
+    store.applyRuntimeCycle({ caseId: active.id, userText: clean, result });
 
-    const decision = result.extractions.find((item) => item.kind === "decision");
-    if (decision) {
-      store.captureDecision({
-        caseId: active.id,
-        text: decision.text,
-        recommendation: result.decisionFrame?.recommendation ?? result.nextAction,
-        confidence: decision.confidence,
-        rationale: "Décision extraite de la conversation.",
-        createdAt: now
-      });
-    }
-
-    const action = result.extractions.find((item) => item.kind === "action");
-    if (action) createAction(action.text);
-
-    setLastExtractions(result.extractions);
+    setLastExtractions(result.conversation.extractions);
     setLastNextAction(result.nextAction);
-    setDecisionFrame(result.decisionFrame ?? null);
+    setDecisionFrame(result.conversation.decisionFrame ?? null);
     setInput("");
   }
 
