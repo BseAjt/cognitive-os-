@@ -6,17 +6,31 @@ import { useExecutiveStore } from "@/store/executive-store";
 
 export function ExecutiveRuntimePanel({ mode }: { mode: "act" | "explore" }) {
   const cases = useExecutiveStore((state) => state.cases);
+  const activeCaseId = useExecutiveStore((state) => state.activeCaseId);
   const decisions = useExecutiveStore((state) => state.decisions);
   const actions = useExecutiveStore((state) => state.actions);
   const agents = useExecutiveStore((state) => state.agents ?? []);
   const events = useExecutiveStore((state) => state.events);
+  const kernelTransactions = useExecutiveStore((state) => state.kernelTransactions ?? []);
+  const kernelEvents = useExecutiveStore((state) => state.kernelEvents ?? []);
   const assignRuntimeAction = useExecutiveStore((state) => state.assignRuntimeAction);
   const executeRuntimeAction = useExecutiveStore((state) => state.executeRuntimeAction);
   const transitionRuntimeAction = useExecutiveStore((state) => state.transitionRuntimeAction);
   const [executingActionId, setExecutingActionId] = useState<string | null>(null);
   const [executionFeedback, setExecutionFeedback] = useState<{ tone: "success" | "warning" | "error"; text: string } | null>(null);
+  const [expandedTransactionId, setExpandedTransactionId] = useState<string | null>(null);
 
   const graph = useMemo(() => buildRuntimeGraph({ cases, decisions, actions, agents, events }), [cases, decisions, actions, agents, events]);
+  const activeKernelTransactions = useMemo(
+    () => kernelTransactions.filter((transaction) => transaction.caseId === activeCaseId).slice(0, 8),
+    [kernelTransactions, activeCaseId]
+  );
+  const kernelStats = useMemo(() => {
+    const completed = activeKernelTransactions.filter((item) => item.status === "completed").length;
+    const blocked = activeKernelTransactions.filter((item) => item.status === "blocked").length;
+    const failed = activeKernelTransactions.filter((item) => item.status === "failed").length;
+    return { completed, blocked, failed };
+  }, [activeKernelTransactions]);
 
   function handleExecute(actionId: string) {
     const before = useExecutiveStore.getState().actions.find((item) => item.id === actionId);
@@ -96,6 +110,26 @@ export function ExecutiveRuntimePanel({ mode }: { mode: "act" | "explore" }) {
 
     {executionFeedback && <div aria-live="polite" className={`mb-5 rounded-2xl border px-4 py-3 text-sm ${executionFeedback.tone === "success" ? "border-[#42d59d]/30 bg-[#42d59d]/10 text-[#9af0cf]" : executionFeedback.tone === "warning" ? "border-[#ffbc57]/30 bg-[#ffbc57]/10 text-[#ffd895]" : "border-[#ff6b7a]/30 bg-[#ff6b7a]/10 text-[#ffb4bd]"}`}>{executionFeedback.text}</div>}
 
+    <article className="mb-5 rounded-[26px] border border-white/[.08] bg-[#0d192b]/88 p-5 md:p-6" data-testid="kernel-observability">
+      <div className="flex flex-col justify-between gap-4 md:flex-row md:items-start">
+        <div><div className="text-[10px] font-black uppercase tracking-[.16em] text-[#b7a9ff]">Executive Kernel · Observability</div><h2 className="mt-2 text-2xl font-semibold">Cycles ORION exécutés par le Kernel</h2><p className="mt-2 max-w-3xl text-sm leading-6 text-[#8294af]">Chaque cycle expose sa transaction, les étapes traversées et la raison exacte d’un éventuel blocage.</p></div>
+        <div className="flex gap-2 text-[11px]"><span className="rounded-full bg-[#42d59d]/10 px-3 py-1.5 text-[#9af0cf]">{kernelStats.completed} terminé(s)</span><span className="rounded-full bg-[#ffbc57]/10 px-3 py-1.5 text-[#ffd895]">{kernelStats.blocked} bloqué(s)</span><span className="rounded-full bg-[#ff6b7a]/10 px-3 py-1.5 text-[#ffb4bd]">{kernelStats.failed} erreur(s)</span></div>
+      </div>
+      <div className="mt-5 space-y-3">
+        {activeKernelTransactions.length ? activeKernelTransactions.map((transaction) => {
+          const trace = kernelEvents.filter((event) => event.transactionId === transaction.id).sort((a, b) => a.createdAt.localeCompare(b.createdAt));
+          const expanded = expandedTransactionId === transaction.id;
+          return <div key={transaction.id} className="rounded-2xl border border-white/[.07] bg-[#091422]/85 p-4">
+            <button onClick={() => setExpandedTransactionId(expanded ? null : transaction.id)} className="flex w-full flex-col gap-3 text-left md:flex-row md:items-center md:justify-between">
+              <div className="min-w-0"><div className="flex flex-wrap items-center gap-2"><KernelStatus status={transaction.status}/><span className="font-mono text-[10px] text-[#627590]">tx:{transaction.id.slice(0, 8)}</span></div><p className="mt-2 text-xs text-[#91a2bd]">{transaction.completedStages.length} étape(s) complétée(s) · {transaction.blockedStages.length} bloquée(s) · {transaction.eventCount} événement(s)</p></div>
+              <span className="text-xs font-semibold text-[#b7a9ff]">{expanded ? "Masquer la trace ↑" : "Voir la trace ↓"}</span>
+            </button>
+            {expanded && <div className="mt-4 border-t border-white/[.06] pt-4"><div className="space-y-2">{trace.map((event, index) => <div key={event.id} className="grid gap-2 rounded-xl bg-white/[.025] p-3 text-xs md:grid-cols-[28px_150px_1fr]"><span className="grid size-7 place-items-center rounded-full bg-white/[.05] text-[10px] text-[#8294af]">{index + 1}</span><div><strong className="block text-[#d7def0]">{event.stage ?? event.type}</strong><span className="mt-1 block text-[10px] uppercase tracking-[.08em] text-[#647792]">{event.status}</span></div><p className="leading-5 text-[#91a2bd]">{event.detail}</p></div>)}</div></div>}
+          </div>;
+        }) : <div className="rounded-2xl border border-dashed border-white/[.08] p-5 text-sm text-[#71839e]">Aucune transaction Kernel pour ce dossier. Le prochain cycle ORION apparaîtra ici automatiquement.</div>}
+      </div>
+    </article>
+
     <div className="grid gap-5 xl:grid-cols-[1.25fr_.75fr]">
       <article className="rounded-[26px] border border-white/[.08] bg-[#0d192b]/88 p-5 md:p-6">
         <div className="flex items-center justify-between"><div><div className="text-[10px] font-black uppercase tracking-[.16em] text-[#9d83ff]">Task Engine</div><h2 className="mt-2 text-2xl font-semibold">Actions runtime</h2></div><span className="rounded-full border border-white/[.07] bg-white/[.03] px-3 py-1 text-xs text-[#8294af]">{actions.length} tâche(s)</span></div>
@@ -130,6 +164,12 @@ export function ExecutiveRuntimePanel({ mode }: { mode: "act" | "explore" }) {
       </aside>
     </div>
   </section>;
+}
+
+function KernelStatus({ status }: { status: "running" | "completed" | "blocked" | "failed" }) {
+  const label = { running: "En cours", completed: "Terminé", blocked: "Bloqué", failed: "Échec" }[status];
+  const cls = status === "completed" ? "bg-[#42d59d]/10 text-[#9af0cf]" : status === "blocked" ? "bg-[#ffbc57]/10 text-[#ffd895]" : status === "failed" ? "bg-[#ff6b7a]/10 text-[#ffb4bd]" : "bg-[#7c5cff]/12 text-[#c5bbff]";
+  return <span className={`rounded-full px-2.5 py-1 text-[10px] font-bold uppercase tracking-[.08em] ${cls}`}>{label}</span>;
 }
 
 function Status({ status }: { status: "todo" | "doing" | "done" | "blocked" }) {
