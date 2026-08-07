@@ -2,7 +2,7 @@
 
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
-import { createActionSlice, createCaseSlice, createCognitiveProfileSlice, createConversationSlice, createDecisionSlice, createEventSlice, createKnowledgeGraphSlice, createKnowledgeSlice, createLearningSlice, createMemorySlice, createReflectionSlice } from "./slices";
+import { createActionSlice, createCaseSlice, createCognitiveProfileSlice, createConversationSlice, createDecisionSlice, createDossierObjectSlice, createEventSlice, createKnowledgeGraphSlice, createKnowledgeSlice, createLearningSlice, createMemorySlice, createReflectionSlice } from "./slices";
 import { createExecutiveCommands } from "./commands";
 import { createRuntimeSlice } from "./runtime-slice";
 import { defaultExecutiveAgents } from "../lib/agent-runtime";
@@ -22,7 +22,7 @@ import {
   initialReflections,
   initialRuntimeActions
 } from "./seed";
-import type { ActionRecord, AgentContract, AgentRunRecord, CognitiveCase, CognitiveProfileRecord, DecisionRecord, KnowledgeEntity, KnowledgeRecord, KnowledgeRelation, LearningEventRecord, MemoryRecord, ReflectionRecord } from "../domain/canonical";
+import type { ActionRecord, AgentContract, AgentRunRecord, CognitiveCase, CognitiveProfileRecord, DecisionRecord, DossierObjectRecord, KnowledgeEntity, KnowledgeRecord, KnowledgeRelation, LearningEventRecord, MemoryRecord, ReflectionRecord } from "../domain/canonical";
 import type { ConversationMessage, ExecutiveState, ReasoningRevision } from "./types";
 
 export type { ConversationMessage, ExecutiveState, ReasoningRevision, ReasoningStepId } from "./types";
@@ -31,7 +31,7 @@ type PersistedDecision = {id:string;caseId?:string;challengeId?:string;recommend
 type PersistedAction = {id:string;caseId?:string;challengeId?:string;title:string;owner:string;progress:number;status:ActionRecord["status"];requiredCapability?:string;assignedAgentId?:string|null;blockedReason?:string;dueAt?:string|null;result?:string};
 type PersistedLegacyChallenge = {id:string;title:string;goal:string;hypothesis:string;impact:number;urgency:number;confidence:number;cognitiveCost:number;risk:number;context:string;state:CognitiveCase["state"]};
 type PersistedLegacyRevision = Omit<ReasoningRevision,"caseId"> & {caseId?:string;challengeId?:string};
-type PersistedExecutiveState = { cases?:CognitiveCase[]; challenges?:PersistedLegacyChallenge[]; activeCaseId?:string; activeChallengeId?:string; messages?:PersistedMessage[]; decisions?:PersistedDecision[]; actions?:PersistedAction[]; events?:ExecutiveState["events"]; agents?:AgentContract[]; agentRuns?:AgentRunRecord[]; learningEvents?:LearningEventRecord[]; reflections?:ReflectionRecord[]; cognitiveProfiles?:CognitiveProfileRecord[]; reasoningRevisions?:PersistedLegacyRevision[]; memories?:MemoryRecord[]; knowledgeRecords?:KnowledgeRecord[]; knowledgeEntities?:KnowledgeEntity[]; knowledgeRelations?:KnowledgeRelation[] };
+type PersistedExecutiveState = { cases?:CognitiveCase[]; challenges?:PersistedLegacyChallenge[]; activeCaseId?:string; activeChallengeId?:string; messages?:PersistedMessage[]; caseObjects?:DossierObjectRecord[]; decisions?:PersistedDecision[]; actions?:PersistedAction[]; events?:ExecutiveState["events"]; agents?:AgentContract[]; agentRuns?:AgentRunRecord[]; learningEvents?:LearningEventRecord[]; reflections?:ReflectionRecord[]; cognitiveProfiles?:CognitiveProfileRecord[]; reasoningRevisions?:PersistedLegacyRevision[]; memories?:MemoryRecord[]; knowledgeRecords?:KnowledgeRecord[]; knowledgeEntities?:KnowledgeEntity[]; knowledgeRelations?:KnowledgeRelation[] };
 
 function mergeSeedById<T extends { id: string }>(current:T[]|undefined, seed:T[]):T[]{
   const map = new Map<string,T>();
@@ -40,9 +40,19 @@ function mergeSeedById<T extends { id: string }>(current:T[]|undefined, seed:T[]
   return [...map.values()];
 }
 
+function deriveCaseObjects(decisions:DecisionRecord[], actions:ActionRecord[], memories:MemoryRecord[]):DossierObjectRecord[]{
+  const fromMemory = memories
+    .filter((item) => ["question","goal","hypothesis","risk","context"].includes(item.kind))
+    .map((item) => ({ id:`migration:memory:${item.id}`, caseId:item.caseId, type:item.kind as DossierObjectRecord["type"], title:item.content, confidence:item.confidence, status:"active" as const, source:"migration" as const, referenceId:item.id, createdAt:item.createdAt, updatedAt:item.createdAt }));
+  const fromDecisions = decisions.map((item) => ({ id:`migration:decision:${item.id}`, caseId:item.caseId, type:"decision" as const, title:item.outcome, confidence:item.confidence, status:"resolved" as const, source:"migration" as const, referenceId:item.id, createdAt:item.createdAt, updatedAt:item.createdAt }));
+  const now = new Date().toISOString();
+  const fromActions = actions.map((item) => ({ id:`migration:action:${item.id}`, caseId:item.caseId, type:"action" as const, title:item.title, confidence:80, status:item.status === "done" ? "resolved" as const : "active" as const, source:"migration" as const, referenceId:item.id, createdAt:now, updatedAt:now }));
+  return [...fromMemory, ...fromDecisions, ...fromActions];
+}
+
 function migratePersistedState(persistedState:unknown, version:number):ExecutiveState{
   const state=(persistedState??{}) as PersistedExecutiveState;
-  if(version>=15) return state as ExecutiveState;
+  if(version>=16) return state as ExecutiveState;
 
   let cases:CognitiveCase[];
   let messages:ConversationMessage[];
@@ -65,12 +75,17 @@ function migratePersistedState(persistedState:unknown, version:number):Executive
   }
 
   const migratedCases=mergeSeedById(cases, initialCases);
+  const migratedMessages=mergeSeedById(messages, initialMessages);
+  const migratedDecisions=mergeSeedById(decisions, initialDecisions);
+  const migratedActions=mergeSeedById(actions, initialRuntimeActions);
+  const migratedMemories=mergeSeedById(state.memories, initialMemories);
   return {
     cases:migratedCases,
     activeCaseId:state.activeCaseId??state.activeChallengeId??migratedCases[0]?.id??"executiveos",
-    messages:mergeSeedById(messages, initialMessages),
-    decisions:mergeSeedById(decisions, initialDecisions),
-    actions:mergeSeedById(actions, initialRuntimeActions),
+    messages:migratedMessages,
+    caseObjects:mergeSeedById(state.caseObjects, deriveCaseObjects(migratedDecisions, migratedActions, migratedMemories)),
+    decisions:migratedDecisions,
+    actions:migratedActions,
     events:mergeSeedById(state.events, initialEvents),
     agents:mergeSeedById(state.agents, defaultExecutiveAgents),
     agentRuns:mergeSeedById(state.agentRuns, initialAgentRuns),
@@ -78,7 +93,7 @@ function migratePersistedState(persistedState:unknown, version:number):Executive
     reflections:mergeSeedById(state.reflections, initialReflections),
     cognitiveProfiles:mergeSeedById(state.cognitiveProfiles, initialCognitiveProfiles),
     reasoningRevisions:mergeSeedById(revisions, initialReasoningRevisions),
-    memories:mergeSeedById(state.memories, initialMemories),
+    memories:migratedMemories,
     knowledgeRecords:mergeSeedById(state.knowledgeRecords, initialKnowledgeRecords),
     knowledgeEntities:mergeSeedById(state.knowledgeEntities, initialKnowledgeEntities),
     knowledgeRelations:mergeSeedById(state.knowledgeRelations, initialKnowledgeRelations)
@@ -90,6 +105,7 @@ export const useExecutiveStore = create<ExecutiveState>()(
     (...args) => ({
       ...createCaseSlice(...args),
       ...createConversationSlice(...args),
+      ...createDossierObjectSlice(...args),
       ...createDecisionSlice(...args),
       ...createActionSlice(...args),
       ...createEventSlice(...args),
@@ -104,7 +120,7 @@ export const useExecutiveStore = create<ExecutiveState>()(
     }),
     {
       name: "executiveos-v2",
-      version: 15,
+      version: 16,
       migrate: migratePersistedState
     }
   )

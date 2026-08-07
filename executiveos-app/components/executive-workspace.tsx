@@ -10,6 +10,7 @@ import { buildDecisionFrame, type DecisionFrame } from "@/lib/decision-runtime";
 import { caseScore } from "@/lib/scheduler";
 import { runUnifiedRuntime } from "@/lib/unified-runtime";
 import { useExecutiveStore } from "@/store/executive-store";
+import type { DossierObjectRecord } from "@/domain/canonical";
 
 export function ExecutiveWorkspace() {
   const store = useExecutiveStore();
@@ -29,6 +30,7 @@ export function ExecutiveWorkspace() {
   const messages = store.messages.filter((message) => message.caseId === active.id);
   const decisions = store.decisions.filter((decision) => decision.caseId === active.id);
   const actions = store.actions.filter((action) => action.caseId === active.id);
+  const caseObjects = store.caseObjects.filter((item) => item.caseId === active.id);
   const recall = buildCognitiveRecall({
     cognitiveCase: active,
     decisions: store.decisions,
@@ -110,6 +112,22 @@ export function ExecutiveWorkspace() {
 
       <article className="executive-card p-5">
         <div className="flex flex-wrap items-start justify-between gap-3">
+          <div><div className="text-xs font-black tracking-[.14em] text-[#8d7ce4]">OBJETS DU DOSSIER</div><p className="mt-1 text-xs text-[#71839e]">Ce que la conversation a réellement créé et structuré.</p></div>
+          <span className="rounded-full border border-white/10 bg-white/[.025] px-3 py-1 text-xs text-[#a9b7ca]">{caseObjects.length} objet(s)</span>
+        </div>
+        {caseObjects.length ? (
+          <div className="mt-4 grid gap-4 lg:grid-cols-2 xl:grid-cols-3">
+            {(["question", "hypothesis", "risk", "decision", "action", "goal", "context"] as const).map((type) => {
+              const records = caseObjects.filter((item) => item.type === type).slice(0, 5);
+              if (!records.length) return null;
+              return <DossierObjectGroup key={type} type={type} records={records} />;
+            })}
+          </div>
+        ) : <p className="mt-4 rounded-2xl border border-white/10 bg-white/[.025] p-4 text-sm text-[#91a2bd]">Les questions, hypothèses, risques, décisions et actions apparaîtront ici dès le prochain échange avec ORION.</p>}
+      </article>
+
+      <article className="executive-card p-5">
+        <div className="flex flex-wrap items-start justify-between gap-3">
           <div><div className="text-xs font-black tracking-[.14em] text-[#8d7ce4]">LÀ OÙ TU EN ÉTAIS</div><p className="mt-1 text-xs text-[#71839e]">Le recall est reconstruit depuis l’historique du dossier.</p></div>
           <span className="rounded-full border border-white/10 bg-white/[.025] px-3 py-1 text-xs text-[#a9b7ca]">{recall.openActions.length} action(s) ouverte(s)</span>
         </div>
@@ -141,6 +159,14 @@ export function ExecutiveWorkspace() {
       {decisionFrame && <DecisionWorkbench frame={decisionFrame} onContextSubmit={(summary) => processMessage(summary)} onCreateAction={createAction}/>} 
     </div>
   );
+}
+
+function DossierObjectGroup({ type, records }: { type: DossierObjectRecord["type"]; records: DossierObjectRecord[] }) {
+  const labels: Record<DossierObjectRecord["type"], string> = { question: "Questions", goal: "Objectifs", hypothesis: "Hypothèses", context: "Contexte", risk: "Risques", decision: "Décisions", action: "Actions" };
+  return <div className="rounded-2xl border border-white/10 bg-white/[.025] p-4">
+    <div className="flex items-center justify-between"><strong className="text-sm">{labels[type]}</strong><span className="text-[10px] uppercase tracking-[.12em] text-[#8d7ce4]">{records.length}</span></div>
+    <div className="mt-3 space-y-2">{records.map((record) => <div key={record.id} className="rounded-xl border border-white/[.07] bg-[#0d1727] p-3"><div className="flex justify-between gap-3"><p className="text-sm leading-5 text-[#d6dfed]">{record.title}</p><span className="shrink-0 text-[10px] text-[#71839e]">{record.confidence}%</span></div><span className="mt-1 block text-[10px] uppercase tracking-[.1em] text-[#667995]">{record.status}</span></div>)}</div>
+  </div>;
 }
 
 function Metric({ label, value }: { label: string; value: string | number }) {

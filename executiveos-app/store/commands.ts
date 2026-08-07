@@ -5,6 +5,7 @@ import { buildCognitiveProfile } from "../lib/cognitive-dna.ts";
 import { projectKnowledgeGraph } from "../lib/knowledge-graph-runtime.ts";
 import { learningEventsFromDiff } from "../lib/learning-events.ts";
 import { buildReflection } from "../lib/reflection-engine.ts";
+import type { DossierObjectRecord } from "../domain/canonical.ts";
 import type { ExecutiveCommands, ExecutiveState } from "./types.ts";
 
 export const createExecutiveCommands: StateCreator<ExecutiveState, [], [], ExecutiveCommands> = (set, get) => ({
@@ -27,9 +28,16 @@ export const createExecutiveCommands: StateCreator<ExecutiveState, [], [], Execu
       const graph = projectedCase ? projectKnowledgeGraph({ cognitiveCase: projectedCase, knowledgeRecords, memories, learningEvents, reflections: reflection ? [reflection] : [], decision, actions, createdAt: timestamp }) : { entities: [], relations: [] };
       const profileEntity = { id: `cognitive-profile:${caseId}`, organizationId: "executiveos", caseId, type: "cognitive_profile" as const, title: `Cognitive DNA · calibration ${profile.calibration}% · learning ${profile.learningQuality}%`, status: profile.biasSignals.length ? "watch" : "stable", createdAt: profile.createdAt, updatedAt: profile.updatedAt, source: profile.source };
       const profileRelation = { id: `relation:cognitive-profile:${caseId}`, organizationId: "executiveos", caseId, sourceId: profileEntity.id, sourceType: "cognitive_profile" as const, targetId: `case:${caseId}`, targetType: "decision_case" as const, relationType: "MEASURES" as const, confidence: profile.calibration, provenance: profile.source, validFrom: profile.updatedAt };
+      const conversationObjects: DossierObjectRecord[] = result.conversation.extractions
+        .filter((item) => item.kind !== "decision" && item.kind !== "action")
+        .map((item) => ({ id: crypto.randomUUID(), caseId, type: item.kind, title: item.text, confidence: item.confidence, status: item.kind === "question" ? "open" : "active", source: "conversation", createdAt: timestamp, updatedAt: timestamp }));
+      const decisionObject: DossierObjectRecord[] = decision ? [{ id: crypto.randomUUID(), caseId, type: "decision", title: decision.outcome, confidence: decision.confidence, status: "resolved", source: "decision", referenceId: decision.id, createdAt: timestamp, updatedAt: timestamp }] : [];
+      const actionObjects: DossierObjectRecord[] = actions.map((action) => ({ id: crypto.randomUUID(), caseId, type: "action", title: action.title, confidence: 85, status: "active", source: "action", referenceId: action.id, createdAt: timestamp, updatedAt: timestamp }));
+      const caseObjects = [...conversationObjects, ...decisionObject, ...actionObjects];
       const events = [
         { id: crypto.randomUUID(), type: "RuntimeCycleCompleted", detail: `${result.trace.filter((item) => item.status === "completed").length} étapes · ${memories.filter((item) => item.durable).length} mémoires · ${knowledgeRecords.length} connaissances`, createdAt: timestamp },
-        { id: crypto.randomUUID(), type: "AgentCouncilCompleted", detail: `ORION · ${result.agents.selectedAgentIds.length} spécialiste(s) · confiance ${result.agents.confidence}%`, createdAt: timestamp },
+        { id: crypto.randomUUID(), type: "AgentCouncilCompleted", detail: `ORION · ${result.agents.selectedAgentIds.length} perspective(s) interne(s) · confiance ${result.agents.confidence}%`, createdAt: timestamp },
+        ...(caseObjects.length ? [{ id: crypto.randomUUID(), type: "DossierObjectsCreated", detail: `${caseObjects.length} objet(s) métier créés depuis la conversation`, createdAt: timestamp }] : []),
         ...(learningEvents.length ? [{ id: crypto.randomUUID(), type: "LearningPersisted", detail: `${learningEvents.length} apprentissage(s) · impact ${cognitiveDiff?.significance ?? "none"}`, createdAt: timestamp }] : []),
         ...(reflection ? [{ id: crypto.randomUUID(), type: "ReflectionPersisted", detail: `${reflection.significance} · confiance ${reflection.confidence}%`, createdAt: timestamp }] : []),
         { id: crypto.randomUUID(), type: "CognitiveProfileUpdated", detail: `Calibration ${profile.calibration}% · stabilité ${profile.beliefStability}% · apprentissage ${profile.learningQuality}%`, createdAt: timestamp },
@@ -39,6 +47,7 @@ export const createExecutiveCommands: StateCreator<ExecutiveState, [], [], Execu
       return {
         cases: state.cases.map((cognitiveCase) => cognitiveCase.id === caseId ? { ...cognitiveCase, ...result.conversation.casePatch } : cognitiveCase),
         messages: [...state.messages, { id: crypto.randomUUID(), caseId, role: "user" as const, text: userText, createdAt: timestamp }, { id: crypto.randomUUID(), caseId, role: "assistant" as const, text: result.conversation.response, createdAt: timestamp }],
+        caseObjects: caseObjects.length ? [...caseObjects, ...state.caseObjects] : state.caseObjects,
         decisions: decision ? [decision, ...state.decisions] : state.decisions,
         actions: actions.length ? [...actions, ...state.actions] : state.actions,
         agentRuns: [agentRun, ...state.agentRuns],
@@ -55,8 +64,8 @@ export const createExecutiveCommands: StateCreator<ExecutiveState, [], [], Execu
     });
   },
   recordConversationTurn: ({ caseId, userText, assistantText, intent, extractionCount, casePatch, createdAt }) => { const timestamp = createdAt ?? new Date().toISOString(); set((state) => ({ cases: state.cases.map((cognitiveCase) => cognitiveCase.id === caseId ? { ...cognitiveCase, ...casePatch } : cognitiveCase), messages: [...state.messages, { id: crypto.randomUUID(), caseId, role: "user", text: userText, createdAt: timestamp }, { id: crypto.randomUUID(), caseId, role: "assistant", text: assistantText, createdAt: timestamp }], events: [{ id: crypto.randomUUID(), type: "ConversationParsed", detail: `${intent} · ${extractionCount} objets détectés`, createdAt: timestamp }, ...state.events] })); },
-  captureDecision: ({ caseId, text, recommendation, confidence, rationale, createdAt }) => { const timestamp=createdAt??new Date().toISOString(); set((state)=>({decisions:[{id:crypto.randomUUID(),caseId,recommendation,outcome:text,rationale:rationale??"Décision extraite de la conversation.",confidence,createdAt:timestamp},...state.decisions],events:[{id:crypto.randomUUID(),type:"DecisionCaptured",detail:text,createdAt:timestamp},...state.events]})); },
-  createAction: ({ caseId, title, owner, requiredCapability }) => { const timestamp=new Date().toISOString(); set((state)=>({actions:[{id:crypto.randomUUID(),caseId,title,owner:owner??"À assigner",progress:0,status:"todo",requiredCapability},...state.actions],events:[{id:crypto.randomUUID(),type:"ActionCreated",detail:title,createdAt:timestamp},...state.events]})); },
+  captureDecision: ({ caseId, text, recommendation, confidence, rationale, createdAt }) => { const timestamp=createdAt??new Date().toISOString(); const id=crypto.randomUUID(); set((state)=>({decisions:[{id,caseId,recommendation,outcome:text,rationale:rationale??"Décision extraite de la conversation.",confidence,createdAt:timestamp},...state.decisions],caseObjects:[{id:crypto.randomUUID(),caseId,type:"decision",title:text,confidence,status:"resolved",source:"decision",referenceId:id,createdAt:timestamp,updatedAt:timestamp},...state.caseObjects],events:[{id:crypto.randomUUID(),type:"DecisionCaptured",detail:text,createdAt:timestamp},...state.events]})); },
+  createAction: ({ caseId, title, owner, requiredCapability }) => { const timestamp=new Date().toISOString(); const id=crypto.randomUUID(); set((state)=>({actions:[{id,caseId,title,owner:owner??"À assigner",progress:0,status:"todo",requiredCapability},...state.actions],caseObjects:[{id:crypto.randomUUID(),caseId,type:"action",title,confidence:80,status:"active",source:"action",referenceId:id,createdAt:timestamp,updatedAt:timestamp},...state.caseObjects],events:[{id:crypto.randomUUID(),type:"ActionCreated",detail:title,createdAt:timestamp},...state.events]})); },
   applyCriticalSignal: () => {
     const timestamp = new Date().toISOString();
     const activeCaseId = get().activeCaseId;

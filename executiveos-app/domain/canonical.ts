@@ -7,6 +7,8 @@ export type ContextRequirement = "required" | "important" | "optional";
 export type ContextStatus = "missing" | "draft" | "verified" | "stale" | "contested";
 export type MemoryKind = "goal" | "hypothesis" | "risk" | "decision" | "action" | "question" | "context";
 export type LearningEventType = "BeliefAdded" | "BeliefReinforced" | "BeliefInvalidated" | "ConfidenceChanged" | "DecisionReversed" | "RiskDetected" | "RiskResolved" | "ContradictionDetected" | "KnowledgeLearned";
+export type DossierObjectType = "question" | "goal" | "hypothesis" | "context" | "risk" | "decision" | "action";
+export type DossierObjectStatus = "open" | "active" | "resolved" | "superseded";
 
 export interface CognitiveCase { id:string; title:string; objective:string; workingHypothesis:string; context:string; state:CognitiveCaseState; signals:{ impact:number; urgency:number; confidence:number; cognitiveCost:number; risk:number } }
 export interface DecisionRecord { id:string; caseId:string; recommendation:string; outcome:string; rationale:string; confidence:number; createdAt:string }
@@ -15,6 +17,7 @@ export interface AgentContributionRecord { agentId:string; agentName:string; foc
 export interface AgentRunRecord { id:string; caseId:string; orchestratorId:string; selectedAgentIds:string[]; contributions:AgentContributionRecord[]; synthesis:string; confidence:number; createdAt:string }
 export interface ActionRecord { id:string; caseId:string; title:string; owner:string; progress:number; status:ActionStatus; requiredCapability?:string; assignedAgentId?:string|null; blockedReason?:string; dueAt?:string|null; result?:string }
 export interface CognitiveEventRecord { id:string; type:string; detail:string; createdAt:string }
+export interface DossierObjectRecord { id:string; caseId:string; type:DossierObjectType; title:string; confidence:number; status:DossierObjectStatus; source:"conversation"|"decision"|"action"|"migration"; referenceId?:string; createdAt:string; updatedAt:string }
 export interface LearningEventRecord { id:string; caseId:string; type:LearningEventType; title:string; detail:string; significance:"none"|"low"|"medium"|"high"; confidence?:number; source:"cognitive_diff"; createdAt:string }
 export interface ReflectionRecord { id:string; caseId:string; summary:string; whatChanged:string[]; whyItChanged:string[]; learned:string[]; uncertainties:string[]; decisionsToReconsider:string[]; confidence:number; significance:"none"|"low"|"medium"|"high"; source:"reflection_engine"; createdAt:string }
 export interface CognitiveProfileRecord { id:string; caseId:string; calibration:number; beliefStability:number; revisionRate:number; riskDiscipline:number; learningQuality:number; dominantPatterns:string[]; biasSignals:string[]; sampleSize:number; source:"cognitive_dna"; createdAt:string; updatedAt:string }
