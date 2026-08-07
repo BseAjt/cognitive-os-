@@ -1,14 +1,14 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import type { DecisionFrame } from "@/lib/decision-room";
-import type { ActionItem, Challenge, Decision } from "@/types/domain";
+import type { DecisionFrame } from "@/lib/decision-runtime";
+import type { ActionRecord, CognitiveCase, DecisionRecord } from "@/domain/canonical";
 
 type ImpactAnalysisProps = {
-  challenge: Challenge;
+  cognitiveCase: CognitiveCase;
   frame: DecisionFrame;
-  decisions: Decision[];
-  actions: ActionItem[];
+  decisions: DecisionRecord[];
+  actions: ActionRecord[];
 };
 
 type ImpactDimension = {
@@ -19,33 +19,33 @@ type ImpactDimension = {
   explanation: string;
 };
 
-export function ImpactAnalysisV3({ challenge, frame, decisions, actions }: ImpactAnalysisProps) {
+export function ImpactAnalysisV3({ cognitiveCase, frame, decisions, actions }: ImpactAnalysisProps) {
   const optionScores = useMemo(() => frame.options.map((option, index) => {
     const base = option.score ?? Math.max(45, 72 - index * 7);
-    const riskPenalty = Math.round(challenge.risk * (index === 0 ? 2.6 : index === 1 ? 1.4 : .8));
-    const confidenceBonus = Math.round((frame.confidence ?? challenge.confidence) * (index === 1 ? .16 : .09));
+    const riskPenalty = Math.round(cognitiveCase.signals.risk * (index === 0 ? 2.6 : index === 1 ? 1.4 : .8));
+    const confidenceBonus = Math.round((frame.confidence ?? cognitiveCase.signals.confidence) * (index === 1 ? .16 : .09));
     const reversibilityBonus = index === 1 ? 12 : index === 2 ? 7 : 2;
-    const impactBonus = Math.round(challenge.impact * (index === 0 ? 1.2 : index === 1 ? 1 : .5));
+    const impactBonus = Math.round(cognitiveCase.signals.impact * (index === 0 ? 1.2 : index === 1 ? 1 : .5));
     const adjusted = Math.max(0, Math.min(100, base - riskPenalty + confidenceBonus + reversibilityBonus + impactBonus));
     return { ...option, adjusted, index };
-  }), [challenge, frame]);
+  }), [cognitiveCase, frame]);
 
   const recommendedIndex = optionScores.reduce((best, item, index, all) => item.adjusted > all[best].adjusted ? index : best, 0);
   const [selectedIndex, setSelectedIndex] = useState(recommendedIndex);
   const selected = optionScores[selectedIndex] ?? optionScores[0];
 
   const dimensions = useMemo<ImpactDimension[]>(() => {
-    const selectedRisk = Math.max(1, Math.min(10, challenge.risk + (selectedIndex === 0 ? 1 : selectedIndex === 1 ? -1 : -2)));
-    const executionLoad = Math.max(1, Math.min(10, challenge.urgency + (selectedIndex === 0 ? 1 : selectedIndex === 1 ? 0 : -2)));
+    const selectedRisk = Math.max(1, Math.min(10, cognitiveCase.signals.risk + (selectedIndex === 0 ? 1 : selectedIndex === 1 ? -1 : -2)));
+    const executionLoad = Math.max(1, Math.min(10, cognitiveCase.signals.urgency + (selectedIndex === 0 ? 1 : selectedIndex === 1 ? 0 : -2)));
     const reversibility = selectedIndex === 1 ? 9 : selectedIndex === 2 ? 7 : 4;
-    const goalAlignment = Math.max(1, Math.min(10, Math.round(challenge.impact * (selectedIndex === 2 ? .65 : selectedIndex === 1 ? .95 : 1))));
+    const goalAlignment = Math.max(1, Math.min(10, Math.round(cognitiveCase.signals.impact * (selectedIndex === 2 ? .65 : selectedIndex === 1 ? .95 : 1))));
     return [
-      { id: "goal", label: "Objectif", score: goalAlignment, direction: goalAlignment >= 8 ? "positive" : "mixed", explanation: selectedIndex === 2 ? "Protège les ressources mais ralentit l’objectif principal." : "Contribue directement à l’objectif du challenge." },
+      { id: "goal", label: "Objectif", score: goalAlignment, direction: goalAlignment >= 8 ? "positive" : "mixed", explanation: selectedIndex === 2 ? "Protège les ressources mais ralentit l’objectif principal." : "Contribue directement à l’objectif du dossier." },
       { id: "risk", label: "Risque", score: selectedRisk, direction: selectedRisk >= 7 ? "negative" : selectedRisk <= 4 ? "positive" : "mixed", explanation: selectedRisk >= 7 ? "Expose fortement le système si l’hypothèse est fausse." : "Le niveau de risque reste contrôlable avec des jalons de revue." },
       { id: "execution", label: "Exécution", score: executionLoad, direction: executionLoad >= 8 ? "negative" : "mixed", explanation: executionLoad >= 8 ? "Charge d’exécution élevée et dépendances nombreuses." : "Charge compatible avec une exécution progressive." },
       { id: "reversibility", label: "Réversibilité", score: reversibility, direction: reversibility >= 8 ? "positive" : reversibility <= 4 ? "negative" : "mixed", explanation: reversibility >= 8 ? "Permet d’apprendre avant un engagement difficile à inverser." : "Crée rapidement des coûts de sortie ou de retour arrière." }
     ];
-  }, [challenge, selectedIndex]);
+  }, [cognitiveCase, selectedIndex]);
 
   const overall = Math.round((selected.adjusted + dimensions[0].score * 10 + (10 - dimensions[1].score) * 10 + dimensions[3].score * 10) / 4);
   const dependencies = [
