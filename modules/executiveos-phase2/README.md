@@ -1,51 +1,32 @@
-# ExecutiveOS — Phase 2
+# ExecutiveOS Phase 2 — archived reference
 
-Deuxième vertical slice exécutable d’ExecutiveOS.
+> **Status: archived specification.** This directory is no longer a production runtime and must not be deployed independently.
 
-## Modules
+The original Phase 2 vertical slice proved the Task Engine, capability-based agent assignment, versioned agent contracts, cognitive graph projection, local JSON persistence and a lightweight REST server.
 
-- Executive Command Center
-- Task Engine avec machine d’états
-- affectation automatique selon les capacités des agents
-- contrats d’agents validables et versionnés
-- Cognitive Graph objectifs/décisions/mémoires/tâches/agents
-- API REST
-- stockage JSON local immédiat
-- schéma PostgreSQL et adaptateur optionnel
-- tests automatisés
+As of **ExecutiveOS RC1**, the product capabilities that remain canonical have been ported into `executiveos-app`:
 
-## Lancer
+- Task/action state machine → `executiveos-app/lib/executive-runtime.ts`
+- capability-based assignment → `executiveos-app/lib/executive-runtime.ts`
+- versioned agent contracts → `executiveos-app/types/domain.ts`
+- live cognitive graph projection → `executiveos-app/lib/executive-runtime.ts`
+- persisted client runtime → `executiveos-app/store/executive-store.ts`
+- production database foundation → `executiveos-app/supabase/schema.sql`
+- user surfaces → **Agir** and **Explorer** in the Next.js application
 
-```bash
-npm start
+The standalone HTTP server, JSON store and generic PostgreSQL adapter in this folder are retained only as historical implementation notes. They are **not** sources of truth and should not receive new product features.
+
+## Canonical runtime
+
+```text
+executiveos-app/
+  app/          Next.js application
+  components/   product surfaces
+  lib/          cognitive and executive engines
+  store/        persisted workspace state
+  types/        canonical domain contracts
+  supabase/     production persistence schema
+  tests/        runtime and product regression coverage
 ```
 
-Ouvrir `http://localhost:8080`.
-
-## Tester
-
-```bash
-npm test
-npm run check
-```
-
-## PostgreSQL
-
-Le mode local ne demande aucune dépendance. Pour préparer PostgreSQL :
-
-```bash
-npm install
-psql "$DATABASE_URL" -f database/schema.sql
-```
-
-Le fichier `src/postgres-store.js` fournit l’adaptateur PostgreSQL. Son activation complète par configuration est prévue dans le prochain incrément afin de conserver un démarrage zéro dépendance dans cette phase.
-
-## API ajoutée
-
-- `GET /api/graph`
-- `POST /api/tasks`
-- `POST /api/tasks/:id/assign`
-- `POST /api/tasks/:id/run`
-- `POST /api/tasks/:id/transition`
-- `POST /api/agents`
-- `POST /api/agents/validate`
+All new ExecutiveOS development must target `executiveos-app` and pass the single RC1 validation workflow in `.github/workflows/runtime-tests.yml`.
