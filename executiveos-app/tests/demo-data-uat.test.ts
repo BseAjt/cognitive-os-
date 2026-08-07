@@ -86,10 +86,12 @@ test("settings tab exposes real diagnostic actions", () => {
   assert.ok(home.includes("store.applyCriticalSignal()"));
 });
 
-test("act tab exposes assign, transition and execute controls", () => {
+test("act tab exposes assign, transition and observable execute controls", () => {
   assert.ok(runtime.includes("assignRuntimeAction(action.id)"));
-  assert.ok(runtime.includes('transitionRuntimeAction(action.id, "doing")'));
-  assert.ok(runtime.includes("executeRuntimeAction(action.id)"));
+  assert.ok(runtime.includes('transitionRuntimeAction(action.id, \"doing\")'));
+  assert.ok(runtime.includes("handleExecute(action.id)"));
+  assert.ok(runtime.includes("useExecutiveStore.getState()"));
+  assert.ok(runtime.includes("executionFeedback"));
 });
 
 test("explore tab derives its graph from live store state", () => {
