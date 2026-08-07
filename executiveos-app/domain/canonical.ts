@@ -1,7 +1,7 @@
 export type CognitiveCaseState = "explore" | "decide" | "execute" | "learn";
 export type ActionStatus = "todo" | "doing" | "done" | "blocked";
 export type ContextDomain = "strategy" | "finance" | "people" | "operations" | "market" | "legal" | "history" | "governance";
-export type ContextKind = "fact" | "hypothesis" | "constraint" | "preference" | "uncertainty";
+export type ContextKind = "fact" | "hypothesis" | "constraint" | "preference" | "uncertainty" | "goal";
 export type ContextRequirement = "required" | "important" | "optional";
 export type ContextStatus = "missing" | "draft" | "verified" | "stale" | "contested";
 
