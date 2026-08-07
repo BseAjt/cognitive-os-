@@ -3,7 +3,7 @@
 import { useMemo, useState } from "react";
 import { runConversationRuntime, type CognitiveExtraction } from "@/lib/conversation-runtime";
 import type { DecisionFrame } from "@/lib/decision-runtime";
-import { challengeScore } from "@/lib/scheduler";
+import { caseScore } from "@/lib/scheduler";
 import { useExecutiveStore } from "@/store/executive-store";
 
 export function useExecutiveWorkspace() {
@@ -14,13 +14,13 @@ export function useExecutiveWorkspace() {
   const [decisionFrame, setDecisionFrame] = useState<DecisionFrame | null>(null);
   const [showGraph, setShowGraph] = useState(true);
 
-  const rankedChallenges = useMemo(
-    () => [...store.challenges].sort((a, b) => challengeScore(b) - challengeScore(a)),
-    [store.challenges]
+  const rankedCases = useMemo(
+    () => [...store.cases].sort((a, b) => caseScore(b) - caseScore(a)),
+    [store.cases]
   );
 
-  const activeChallenge = store.challenges.find((item) => item.id === store.activeChallengeId) ?? rankedChallenges[0];
-  const activeCaseId = activeChallenge.id;
+  const activeCase = store.cases.find((item) => item.id === store.activeCaseId) ?? rankedCases[0];
+  const activeCaseId = activeCase.id;
   const messages = useMemo(
     () => store.messages.filter((message) => message.caseId === activeCaseId),
     [store.messages, activeCaseId]
@@ -40,8 +40,8 @@ export function useExecutiveWorkspace() {
     setDecisionFrame(null);
   }
 
-  function selectChallenge(caseId: string) {
-    store.setActiveChallenge(caseId);
+  function selectCase(caseId: string) {
+    store.setActiveCase(caseId);
     resetTransientReasoning();
   }
 
@@ -53,7 +53,7 @@ export function useExecutiveWorkspace() {
     const clean = message.trim();
     if (!clean) return;
 
-    const result = runConversationRuntime(clean, activeChallenge);
+    const result = runConversationRuntime(clean, activeCase);
     const createdAt = new Date().toISOString();
 
     store.recordConversationTurn({
@@ -62,7 +62,7 @@ export function useExecutiveWorkspace() {
       assistantText: result.response,
       intent: result.intent,
       extractionCount: result.extractions.length,
-      challengePatch: result.challengePatch,
+      casePatch: result.casePatch,
       createdAt
     });
 
@@ -91,8 +91,8 @@ export function useExecutiveWorkspace() {
     setInput,
     showGraph,
     setShowGraph,
-    rankedChallenges,
-    activeChallenge,
+    rankedCases,
+    activeCase,
     activeCaseId,
     messages,
     decisions,
@@ -102,7 +102,7 @@ export function useExecutiveWorkspace() {
     decisionFrame,
     processMessage,
     createAction,
-    selectChallenge,
+    selectCase,
     runCriticalSimulation: store.applyCriticalSignal
   };
 }
