@@ -64,6 +64,8 @@ const runtime = readFileSync(resolve(root, "components/executive-runtime-panel.t
 const workspace = readFileSync(resolve(root, "components/executive-workspace.tsx"), "utf8");
 const slices = readFileSync(resolve(root, "store/slices.ts"), "utf8");
 const commands = readFileSync(resolve(root, "store/commands.ts"), "utf8");
+const types = readFileSync(resolve(root, "store/types.ts"), "utf8");
+const store = readFileSync(resolve(root, "store/executive-store.ts"), "utf8");
 
 for (const label of ["Mes dossiers", "Paramètres"]) {
   test(`primary navigation exposes ${label}`, () => assert.ok(home.includes(label)));
@@ -126,6 +128,22 @@ test("B4.1 conversation and Decision Canvas are visible in the same workspace", 
   assert.ok(!workspace.includes('setMode("conversation")'));
   assert.ok(!workspace.includes('mode === "canvas"'));
   assert.ok(!workspace.includes('mode === "conversation"'));
+});
+
+test("B4.3 persists conversation-derived objects as first-class dossier records", () => {
+  assert.ok(types.includes("caseObjects: DossierObjectRecord[]"));
+  assert.ok(slices.includes("createDossierObjectSlice"));
+  assert.ok(commands.includes("const conversationObjects: DossierObjectRecord[]"));
+  assert.ok(commands.includes("const decisionObject: DossierObjectRecord[]"));
+  assert.ok(commands.includes("const actionObjects: DossierObjectRecord[]"));
+  assert.ok(commands.includes("DossierObjectsCreated"));
+  assert.ok(store.includes("version: 16"));
+});
+
+test("B4.3 exposes dossier objects in the same ORION workspace", () => {
+  assert.ok(workspace.includes('store.caseObjects.filter((item) => item.caseId === active.id)'));
+  assert.ok(workspace.includes("OBJETS DU DOSSIER"));
+  assert.ok(workspace.includes("DossierObjectGroup"));
 });
 
 test("decision workspace remains connected to unified runtime", () => {
