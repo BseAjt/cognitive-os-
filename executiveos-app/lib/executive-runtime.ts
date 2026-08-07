@@ -1,4 +1,4 @@
-import type { ActionItem, AgentContract, Challenge, CognitiveEvent, Decision } from "@/types/domain";
+import type { ActionItem, AgentContract, Challenge, CognitiveEvent, Decision } from "../types/domain.ts";
 
 const transitions: Record<ActionItem["status"], ActionItem["status"][]> = {
   todo: ["doing", "blocked", "done"],
