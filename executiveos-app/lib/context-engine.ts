@@ -4,10 +4,8 @@ import type {
   ContextRecord,
   ContextRequirement,
   ContextStatus
-} from "@/domain/canonical";
+} from "../domain/canonical.ts";
 
-/** @deprecated Prefer ContextRecord from @/domain/canonical. */
-export type ContextItem = ContextRecord;
 export type { ContextDomain, ContextKind, ContextRequirement, ContextStatus };
 
 export interface ContextQuestion {
@@ -38,9 +36,6 @@ export interface ContextAssessment {
   contested: ContextRecord[];
   nextQuestion?: ContextQuestion;
 }
-
-/** @deprecated Prefer ContextAssessment. Kept temporarily for runtime/UI compatibility. */
-export type ContextReadiness = ContextAssessment;
 
 const domainLabels: Record<ContextDomain, string> = {
   strategy: "Stratégie",
