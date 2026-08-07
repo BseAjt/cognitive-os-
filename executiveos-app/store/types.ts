@@ -1,10 +1,23 @@
-import type { ActionRecord, CognitiveCase, CognitiveEventRecord, DecisionRecord } from "../domain/canonical.ts";
+import type { ActionRecord, AgentContract, CognitiveCase, CognitiveEventRecord, DecisionRecord } from "../domain/canonical.ts";
 
 export interface ConversationMessage {
   id: string;
   caseId: string;
   role: "user" | "assistant";
   text: string;
+  createdAt: string;
+}
+
+export type ReasoningStepId = "question" | "hypothesis" | "evidence" | "options" | "objections" | "decision" | "consequences";
+
+export interface ReasoningRevision {
+  id: string;
+  caseId: string;
+  stepId: ReasoningStepId;
+  version: number;
+  content: string;
+  confidence?: number;
+  risk?: number;
   createdAt: string;
 }
 
@@ -37,6 +50,16 @@ export interface EventSlice {
   prependEvent: (event: CognitiveEventRecord) => void;
 }
 
+export interface RuntimeSlice {
+  agents: AgentContract[];
+  reasoningRevisions: ReasoningRevision[];
+  addReasoningRevision: (revision: Omit<ReasoningRevision, "id" | "version" | "createdAt">) => void;
+  assignRuntimeAction: (actionId: string) => void;
+  transitionRuntimeAction: (actionId: string, status: ActionRecord["status"]) => void;
+  executeRuntimeAction: (actionId: string) => void;
+  resetRuntimeActions: () => void;
+}
+
 export interface ExecutiveCommands {
   recordConversationTurn: (input: {
     caseId: string;
@@ -59,8 +82,9 @@ export interface ExecutiveCommands {
     caseId: string;
     title: string;
     owner?: string;
+    requiredCapability?: string;
   }) => void;
   applyCriticalSignal: () => void;
 }
 
-export type ExecutiveState = CaseSlice & ConversationSlice & DecisionSlice & ActionSlice & EventSlice & ExecutiveCommands;
+export type ExecutiveState = CaseSlice & ConversationSlice & DecisionSlice & ActionSlice & EventSlice & RuntimeSlice & ExecutiveCommands;
