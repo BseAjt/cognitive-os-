@@ -29,5 +29,5 @@ for (const [name, file, expected] of [
   ["runtime cycle persists ORION run", commands, "agentRuns: [agentRun, ...state.agentRuns]"],
   ["actions accept preferred agent assignment", commands, "assignedAgentId: action.preferredAgentId"],
   ["agent council emits an event", commands, "AgentCouncilCompleted"],
-  ["persistence schema includes demo migration v14", store, "version: 14"]
+  ["persistence schema force-merges demo migration v15", store, "version: 15"]
 ] as const) test(name, () => assert.ok(file.includes(expected), `Missing agent runtime contract: ${expected}`));
