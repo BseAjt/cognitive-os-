@@ -2,6 +2,75 @@ import type { StateCreator } from "zustand";
 import type { ExecutiveCommands, ExecutiveState } from "./types.ts";
 
 export const createExecutiveCommands: StateCreator<ExecutiveState, [], [], ExecutiveCommands> = (set, get) => ({
+  applyRuntimeCycle: ({ caseId, userText, result, createdAt }) => {
+    const timestamp = createdAt ?? new Date().toISOString();
+    set((state) => {
+      const decision = result.decision
+        ? {
+            id: crypto.randomUUID(),
+            caseId,
+            recommendation: result.decision.recommendation,
+            outcome: result.decision.outcome,
+            rationale: result.decision.rationale,
+            confidence: result.decision.confidence,
+            createdAt: timestamp
+          }
+        : undefined;
+
+      const actions = result.actions.map((action) => ({
+        id: crypto.randomUUID(),
+        caseId,
+        title: action.title,
+        owner: "À assigner",
+        progress: 0,
+        status: "todo" as const,
+        requiredCapability: action.requiredCapability
+      }));
+
+      const reasoningRevisions = result.reasoning.map((revision) => {
+        const existingCount = state.reasoningRevisions.filter(
+          (item) => item.caseId === caseId && item.stepId === revision.stepId
+        ).length;
+        return {
+          id: crypto.randomUUID(),
+          caseId,
+          stepId: revision.stepId,
+          version: existingCount,
+          content: revision.content,
+          confidence: revision.confidence,
+          risk: revision.risk,
+          createdAt: timestamp
+        };
+      });
+
+      const events = [
+        {
+          id: crypto.randomUUID(),
+          type: "RuntimeCycleCompleted",
+          detail: `${result.trace.filter((item) => item.status === "completed").length} étapes · ${result.memory.filter((item) => item.durable).length} mémoires · ${result.knowledge.length} connaissances`,
+          createdAt: timestamp
+        },
+        ...(decision ? [{ id: crypto.randomUUID(), type: "DecisionCaptured", detail: decision.outcome, createdAt: timestamp }] : []),
+        ...actions.map((action) => ({ id: crypto.randomUUID(), type: "ActionCreated", detail: action.title, createdAt: timestamp }))
+      ];
+
+      return {
+        cases: state.cases.map((cognitiveCase) =>
+          cognitiveCase.id === caseId ? { ...cognitiveCase, ...result.conversation.casePatch } : cognitiveCase
+        ),
+        messages: [
+          ...state.messages,
+          { id: crypto.randomUUID(), caseId, role: "user" as const, text: userText, createdAt: timestamp },
+          { id: crypto.randomUUID(), caseId, role: "assistant" as const, text: result.conversation.response, createdAt: timestamp }
+        ],
+        decisions: decision ? [decision, ...state.decisions] : state.decisions,
+        actions: actions.length ? [...actions, ...state.actions] : state.actions,
+        reasoningRevisions: reasoningRevisions.length ? [...state.reasoningRevisions, ...reasoningRevisions] : state.reasoningRevisions,
+        events: [...events, ...state.events]
+      };
+    });
+  },
+
   recordConversationTurn: ({ caseId, userText, assistantText, intent, extractionCount, casePatch, createdAt }) => {
     const timestamp = createdAt ?? new Date().toISOString();
     set((state) => ({

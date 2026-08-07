@@ -14,16 +14,19 @@ const store = source("store/executive-store.ts");
 const storeTypes = source("store/types.ts");
 const commands = source("store/commands.ts");
 const runtimeSlice = source("store/runtime-slice.ts");
+const unifiedRuntime = source("lib/unified-runtime.ts");
 const graph = source("components/reasoning-graph.tsx");
 const layout = source("app/layout.tsx");
 
 const contracts: Array<[string, string, string]> = [
-  ["workspace invokes canonical conversation runtime", workspace, "runConversationRuntime(clean, active)"],
-  ["workspace records conversation atomically", workspace, "store.recordConversationTurn({"],
-  ["workspace captures canonical decisions", workspace, "store.captureDecision({"],
-  ["workspace creates canonical actions", workspace, "store.createAction({"],
+  ["workspace invokes unified runtime", workspace, "runUnifiedRuntime({ message: clean, cognitiveCase: active })"],
+  ["workspace applies runtime cycle atomically", workspace, "store.applyRuntimeCycle({"],
   ["workspace switches canonical cases", workspace, "store.setActiveCase(cognitiveCase.id)"],
   ["workspace uses canonical case score", workspace, "caseScore("],
+  ["unified runtime delegates conversation analysis", unifiedRuntime, "runConversationRuntime(input.message, input.cognitiveCase)"],
+  ["unified runtime exposes memory candidates", unifiedRuntime, "memory: MemoryCandidate[]"],
+  ["unified runtime exposes knowledge candidates", unifiedRuntime, "knowledge: KnowledgeCandidate[]"],
+  ["command layer persists runtime cycle", commands, "applyRuntimeCycle:"],
   ["store persistence is enabled", store, "persist("],
   ["store persistence key is stable", store, "name: \"executiveos-v2\""],
   ["state exposes activeCaseId", storeTypes, "activeCaseId: string"],
@@ -42,6 +45,11 @@ const contracts: Array<[string, string, string]> = [
 for (const [name, file, expected] of contracts) {
   test(name, () => assert.ok(file.includes(expected), `Missing application contract: ${expected}`));
 }
+
+test("workspace does not perform direct decision or action persistence", () => {
+  assert.equal(workspace.includes("store.captureDecision({"), false);
+  assert.equal(workspace.includes("store.recordConversationTurn({"), false);
+});
 
 test("legacy Challenge state vocabulary is absent", () => {
   assert.equal(storeTypes.includes("activeChallengeId"), false);
