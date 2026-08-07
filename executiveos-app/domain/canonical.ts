@@ -1,5 +1,6 @@
 export type CognitiveCaseState = "explore" | "decide" | "execute" | "learn";
 export type ActionStatus = "todo" | "doing" | "done" | "blocked";
+export type AgentStatus = "online" | "busy" | "offline";
 export type ContextDomain = "strategy" | "finance" | "people" | "operations" | "market" | "legal" | "history" | "governance";
 export type ContextKind = "fact" | "hypothesis" | "constraint" | "preference" | "uncertainty" | "goal";
 export type ContextRequirement = "required" | "important" | "optional";
@@ -31,6 +32,16 @@ export interface DecisionRecord {
   createdAt: string;
 }
 
+export interface AgentContract {
+  id: string;
+  name: string;
+  role: string;
+  specialty: string;
+  capabilities: string[];
+  status: AgentStatus;
+  version: string;
+}
+
 export interface ActionRecord {
   id: string;
   caseId: string;
@@ -38,6 +49,11 @@ export interface ActionRecord {
   owner: string;
   progress: number;
   status: ActionStatus;
+  requiredCapability?: string;
+  assignedAgentId?: string | null;
+  blockedReason?: string;
+  dueAt?: string | null;
+  result?: string;
 }
 
 export interface CognitiveEventRecord {
