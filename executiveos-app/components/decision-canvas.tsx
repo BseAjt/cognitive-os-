@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { DecisionTimelineV3 } from "@/components/decision-timeline-v3";
 import { ImpactAnalysisV3 } from "@/components/impact-analysis-v3";
+import { OrionDecisionCopilotV3 } from "@/components/orion-decision-copilot-v3";
 import { ReasoningFlowV3 } from "@/components/reasoning-flow-v3";
 import type { DecisionFrame } from "@/lib/decision-room";
 import type { ReasoningStepId } from "@/store/executive-store";
@@ -52,6 +53,8 @@ export function DecisionCanvas({ challenge, frame, decisions, actions, onCreateA
       <DecisionTimelineV3 challenge={challenge} decisions={decisions} actions={actions} activeStepId={activeStepId} onStepSelect={setActiveStepId} />
 
       <ImpactAnalysisV3 challenge={challenge} frame={frame} decisions={decisions} actions={actions} />
+
+      <OrionDecisionCopilotV3 challenge={challenge} frame={frame} decisions={decisions} actions={actions} onCreateAction={onCreateAction} />
 
       <div className="grid gap-5 xl:grid-cols-[1.15fr_.85fr]">
         <div className="space-y-5">
