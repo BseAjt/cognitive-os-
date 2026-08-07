@@ -88,7 +88,7 @@ function toNode(entity: KnowledgeEntity, position: { x: number; y: number }): No
 }
 
 function nodeStyle(type: KnowledgeEntityType) {
-  const borderColor = {
+  const colors: Partial<Record<KnowledgeEntityType, string>> = {
     decision_case: "#7c5cff",
     decision: "#42d59d",
     action: "#69bfff",
@@ -96,7 +96,8 @@ function nodeStyle(type: KnowledgeEntityType) {
     memory: "#c79cff",
     insight: "#ffd166",
     context_item: "#ffbc57"
-  }[type] ?? "#71839e";
+  };
+  const borderColor = colors[type] ?? "#71839e";
 
   return {
     width: 210,
