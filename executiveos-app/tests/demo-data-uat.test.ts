@@ -75,10 +75,20 @@ test("primary navigation no longer exposes engine tabs", () => {
   assert.ok(!home.includes('label: "Explorer"'));
 });
 
-test("dossier-first shell exposes cognitive journey stages", () => {
-  for (const label of ["Vue d’ensemble", "Analyse", "Décision", "Exécution", "Apprentissage", "Historique"]) assert.ok(home.includes(label));
-  assert.ok(home.includes("DossiersHome"));
-  assert.ok(home.includes("CaseWorkspace"));
+test("B1 renders one continuous dossier workspace instead of exclusive stages", () => {
+  for (const id of ["overview", "analysis", "execution", "learning", "history"]) assert.ok(home.includes(`id=\"${id}\"`) || home.includes(`id={id}`));
+  assert.ok(home.includes("WorkspaceBlock"));
+  assert.ok(home.includes("scrollIntoView"));
+  assert.ok(!home.includes('stage === "overview"'));
+  assert.ok(!home.includes('stage === "analysis"'));
+  assert.ok(!home.includes('stage === "execution"'));
+});
+
+test("B1 keeps decision, execution, learning and history in the same dossier page", () => {
+  assert.ok(home.includes("<ExecutiveWorkspace />"));
+  assert.ok(home.includes('<ExecutiveRuntimePanel mode="act" />'));
+  assert.ok(home.includes("<LearningPanel"));
+  assert.ok(home.includes("<HistoryPanel"));
 });
 
 test("users can create and edit dossiers", () => {
@@ -88,13 +98,13 @@ test("users can create and edit dossiers", () => {
   assert.ok(home.includes("+ Nouveau dossier"));
 });
 
-test("global ORION command executes inside the active dossier", () => {
+test("global ORION command executes inside the active dossier and stays in unified workspace", () => {
   assert.ok(home.includes("runUnifiedRuntime"));
   assert.ok(home.includes("store.applyRuntimeCycle"));
-  assert.ok(home.includes('setStage("analysis")'));
+  assert.ok(home.includes('document.getElementById("analysis")'));
 });
 
-test("execution stays operational inside dossier workflow", () => {
+test("execution stays operational inside dossier workspace", () => {
   assert.ok(runtime.includes("assignRuntimeAction(action.id)"));
   assert.ok(runtime.includes('transitionRuntimeAction(action.id, "doing")'));
   assert.ok(runtime.includes("handleExecute(action.id)"));
