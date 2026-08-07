@@ -5,8 +5,10 @@ import { ExecutiveRuntimePanel } from "@/components/executive-runtime-panel";
 import { ExecutiveWorkspace } from "@/components/executive-workspace";
 import { entityCounts, executiveTwinSeed } from "@/lib/executive-twin-domain";
 import { buildCognitiveRecall } from "@/lib/cognitive-recall";
+import { buildCaseJourney, resolveEventDestination, type CaseJourney } from "@/lib/outcome-navigation";
 import { runUnifiedRuntime } from "@/lib/unified-runtime";
 import { useExecutiveStore } from "@/store/executive-store";
+import type { CognitiveEventRecord } from "@/domain/canonical";
 
 type View = "home" | "understand" | "decision" | "act" | "explore" | "settings";
 type BrainNode = {
@@ -38,6 +40,14 @@ export function ExecutiveHomeV4() {
   const store = useExecutiveStore();
   const counts = useMemo(() => entityCounts(executiveTwinSeed), []);
   const briefing = executiveTwinSeed.briefing;
+  const activeCase = store.cases.find((item) => item.id === store.activeCaseId) ?? store.cases[0];
+  const journey = useMemo(() => activeCase ? buildCaseJourney({
+    cognitiveCase: activeCase,
+    decisions: store.decisions,
+    actions: store.actions,
+    learningEvents: store.learningEvents,
+    reflections: store.reflections
+  }) : null, [activeCase, store.decisions, store.actions, store.learningEvents, store.reflections]);
 
   const nodes = useMemo<BrainNode[]>(() => [
     { id: "goals", label: "Objectifs", kind: "Direction", status: "stable", score: 88, summary: `${store.cases.length} dossiers cognitifs actifs`, detail: "Les objectifs prioritaires restent compatibles avec la trajectoire produit actuelle.", target: "act", x: 18, y: 30 },
@@ -52,11 +62,9 @@ export function ExecutiveHomeV4() {
 
   function submit() {
     const clean = prompt.trim();
-    if (!clean) return;
-    const active = store.cases.find((item) => item.id === store.activeCaseId) ?? store.cases[0];
-    if (!active) return;
+    if (!clean || !activeCase) return;
     const recall = buildCognitiveRecall({
-      cognitiveCase: active,
+      cognitiveCase: activeCase,
       decisions: store.decisions,
       actions: store.actions,
       memories: store.memories,
@@ -67,15 +75,19 @@ export function ExecutiveHomeV4() {
     });
     const result = runUnifiedRuntime({
       message: clean,
-      cognitiveCase: active,
+      cognitiveCase: activeCase,
       agents: store.agents,
-      memories: store.memories.filter((memory) => memory.caseId === active.id),
-      knowledgeRecords: store.knowledgeRecords.filter((record) => record.caseId === active.id),
+      memories: store.memories.filter((memory) => memory.caseId === activeCase.id),
+      knowledgeRecords: store.knowledgeRecords.filter((record) => record.caseId === activeCase.id),
       recallSummary: recall.summary
     });
-    store.applyRuntimeCycle({ caseId: active.id, userText: clean, result });
+    store.applyRuntimeCycle({ caseId: activeCase.id, userText: clean, result });
     setPrompt("");
     setView("decision");
+  }
+
+  function navigateEvent(event: CognitiveEventRecord) {
+    setView(resolveEventDestination(event).view);
   }
 
   return <div className="min-h-screen bg-[#07111f] text-white md:grid md:grid-cols-[248px_minmax(0,1fr)]">
@@ -89,9 +101,9 @@ export function ExecutiveHomeV4() {
       <header className="sticky top-0 z-30 border-b border-white/[.07] bg-[#07111f]/88 px-4 py-3 backdrop-blur-2xl md:px-7"><div className="mx-auto flex max-w-[1540px] items-center gap-3"><div className="flex min-w-0 flex-1 items-center gap-3 rounded-2xl border border-white/[.08] bg-[#0d192b]/90 px-4 py-3"><span className="text-[#bfb2ff]">✦</span><input value={prompt} onChange={(e) => setPrompt(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter") submit(); }} placeholder="Que souhaites-tu accomplir aujourd’hui ?" className="min-w-0 flex-1 bg-transparent text-sm outline-none placeholder:text-[#65758f]"/><button onClick={submit} className="rounded-lg bg-[#7c5cff] px-3 py-1.5 text-xs font-bold">ORION</button></div><div className="grid size-11 place-items-center rounded-2xl bg-gradient-to-br from-[#d7cfff] to-[#8b73ef] text-xs font-black text-[#1b1239]">SH</div></div></header>
 
       <main className="mx-auto max-w-[1540px] p-4 md:p-7 xl:p-9">
-        {view === "home" && <Home nodes={nodes} selected={selected} selectedId={selectedId} onSelect={setSelectedId} score={executiveScore} onView={setView} />}
+        {view === "home" && <Home nodes={nodes} selected={selected} selectedId={selectedId} onSelect={setSelectedId} score={executiveScore} onView={setView} journey={journey} />}
         {view === "decision" && <ExecutiveWorkspace />}
-        {view === "understand" && <UnderstandPanel />}
+        {view === "understand" && <UnderstandPanel onNavigateEvent={navigateEvent} />}
         {view === "act" && <ExecutiveRuntimePanel mode="act" />}
         {view === "explore" && <ExecutiveRuntimePanel mode="explore" />}
         {view === "settings" && <SettingsPanel />}
@@ -100,7 +112,7 @@ export function ExecutiveHomeV4() {
   </div>;
 }
 
-function UnderstandPanel() {
+function UnderstandPanel({ onNavigateEvent }: { onNavigateEvent: (event: CognitiveEventRecord) => void }) {
   const store = useExecutiveStore();
   const active = store.cases.find((item) => item.id === store.activeCaseId) ?? store.cases[0];
   const memories = store.memories.filter((item) => item.caseId === active?.id);
@@ -116,7 +128,14 @@ function UnderstandPanel() {
       <Panel title="Reflection Engine" tone="text-[#ffbc57]">{reflections.map((reflection) => <Item key={reflection.id} title={reflection.summary} text={[...reflection.learned, ...reflection.uncertainties.map((u) => `Incertitude : ${u}`)].join(" · ")} meta={`${reflection.confidence}% confiance`}/>)}</Panel>
       <Panel title="Cognitive DNA" tone="text-[#7de5bd]">{profile ? <><div className="grid grid-cols-2 gap-3"><Mini label="Calibration" value={profile.calibration}/><Mini label="Stabilité" value={profile.beliefStability}/><Mini label="Discipline risque" value={profile.riskDiscipline}/><Mini label="Qualité apprentissage" value={profile.learningQuality}/></div><div className="mt-4"><p className="text-xs uppercase tracking-[.12em] text-[#6f819e]">Patterns dominants</p><p className="mt-2 text-sm leading-6 text-[#c6d1e1]">{profile.dominantPatterns.join(" · ")}</p><p className="mt-4 text-xs uppercase tracking-[.12em] text-[#6f819e]">Signaux de biais</p><p className="mt-2 text-sm leading-6 text-[#ffd895]">{profile.biasSignals.join(" · ")}</p></div></> : <p className="text-sm text-[#71839e]">Profil en cours de constitution.</p>}</Panel>
     </div>
-    <Panel title="Journal cognitif récent" tone="text-[#8fa0ba]" className="mt-5">{store.events.slice(0, 8).map((event) => <Item key={event.id} title={event.type} text={event.detail} meta={new Date(event.createdAt).toLocaleString("fr-FR")}/>)}</Panel>
+    <Panel title="Journal cognitif — cliquer pour agir" tone="text-[#8fa0ba]" className="mt-5">{store.events.slice(0, 10).map((event) => {
+      const destination = resolveEventDestination(event);
+      return <button key={event.id} onClick={() => onNavigateEvent(event)} className="block w-full rounded-2xl border border-white/[.07] bg-white/[.025] p-4 text-left transition hover:border-[#7c5cff]/50 hover:bg-[#7c5cff]/[.06]">
+        <div className="flex flex-wrap items-start justify-between gap-2"><strong className="text-sm">{event.type}</strong><span className="text-[10px] uppercase tracking-[.1em] text-[#9d83ff]">{destination.label} →</span></div>
+        <p className="mt-2 text-sm leading-6 text-[#91a2bd]">{event.detail}</p>
+        <div className="mt-3 flex items-center justify-between gap-3 text-[10px] text-[#667995]"><span>{destination.reason}</span><span>{new Date(event.createdAt).toLocaleString("fr-FR")}</span></div>
+      </button>;
+    })}</Panel>
   </section>;
 }
 
@@ -135,9 +154,17 @@ function SettingsPanel() {
   </section>;
 }
 
-function Home({ nodes, selected, selectedId, onSelect, score, onView }: { nodes: BrainNode[]; selected: BrainNode; selectedId: string; onSelect:(id:string)=>void; score:number; onView:(view:View)=>void }) {
+function Home({ nodes, selected, selectedId, onSelect, score, onView, journey }: { nodes: BrainNode[]; selected: BrainNode; selectedId: string; onSelect:(id:string)=>void; score:number; onView:(view:View)=>void; journey: CaseJourney | null }) {
   return <>
-    <section className="mb-6"><div className="text-[10px] font-black uppercase tracking-[.2em] text-[#7c92b2]">Executive Home · UX2.5</div><h1 className="mt-3 text-3xl font-semibold tracking-[-.035em] md:text-5xl">Executive Brain</h1><p className="mt-2 max-w-3xl text-lg text-[#8fa0ba]">Une carte vivante de ce qui est stable, actif ou à surveiller. Clique sur un nœud pour comprendre son contexte et agir.</p></section>
+    <section className="mb-6"><div className="text-[10px] font-black uppercase tracking-[.2em] text-[#7c92b2]">Executive Home · Outcome-driven UX</div><h1 className="mt-3 text-3xl font-semibold tracking-[-.035em] md:text-5xl">De l’objectif au résultat.</h1><p className="mt-2 max-w-3xl text-lg text-[#8fa0ba]">ExecutiveOS doit te dire ce que tu cherches à obtenir, ce qui a été décidé, ce qui doit être exécuté et ce qui a été appris — pas seulement afficher des statuts.</p></section>
+    {journey && <section className="mb-5 rounded-[28px] border border-[#7c5cff]/25 bg-[linear-gradient(135deg,rgba(124,92,255,.12),rgba(13,25,43,.94))] p-5 md:p-6">
+      <div className="flex flex-col justify-between gap-4 md:flex-row md:items-start"><div><div className="text-[10px] font-black uppercase tracking-[.18em] text-[#b7a9ff]">Dossier actif</div><h2 className="mt-2 text-2xl font-semibold">{journey.cognitiveCase.title}</h2><p className="mt-2 max-w-3xl text-sm leading-6 text-[#aab7ca]">{journey.cognitiveCase.objective}</p></div><span className="rounded-full bg-white/[.05] px-3 py-1 text-xs uppercase text-[#91a2bd]">{journey.cognitiveCase.state}</span></div>
+      <div className="mt-5 grid gap-3 md:grid-cols-3">
+        <OutcomeCard eyebrow="Dernière décision" title={journey.latestDecision?.outcome ?? "Aucune décision formalisée"} text={journey.latestDecision?.rationale ?? "Le dossier doit encore produire un arbitrage explicite."} action="Ouvrir Décider" onClick={() => onView("decision")} />
+        <OutcomeCard eyebrow="Prochaine action" title={journey.nextAction?.title ?? "Aucune action ouverte"} text={journey.nextAction ? `${journey.nextAction.owner} · ${journey.nextAction.status} · ${journey.nextAction.progress}%` : "Le prochain mouvement sera dérivé du prochain cycle."} action="Ouvrir Agir" onClick={() => onView("act")} />
+        <OutcomeCard eyebrow="Dernier apprentissage" title={journey.latestLearning?.title ?? journey.latestReflection?.summary ?? "Pas encore d’apprentissage"} text={journey.latestLearning?.detail ?? journey.latestReflection?.learned[0] ?? "Les résultats d’exécution alimenteront la mémoire cognitive."} action="Ouvrir Comprendre" onClick={() => onView("understand")} />
+      </div>
+    </section>}
     <section className="grid gap-5 xl:grid-cols-[minmax(0,1.4fr)_minmax(330px,.6fr)]">
       <article className="rounded-[28px] border border-white/[.08] bg-[linear-gradient(145deg,rgba(19,31,51,.98),rgba(9,19,33,.98))] p-5 md:p-7">
         <div className="flex items-center justify-between gap-4"><div><div className="text-[10px] font-black uppercase tracking-[.18em] text-[#9d83ff]">Contexte vivant</div><h2 className="mt-2 text-2xl font-semibold">Executive Brain</h2></div><div className="rounded-2xl border border-white/[.07] bg-white/[.03] px-4 py-2 text-right"><span className="block text-[10px] uppercase tracking-[.14em] text-[#667995]">Executive Score</span><strong className="text-2xl">{score}</strong></div></div>
@@ -149,6 +176,7 @@ function Home({ nodes, selected, selectedId, onSelect, score, onView }: { nodes:
   </>;
 }
 
+function OutcomeCard({ eyebrow, title, text, action, onClick }: { eyebrow:string; title:string; text:string; action:string; onClick:()=>void }) { return <button onClick={onClick} className="rounded-2xl border border-white/[.08] bg-[#091422]/80 p-4 text-left transition hover:border-[#7c5cff]/50 hover:bg-[#111d33]"><span className="text-[10px] font-black uppercase tracking-[.14em] text-[#7c92b2]">{eyebrow}</span><strong className="mt-2 block text-sm">{title}</strong><p className="mt-2 min-h-12 text-xs leading-5 text-[#8799b2]">{text}</p><span className="mt-3 block text-xs font-bold text-[#b7a9ff]">{action} →</span></button>; }
 function Panel({title, tone, className = "", children}:{title:string;tone:string;className?:string;children:React.ReactNode}) { return <article className={`rounded-[26px] border border-white/[.08] bg-[#0d192b]/88 p-5 md:p-6 ${className}`}><div className={`text-[10px] font-black uppercase tracking-[.16em] ${tone}`}>{title}</div><div className="mt-4 space-y-3">{children}</div></article>; }
 function Item({title,text,meta}:{title:string;text:string;meta:string}) { return <div className="rounded-2xl border border-white/[.07] bg-white/[.025] p-4"><div className="flex flex-wrap items-start justify-between gap-2"><strong className="text-sm">{title}</strong><span className="text-[10px] uppercase tracking-[.1em] text-[#667995]">{meta}</span></div><p className="mt-2 text-sm leading-6 text-[#91a2bd]">{text}</p></div>; }
 function Mini({label,value}:{label:string;value:number}) { return <div className="rounded-xl border border-white/[.06] bg-white/[.025] p-3"><span className="text-[10px] uppercase tracking-[.1em] text-[#667995]">{label}</span><strong className="mt-1 block text-2xl">{value}</strong></div>; }
