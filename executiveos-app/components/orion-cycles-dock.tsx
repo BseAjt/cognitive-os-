@@ -1,0 +1,47 @@
+"use client";
+
+import { useMemo, useState } from "react";
+import { projectCognitiveEvents } from "@/lib/cognitive-events";
+import { groupCognitiveEventsIntoOrionCycles, orionCycleProgress } from "@/lib/orion-cycles";
+import { useExecutiveStore } from "@/store/executive-store";
+
+export function OrionCyclesDock() {
+  const store = useExecutiveStore();
+  const [open, setOpen] = useState(false);
+  const active = store.cases.find((item) => item.id === store.activeCaseId) ?? store.cases[0];
+
+  const cycles = useMemo(() => {
+    if (!active) return [];
+    const events = projectCognitiveEvents({
+      caseId: active.id,
+      messages: store.messages,
+      caseObjects: store.caseObjects,
+      decisions: store.decisions,
+      actions: store.actions,
+      learningEvents: store.learningEvents,
+      reasoningRevisions: store.reasoningRevisions,
+      memories: store.memories
+    });
+    return groupCognitiveEventsIntoOrionCycles(events).reverse();
+  }, [active, store.messages, store.caseObjects, store.decisions, store.actions, store.learningEvents, store.reasoningRevisions, store.memories]);
+
+  if (!active) return null;
+  if (!open) return <button onClick={() => setOpen(true)} className="fixed bottom-5 left-5 z-40 rounded-xl border border-[#42d59d]/35 bg-[#0d2020]/95 px-4 py-3 text-sm font-semibold text-[#9de7cd] shadow-2xl backdrop-blur">↻ Cycles ORION · {cycles.length}</button>;
+
+  return <aside className="fixed bottom-5 left-5 z-40 max-h-[78vh] w-[min(520px,calc(100vw-2rem))] overflow-auto rounded-[24px] border border-[#42d59d]/30 bg-[#081823]/95 p-4 shadow-2xl backdrop-blur-xl">
+    <div className="flex items-start justify-between gap-3">
+      <div><div className="text-[10px] font-black uppercase tracking-[.16em] text-[#75d6b5]">B6.2 · TIMELINE COGNITIVE</div><strong className="mt-1 block text-sm">Cycles ORION · {active.title}</strong><p className="mt-1 text-[11px] text-[#71839e]">{cycles.length} cycle(s) de raisonnement reconstruits depuis les traces cognitives.</p></div>
+      <button onClick={() => setOpen(false)} className="rounded-lg border border-white/10 px-2 py-1 text-xs text-[#91a2bd]">Réduire</button>
+    </div>
+    <div className="mt-4 space-y-3">
+      {cycles.length ? cycles.slice(0, 8).map((cycle, index) => <article key={cycle.id} className={`rounded-2xl border p-4 ${index === 0 ? "border-[#42d59d]/35 bg-[#42d59d]/8" : "border-white/[.08] bg-white/[.025]"}`}>
+        <div className="flex items-center justify-between gap-3"><span className="text-[10px] font-black uppercase tracking-[.12em] text-[#75d6b5]">Cycle #{cycle.sequence}</span><span className="text-[10px] text-[#71839e]">{new Date(cycle.startedAt).toLocaleString("fr-FR")}</span></div>
+        <strong className="mt-2 block text-sm leading-5">{cycle.trigger?.summary ?? cycle.title.replace(/^Cycle #\d+ · /, "")}</strong>
+        <div className="mt-3 flex flex-wrap items-center gap-1.5">{orionCycleProgress(cycle).map((step, stepIndex) => <span key={`${cycle.id}:${step}`} className="contents"><span className="rounded-full border border-white/[.08] bg-white/[.04] px-2 py-1 text-[10px] text-[#a9b8ca]">{step}</span>{stepIndex < orionCycleProgress(cycle).length - 1 && <span className="text-[10px] text-[#52647f]">→</span>}</span>)}</div>
+        <p className="mt-3 text-xs leading-5 text-[#9fb0c4]">{cycle.summary}</p>
+        <div className="mt-3 flex flex-wrap gap-3 text-[10px] text-[#71839e]"><span>{cycle.events.length} événement(s)</span><span>impact {cycle.impact}</span>{cycle.confidence !== null && <span>confiance {cycle.confidence}%</span>}<span>{cycle.isComplete ? "cycle consolidé" : "cycle ouvert"}</span></div>
+        {cycle.outcome && <div className="mt-3 rounded-xl border border-[#7c5cff]/20 bg-[#7c5cff]/8 p-3"><span className="text-[9px] font-black uppercase tracking-[.12em] text-[#a995ff]">Issue du cycle</span><p className="mt-1 text-xs leading-5 text-[#c9c0ff]">{cycle.outcome}</p></div>}
+      </article>) : <div className="rounded-2xl border border-white/[.08] bg-white/[.025] p-4 text-xs leading-5 text-[#91a2bd]">Aucun cycle cognitif disponible. Une première interaction avec ORION créera le début de la timeline.</div>}
+    </div>
+  </aside>;
+}
