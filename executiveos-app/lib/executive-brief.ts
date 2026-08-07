@@ -9,6 +9,9 @@ export interface ExecutiveCaseBrief {
   blockers: string[];
   criticalRisks: string[];
   latestLearning: string;
+  decisionsToReconsider: string[];
+  sinceLastSession: string[];
+  proactiveAlerts: string[];
   recommendation: string;
   health: "stable" | "watch" | "critical";
 }
@@ -30,20 +33,47 @@ export function buildExecutiveCaseBrief(input: {
 
   const latestDecision = decisions[0];
   const openActions = actions.filter((item) => item.status !== "done");
+  const completedActions = actions.filter((item) => item.status === "done");
   const blockedActions = openActions.filter((item) => item.status === "blocked");
   const nextAction = openActions.find((item) => item.status === "doing") ?? openActions.find((item) => item.status === "todo") ?? openActions[0];
   const risks = objects.filter((item) => item.type === "risk" && item.status !== "resolved").sort((a, b) => b.confidence - a.confidence);
   const latestLearning = learningEvents[0]?.detail ?? reflections[0]?.summary ?? "Aucun apprentissage consolidé pour le moment.";
   const blockers = blockedActions.map((item) => item.blockedReason ? `${item.title} — ${item.blockedReason}` : item.title);
   const criticalRisks = risks.filter((item) => item.confidence >= 70).slice(0, 3).map((item) => item.title);
-  const health: ExecutiveCaseBrief["health"] = cognitiveCase.signals.risk >= 8 || blockers.length > 0 ? "critical" : cognitiveCase.signals.risk >= 6 || criticalRisks.length > 0 ? "watch" : "stable";
-  const recommendation = blockers.length
+  const decisionsToReconsider = unique(reflections.flatMap((item) => item.decisionsToReconsider)).slice(0, 3);
+
+  const sinceLastSession = [
+    completedActions.length ? `${completedActions.length} action(s) terminée(s).` : "",
+    blockedActions.length ? `${blockedActions.length} action(s) bloquée(s).` : "",
+    learningEvents.length ? `${learningEvents.length} apprentissage(s) consolidé(s).` : "",
+    decisionsToReconsider.length ? `${decisionsToReconsider.length} décision(s) à reconsidérer.` : "",
+    criticalRisks.length ? `${criticalRisks.length} risque(s) critique(s) actif(s).` : ""
+  ].filter(Boolean);
+
+  const proactiveAlerts = [
+    ...blockers.map((item) => `Blocage: ${item}`),
+    ...criticalRisks.map((item) => `Risque critique: ${item}`),
+    ...decisionsToReconsider.map((item) => `Décision à revoir: ${item}`)
+  ].slice(0, 5);
+
+  const health: ExecutiveCaseBrief["health"] = cognitiveCase.signals.risk >= 8 || blockers.length > 0 || decisionsToReconsider.length > 0
+    ? "critical"
+    : cognitiveCase.signals.risk >= 6 || criticalRisks.length > 0
+      ? "watch"
+      : "stable";
+
+  const nextBestAction = blockers.length
     ? `Lever le blocage « ${blockers[0]} » avant d'élargir l'exécution.`
-    : nextAction
-      ? `Faire avancer « ${nextAction.title} » et mesurer son résultat.`
-      : latestDecision
-        ? "Transformer la décision actuelle en prochaine action observable."
-        : "Clarifier la question de décision et comparer les options avant engagement.";
+    : decisionsToReconsider.length
+      ? `Réouvrir la décision « ${decisionsToReconsider[0]} » car le contexte cognitif a évolué.`
+      : nextAction
+        ? `Faire avancer « ${nextAction.title} » et mesurer son résultat.`
+        : latestDecision
+          ? "Transformer la décision actuelle en prochaine action observable."
+          : "Clarifier la question de décision et comparer les options avant engagement.";
+
+  const changeSummary = sinceLastSession.length ? `Depuis la dernière session : ${sinceLastSession.join(" ")} ` : "";
+  const recommendation = `${changeSummary}ORION recommande : ${nextBestAction}`;
 
   return {
     objective: cognitiveCase.objective,
@@ -54,7 +84,14 @@ export function buildExecutiveCaseBrief(input: {
     blockers,
     criticalRisks,
     latestLearning,
+    decisionsToReconsider,
+    sinceLastSession,
+    proactiveAlerts,
     recommendation,
     health
   };
+}
+
+function unique(values: string[]): string[] {
+  return [...new Set(values.map((item) => item.trim()).filter(Boolean))];
 }
