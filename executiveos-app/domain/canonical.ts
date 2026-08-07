@@ -93,3 +93,57 @@ export interface DecisionModel {
   requiredAgents: string[];
   requiresContext: boolean;
 }
+
+export type KnowledgeEntityType =
+  | "organization" | "organizational_unit" | "person" | "goal" | "kpi" | "project"
+  | "decision_case" | "context_item" | "scenario" | "assessment" | "decision" | "review_trigger" | "outcome"
+  | "risk" | "opportunity" | "action" | "commitment" | "experience" | "evidence" | "memory" | "learning" | "insight"
+  | "customer" | "supplier" | "product" | "process" | "application" | "contract" | "market" | "cognitive_profile";
+
+export type KnowledgeRelationType =
+  | "PART_OF" | "MEMBER_OF" | "REPORTS_TO" | "OWNS" | "SPONSORS"
+  | "SUPPORTS" | "MEASURES" | "ADVANCES" | "CONFLICTS_WITH" | "DEPENDS_ON"
+  | "CONCERNS" | "USES_CONTEXT" | "CONSIDERS" | "ASSESSED_BY" | "SELECTS" | "REJECTS" | "RESULTS_IN" | "REQUIRES_REVIEW_WHEN"
+  | "DERIVED_FROM" | "SUPPORTED_BY" | "CONTRADICTED_BY" | "SUPERSEDES" | "VALIDATES" | "INVALIDATES" | "LEARNED_FROM"
+  | "CREATES" | "ASSIGNED_TO" | "BLOCKS" | "MITIGATES" | "MONITORS" | "ACHIEVES" | "AFFECTS";
+
+export interface KnowledgeEntity {
+  id: string;
+  organizationId: string;
+  type: KnowledgeEntityType;
+  title: string;
+  status: string;
+  createdAt: string;
+  updatedAt: string;
+  source?: string;
+}
+
+export interface KnowledgeRelation {
+  id: string;
+  organizationId: string;
+  sourceId: string;
+  sourceType: KnowledgeEntityType;
+  targetId: string;
+  targetType: KnowledgeEntityType;
+  relationType: KnowledgeRelationType;
+  confidence: number;
+  provenance: string;
+  validFrom: string;
+  validTo?: string;
+}
+
+export interface ExecutiveBriefing {
+  systemHealth: number;
+  openDecisions: number;
+  criticalRisks: number;
+  invalidatedHypotheses: number;
+  dueCommitments: number;
+  newKnowledge: number;
+  recommendation: string;
+}
+
+export interface KnowledgeSnapshot {
+  entities: KnowledgeEntity[];
+  relations: KnowledgeRelation[];
+  briefing: ExecutiveBriefing;
+}
