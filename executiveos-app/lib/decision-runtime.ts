@@ -1,4 +1,5 @@
 import type { Challenge } from "../types/domain.ts";
+import type { DecisionCategory, DecisionModel, DecisionOptionModel } from "../domain/canonical.ts";
 import {
   assessContext,
   buildAdaptiveQuestions,
@@ -8,34 +9,9 @@ import {
   type ContextQuestion
 } from "./context-engine.ts";
 
-export type DecisionCategory =
-  | "hiring"
-  | "investment"
-  | "launch"
-  | "pricing"
-  | "partnership"
-  | "workforce_restructuring"
-  | "generic";
-
-export interface DecisionOption {
-  title: string;
-  description: string;
-  score: number | null;
-}
-
-export interface DecisionFrame {
-  question: string;
-  category: DecisionCategory;
-  criteria: string[];
-  options: DecisionOption[];
-  recommendation: string | null;
-  confidence: number | null;
-  missingInformation: string[];
-  reviewTrigger: string;
-  classifications: string[];
-  requiredAgents: string[];
-  requiresContext: boolean;
-}
+export type DecisionOption = DecisionOptionModel;
+export type DecisionFrame = DecisionModel;
+export type { DecisionCategory };
 
 export interface DecisionRuntimeResult {
   frame: DecisionFrame;
