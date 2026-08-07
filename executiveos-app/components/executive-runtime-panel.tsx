@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { buildRuntimeGraph } from "@/lib/executive-runtime";
 import { useExecutiveStore } from "@/store/executive-store";
 
@@ -13,8 +13,42 @@ export function ExecutiveRuntimePanel({ mode }: { mode: "act" | "explore" }) {
   const assignRuntimeAction = useExecutiveStore((state) => state.assignRuntimeAction);
   const executeRuntimeAction = useExecutiveStore((state) => state.executeRuntimeAction);
   const transitionRuntimeAction = useExecutiveStore((state) => state.transitionRuntimeAction);
+  const [executingActionId, setExecutingActionId] = useState<string | null>(null);
+  const [executionFeedback, setExecutionFeedback] = useState<{ tone: "success" | "warning" | "error"; text: string } | null>(null);
 
   const graph = useMemo(() => buildRuntimeGraph({ cases, decisions, actions, agents, events }), [cases, decisions, actions, agents, events]);
+
+  function handleExecute(actionId: string) {
+    const before = useExecutiveStore.getState().actions.find((item) => item.id === actionId);
+    if (!before) {
+      setExecutionFeedback({ tone: "error", text: "Action introuvable dans le runtime." });
+      return;
+    }
+
+    setExecutingActionId(actionId);
+    setExecutionFeedback(null);
+
+    try {
+      executeRuntimeAction(actionId);
+      const after = useExecutiveStore.getState().actions.find((item) => item.id === actionId);
+
+      if (!after) {
+        setExecutionFeedback({ tone: "error", text: "L’action a disparu du store après exécution." });
+      } else if (after.status === "done") {
+        setExecutionFeedback({ tone: "success", text: `${after.title} — terminée à 100%. ${after.result ?? "Exécution enregistrée."}` });
+      } else if (after.status === "blocked") {
+        setExecutionFeedback({ tone: "warning", text: `${after.title} — bloquée. ${after.blockedReason ?? "Aucun agent compatible n’est disponible."}` });
+      } else if (after.status !== before.status || after.progress !== before.progress) {
+        setExecutionFeedback({ tone: "success", text: `${after.title} — ${after.status}, progression ${after.progress}%.` });
+      } else {
+        setExecutionFeedback({ tone: "warning", text: `${after.title} — aucun changement d’état détecté. Vérifie l’affectation et la capacité requise.` });
+      }
+    } catch (error) {
+      setExecutionFeedback({ tone: "error", text: error instanceof Error ? error.message : "Erreur inattendue pendant l’exécution." });
+    } finally {
+      setExecutingActionId(null);
+    }
+  }
 
   if (mode === "explore") {
     return <section>
@@ -60,6 +94,8 @@ export function ExecutiveRuntimePanel({ mode }: { mode: "act" | "explore" }) {
       <p className="mt-3 max-w-3xl text-lg leading-8 text-[#91a2bd]">Chaque action possède une capacité requise, peut être affectée automatiquement à un agent compatible et suit une machine d’état contrôlée.</p>
     </div>
 
+    {executionFeedback && <div aria-live="polite" className={`mb-5 rounded-2xl border px-4 py-3 text-sm ${executionFeedback.tone === "success" ? "border-[#42d59d]/30 bg-[#42d59d]/10 text-[#9af0cf]" : executionFeedback.tone === "warning" ? "border-[#ffbc57]/30 bg-[#ffbc57]/10 text-[#ffd895]" : "border-[#ff6b7a]/30 bg-[#ff6b7a]/10 text-[#ffb4bd]"}`}>{executionFeedback.text}</div>}
+
     <div className="grid gap-5 xl:grid-cols-[1.25fr_.75fr]">
       <article className="rounded-[26px] border border-white/[.08] bg-[#0d192b]/88 p-5 md:p-6">
         <div className="flex items-center justify-between"><div><div className="text-[10px] font-black uppercase tracking-[.16em] text-[#9d83ff]">Task Engine</div><h2 className="mt-2 text-2xl font-semibold">Actions runtime</h2></div><span className="rounded-full border border-white/[.07] bg-white/[.03] px-3 py-1 text-xs text-[#8294af]">{actions.length} tâche(s)</span></div>
@@ -69,11 +105,11 @@ export function ExecutiveRuntimePanel({ mode }: { mode: "act" | "explore" }) {
               <div><strong className="text-base">{action.title}</strong><p className="mt-1 text-xs text-[#71839e]">Capability: {action.requiredCapability ?? "analysis"} · Owner: {action.owner}</p>{action.blockedReason && <p className="mt-2 text-xs text-[#ffbc57]">{action.blockedReason}</p>}{action.result && <p className="mt-2 text-xs text-[#7de5bd]">{action.result}</p>}</div>
               <Status status={action.status}/>
             </div>
-            <div className="mt-4 h-1.5 overflow-hidden rounded-full bg-white/[.06]"><div className="h-full bg-gradient-to-r from-[#7657ff] to-[#42d59d]" style={{width:`${action.progress}%`}}/></div>
+            <div className="mt-4 h-1.5 overflow-hidden rounded-full bg-white/[.06]"><div className="h-full bg-gradient-to-r from-[#7657ff] to-[#42d59d] transition-[width] duration-300" style={{width:`${action.progress}%`}}/></div>
             <div className="mt-4 flex flex-wrap gap-2">
               {!action.assignedAgentId && action.status !== "done" && <button onClick={() => assignRuntimeAction(action.id)} className="rounded-lg border border-white/[.08] bg-white/[.03] px-3 py-2 text-xs font-semibold">Affecter</button>}
               {action.status === "todo" && <button onClick={() => transitionRuntimeAction(action.id, "doing")} className="rounded-lg border border-white/[.08] bg-white/[.03] px-3 py-2 text-xs font-semibold">Démarrer</button>}
-              {(action.status === "todo" || action.status === "doing") && <button onClick={() => executeRuntimeAction(action.id)} className="rounded-lg bg-[#7c5cff] px-3 py-2 text-xs font-bold">Exécuter</button>}
+              {(action.status === "todo" || action.status === "doing") && <button onClick={() => handleExecute(action.id)} disabled={executingActionId === action.id} className="rounded-lg bg-[#7c5cff] px-3 py-2 text-xs font-bold disabled:cursor-wait disabled:opacity-60">{executingActionId === action.id ? "Exécution…" : "Exécuter"}</button>}
               {action.status === "blocked" && <button onClick={() => transitionRuntimeAction(action.id, "todo")} className="rounded-lg border border-white/[.08] bg-white/[.03] px-3 py-2 text-xs font-semibold">Réouvrir</button>}
             </div>
           </div>)}
