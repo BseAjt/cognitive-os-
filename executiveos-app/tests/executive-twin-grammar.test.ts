@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { ENTITY_DEFINITIONS, RELATIONSHIP_RULES, validateRelationship } from "../lib/executive-twin-grammar";
+import { ENTITY_DEFINITIONS, RELATIONSHIP_RULES, validateRelationship } from "../lib/knowledge-grammar.ts";
 
 test("grammar defines every fundamental entity", () => {
   const expected = ["organization","person","team","project","goal","kpi","decision","decision_case","scenario","context","context_item","risk","opportunity","meeting","conversation","document","email","action","commitment","learning","insight","hypothesis","fact","memory"];
