@@ -45,17 +45,7 @@ export function useExecutiveWorkspace() {
   }
 
   function createAction(title: string) {
-    store.addActions([
-      {
-        id: crypto.randomUUID(),
-        challengeId: activeChallenge.id,
-        title,
-        owner: "À assigner",
-        progress: 0,
-        status: "todo"
-      }
-    ]);
-    store.addEvent("ActionCreated", title);
+    store.createAction({ challengeId: activeChallenge.id, title });
   }
 
   function processMessage(message: string) {
@@ -65,29 +55,29 @@ export function useExecutiveWorkspace() {
     const result = runConversationRuntime(clean, activeChallenge);
     const createdAt = new Date().toISOString();
 
-    store.updateChallenge({ ...activeChallenge, ...result.challengePatch });
-    store.addMessages([
-      { id: crypto.randomUUID(), challengeId: activeChallenge.id, role: "user", text: clean, createdAt },
-      { id: crypto.randomUUID(), challengeId: activeChallenge.id, role: "assistant", text: result.response, createdAt }
-    ]);
-    store.addEvent("ConversationParsed", `${result.intent} · ${result.extractions.length} objets détectés`);
+    store.recordConversationTurn({
+      challengeId: activeChallenge.id,
+      userText: clean,
+      assistantText: result.response,
+      intent: result.intent,
+      extractionCount: result.extractions.length,
+      challengePatch: result.challengePatch,
+      createdAt
+    });
 
     const decision = result.extractions.find((item) => item.kind === "decision");
     if (decision) {
-      store.addDecision({
-        id: crypto.randomUUID(),
+      store.captureDecision({
         challengeId: activeChallenge.id,
+        text: decision.text,
         recommendation: result.nextAction,
-        finalDecision: decision.text,
-        rationale: "Décision extraite de la conversation.",
         confidence: decision.confidence,
         createdAt
       });
-      store.addEvent("DecisionCaptured", decision.text);
     }
 
     const action = result.extractions.find((item) => item.kind === "action");
-    if (action) createAction(action.text);
+    if (action) store.createAction({ challengeId: activeChallenge.id, title: action.text });
 
     setLastExtractions(result.extractions);
     setLastNextAction(result.nextAction);
@@ -111,6 +101,6 @@ export function useExecutiveWorkspace() {
     processMessage,
     createAction,
     selectChallenge,
-    runCriticalSimulation: store.runCriticalSimulation
+    runCriticalSimulation: store.applyCriticalSignal
   };
 }
