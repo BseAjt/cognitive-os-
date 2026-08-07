@@ -3,6 +3,7 @@ import { buildCognitiveDiff } from "../lib/cognitive-diff.ts";
 import { buildCognitiveRecall } from "../lib/cognitive-recall.ts";
 import { projectKnowledgeGraph } from "../lib/knowledge-graph-runtime.ts";
 import { learningEventsFromDiff } from "../lib/learning-events.ts";
+import { buildReflection } from "../lib/reflection-engine.ts";
 import type { ExecutiveCommands, ExecutiveState } from "./types.ts";
 
 export const createExecutiveCommands: StateCreator<ExecutiveState, [], [], ExecutiveCommands> = (set, get) => ({
@@ -19,7 +20,8 @@ export const createExecutiveCommands: StateCreator<ExecutiveState, [], [], Execu
         knowledgeEntities: state.knowledgeEntities,
         knowledgeRelations: state.knowledgeRelations,
         agentRuns: state.agentRuns,
-        learningEvents: state.learningEvents
+        learningEvents: state.learningEvents,
+        reflections: state.reflections
       }) : undefined;
 
       const cognitiveDiff = currentCase ? buildCognitiveDiff({
@@ -33,6 +35,7 @@ export const createExecutiveCommands: StateCreator<ExecutiveState, [], [], Execu
         currentCycle: result
       }) : undefined;
       const learningEvents = cognitiveDiff ? learningEventsFromDiff(caseId, cognitiveDiff, timestamp) : [];
+      const reflection = cognitiveDiff ? buildReflection({ caseId, diff: cognitiveDiff, learningEvents, createdAt: timestamp }) : undefined;
 
       const decision = result.decision ? {
         id: crypto.randomUUID(), caseId, recommendation: result.decision.recommendation, outcome: result.decision.outcome,
@@ -67,13 +70,21 @@ export const createExecutiveCommands: StateCreator<ExecutiveState, [], [], Execu
 
       const projectedCase = currentCase ? { ...currentCase, ...result.conversation.casePatch } : undefined;
       const graph = projectedCase ? projectKnowledgeGraph({
-        cognitiveCase: projectedCase, knowledgeRecords, memories, learningEvents, decision, actions, createdAt: timestamp
+        cognitiveCase: projectedCase,
+        knowledgeRecords,
+        memories,
+        learningEvents,
+        reflections: reflection ? [reflection] : [],
+        decision,
+        actions,
+        createdAt: timestamp
       }) : { entities: [], relations: [] };
 
       const events = [
         { id: crypto.randomUUID(), type: "RuntimeCycleCompleted", detail: `${result.trace.filter((item) => item.status === "completed").length} étapes · ${memories.filter((item) => item.durable).length} mémoires · ${knowledgeRecords.length} connaissances`, createdAt: timestamp },
         { id: crypto.randomUUID(), type: "AgentCouncilCompleted", detail: `ORION · ${result.agents.selectedAgentIds.length} spécialiste(s) · confiance ${result.agents.confidence}%`, createdAt: timestamp },
         ...(learningEvents.length ? [{ id: crypto.randomUUID(), type: "LearningPersisted", detail: `${learningEvents.length} apprentissage(s) · impact ${cognitiveDiff?.significance ?? "none"}`, createdAt: timestamp }] : []),
+        ...(reflection ? [{ id: crypto.randomUUID(), type: "ReflectionPersisted", detail: `${reflection.significance} · confiance ${reflection.confidence}%`, createdAt: timestamp }] : []),
         ...(memories.length ? [{ id: crypto.randomUUID(), type: "MemoryPersisted", detail: `${memories.length} mémoire(s) persistée(s)`, createdAt: timestamp }] : []),
         ...(knowledgeRecords.length ? [{ id: crypto.randomUUID(), type: "KnowledgePersisted", detail: `${knowledgeRecords.length} connaissance(s) persistée(s)`, createdAt: timestamp }] : []),
         ...(graph.entities.length ? [{ id: crypto.randomUUID(), type: "KnowledgeGraphProjected", detail: `${graph.entities.length} entité(s) · ${graph.relations.length} relation(s)`, createdAt: timestamp }] : []),
@@ -90,6 +101,7 @@ export const createExecutiveCommands: StateCreator<ExecutiveState, [], [], Execu
         actions: actions.length ? [...actions, ...state.actions] : state.actions,
         agentRuns: [agentRun, ...state.agentRuns],
         learningEvents: learningEvents.length ? [...learningEvents, ...state.learningEvents] : state.learningEvents,
+        reflections: reflection ? [reflection, ...state.reflections] : state.reflections,
         memories: memories.length ? [...memories, ...state.memories] : state.memories,
         knowledgeRecords: knowledgeRecords.length ? [...knowledgeRecords, ...state.knowledgeRecords] : state.knowledgeRecords,
         knowledgeEntities: mergeById(state.knowledgeEntities, graph.entities),
