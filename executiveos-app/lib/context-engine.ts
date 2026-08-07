@@ -33,6 +33,7 @@ export interface ContextAssessment {
   recommendationAllowed: boolean;
   domains: ContextDomainSummary[];
   missingRequired: ContextRecord[];
+  blockingItems: ContextRecord[];
   stale: ContextRecord[];
   contested: ContextRecord[];
   nextQuestion?: ContextQuestion;
@@ -80,6 +81,7 @@ export function assessContext(items: ContextRecord[]): ContextAssessment {
     recommendationAllowed: missingRequired.length === 0 && stale.length === 0 && contested.length === 0,
     domains,
     missingRequired,
+    blockingItems: missingRequired,
     stale,
     contested,
     nextQuestion: buildAdaptiveQuestions(items)[0]
