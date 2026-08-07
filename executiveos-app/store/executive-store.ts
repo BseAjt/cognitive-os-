@@ -33,11 +33,16 @@ type PersistedLegacyChallenge = {id:string;title:string;goal:string;hypothesis:s
 type PersistedLegacyRevision = Omit<ReasoningRevision,"caseId"> & {caseId?:string;challengeId?:string};
 type PersistedExecutiveState = { cases?:CognitiveCase[]; challenges?:PersistedLegacyChallenge[]; activeCaseId?:string; activeChallengeId?:string; messages?:PersistedMessage[]; decisions?:PersistedDecision[]; actions?:PersistedAction[]; events?:ExecutiveState["events"]; agents?:AgentContract[]; agentRuns?:AgentRunRecord[]; learningEvents?:LearningEventRecord[]; reflections?:ReflectionRecord[]; cognitiveProfiles?:CognitiveProfileRecord[]; reasoningRevisions?:PersistedLegacyRevision[]; memories?:MemoryRecord[]; knowledgeRecords?:KnowledgeRecord[]; knowledgeEntities?:KnowledgeEntity[]; knowledgeRelations?:KnowledgeRelation[] };
 
-const populated = <T,>(current:T[]|undefined, seed:T[]) => current?.length ? current : seed;
+function mergeSeedById<T extends { id: string }>(current:T[]|undefined, seed:T[]):T[]{
+  const map = new Map<string,T>();
+  for (const item of current ?? []) map.set(item.id, item);
+  for (const item of seed) if (!map.has(item.id)) map.set(item.id, item);
+  return [...map.values()];
+}
 
 function migratePersistedState(persistedState:unknown, version:number):ExecutiveState{
   const state=(persistedState??{}) as PersistedExecutiveState;
-  if(version>=14) return state as ExecutiveState;
+  if(version>=15) return state as ExecutiveState;
 
   let cases:CognitiveCase[];
   let messages:ConversationMessage[];
@@ -59,24 +64,24 @@ function migratePersistedState(persistedState:unknown, version:number):Executive
     revisions=(state.reasoningRevisions??[]).map((revision)=>({...revision,caseId:revision.caseId??revision.challengeId??"executiveos"}));
   }
 
-  const migratedCases=populated(cases, initialCases);
+  const migratedCases=mergeSeedById(cases, initialCases);
   return {
     cases:migratedCases,
     activeCaseId:state.activeCaseId??state.activeChallengeId??migratedCases[0]?.id??"executiveos",
-    messages:populated(messages, initialMessages),
-    decisions:populated(decisions, initialDecisions),
-    actions:populated(actions, initialRuntimeActions),
-    events:populated(state.events, initialEvents),
-    agents:state.agents?.length?state.agents:defaultExecutiveAgents,
-    agentRuns:populated(state.agentRuns, initialAgentRuns),
-    learningEvents:populated(state.learningEvents, initialLearningEvents),
-    reflections:populated(state.reflections, initialReflections),
-    cognitiveProfiles:populated(state.cognitiveProfiles, initialCognitiveProfiles),
-    reasoningRevisions:populated(revisions, initialReasoningRevisions),
-    memories:populated(state.memories, initialMemories),
-    knowledgeRecords:populated(state.knowledgeRecords, initialKnowledgeRecords),
-    knowledgeEntities:populated(state.knowledgeEntities, initialKnowledgeEntities),
-    knowledgeRelations:populated(state.knowledgeRelations, initialKnowledgeRelations)
+    messages:mergeSeedById(messages, initialMessages),
+    decisions:mergeSeedById(decisions, initialDecisions),
+    actions:mergeSeedById(actions, initialRuntimeActions),
+    events:mergeSeedById(state.events, initialEvents),
+    agents:mergeSeedById(state.agents, defaultExecutiveAgents),
+    agentRuns:mergeSeedById(state.agentRuns, initialAgentRuns),
+    learningEvents:mergeSeedById(state.learningEvents, initialLearningEvents),
+    reflections:mergeSeedById(state.reflections, initialReflections),
+    cognitiveProfiles:mergeSeedById(state.cognitiveProfiles, initialCognitiveProfiles),
+    reasoningRevisions:mergeSeedById(revisions, initialReasoningRevisions),
+    memories:mergeSeedById(state.memories, initialMemories),
+    knowledgeRecords:mergeSeedById(state.knowledgeRecords, initialKnowledgeRecords),
+    knowledgeEntities:mergeSeedById(state.knowledgeEntities, initialKnowledgeEntities),
+    knowledgeRelations:mergeSeedById(state.knowledgeRelations, initialKnowledgeRelations)
   } as ExecutiveState;
 }
 
@@ -99,7 +104,7 @@ export const useExecutiveStore = create<ExecutiveState>()(
     }),
     {
       name: "executiveos-v2",
-      version: 14,
+      version: 15,
       migrate: migratePersistedState
     }
   )
