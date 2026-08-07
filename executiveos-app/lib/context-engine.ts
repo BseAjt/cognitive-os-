@@ -38,6 +38,9 @@ export interface ContextAssessment {
   nextQuestion?: ContextQuestion;
 }
 
+/** @deprecated Prefer ContextAssessment. Kept temporarily for runtime/UI compatibility. */
+export type ContextReadiness = ContextAssessment;
+
 const domainLabels: Record<ContextDomain, string> = {
   strategy: "Stratégie",
   finance: "Finance",
