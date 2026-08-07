@@ -1,4 +1,5 @@
-import type { ActionItem, Challenge, CognitiveEvent, Decision } from "@/types/domain";
+import type { ActionRecord, CognitiveEventRecord, DecisionRecord } from "@/domain/canonical";
+import type { Challenge } from "@/types/domain";
 
 export interface ConversationMessage {
   id: string;
@@ -23,18 +24,18 @@ export interface ConversationSlice {
 }
 
 export interface DecisionSlice {
-  decisions: Decision[];
-  prependDecision: (decision: Decision) => void;
+  decisions: DecisionRecord[];
+  prependDecision: (decision: DecisionRecord) => void;
 }
 
 export interface ActionSlice {
-  actions: ActionItem[];
-  prependActions: (actions: ActionItem[]) => void;
+  actions: ActionRecord[];
+  prependActions: (actions: ActionRecord[]) => void;
 }
 
 export interface EventSlice {
-  events: CognitiveEvent[];
-  prependEvent: (event: CognitiveEvent) => void;
+  events: CognitiveEventRecord[];
+  prependEvent: (event: CognitiveEventRecord) => void;
 }
 
 export interface ExecutiveCommands {
