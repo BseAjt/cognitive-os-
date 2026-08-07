@@ -34,11 +34,9 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: 22
-          cache: npm
-          cache-dependency-path: executiveos-app/package-lock.json
 
-      - name: Install dependencies deterministically
-        run: npm ci
+      - name: Install dependencies
+        run: npm install --no-audit --no-fund
 
       - name: Runtime regression suite
         run: npm run test:runtime
