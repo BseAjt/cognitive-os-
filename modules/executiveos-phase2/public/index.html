@@ -1,0 +1,8 @@
+<!doctype html><html lang="fr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>ExecutiveOS</title><link rel="stylesheet" href="/styles.css"></head>
+<body>
+<aside><div class="brand"><span class="mark">E</span><div><b>ExecutiveOS</b><small>Cognitive Operating System</small></div></div><nav>
+<button class="active" data-view="command">⌘ Command Center</button><button data-view="objectives">◎ Objectives</button><button data-view="tasks">✓ Task Engine</button><button data-view="graph">⌘ Cognitive Graph</button><button data-view="decisions">◇ Decisions</button><button data-view="memory">◫ Memory</button><button data-view="council">✦ Executive Council</button><button data-view="agents">◉ AI Team</button></nav><div class="status"><i></i> Phase 2 online</div></aside>
+<main><header><div><p class="eyebrow">EXECUTIVE WORKSPACE</p><h1 id="viewTitle">Command Center</h1></div><button class="primary" id="captureBtn">+ Nouvelle capture</button></header>
+<section id="app"><div class="loading">Initialisation du système…</div></section></main>
+<dialog id="modal"><form method="dialog"><div class="dialog-head"><h2>Capturer une mémoire</h2><button value="cancel">×</button></div><label>Contenu<textarea id="memoryText" placeholder="Décision, apprentissage, hypothèse…"></textarea></label><div class="actions"><button value="cancel">Annuler</button><button value="default" id="saveMemory" class="primary">Mémoriser</button></div></form></dialog>
+<script type="module" src="/app.js"></script></body></html>
