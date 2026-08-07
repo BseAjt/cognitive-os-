@@ -58,6 +58,21 @@ export function assignAction(action: ActionRecord, agents: AgentContract[]): Act
   };
 }
 
+export function buildActionOutcome(action: ActionRecord): string {
+  const capability = action.requiredCapability ?? "analysis";
+  const title = action.title;
+  const outputs: Record<string, string> = {
+    strategy: `Synthèse stratégique produite pour « ${title} » : objectif clarifié, hypothèses prioritaires identifiées et prochain test recommandé.`,
+    technology: `Audit technique produit pour « ${title} » : dépendances vérifiées, principaux risques d’architecture identifiés et critères de sortie définis.`,
+    risk: `Revue de risque produite pour « ${title} » : risque principal explicité, signal d’alerte défini et mesure de mitigation proposée.`,
+    orchestration: `Plan d’exécution produit pour « ${title} » : séquence des étapes, responsabilité et point de contrôle définis.`,
+    decision: `Note d’arbitrage produite pour « ${title} » : options structurées, compromis explicités et recommandation prête à être revue.`,
+    execution: `Livrable d’exécution produit pour « ${title} » avec résultat vérifiable et prochaine étape proposée.`,
+    analysis: `Analyse produite pour « ${title} » : constats clés consolidés, zones d’incertitude identifiées et recommandation de suivi formulée.`
+  };
+  return `${outputs[capability] ?? outputs.analysis} Réalisé par ${action.owner}.`;
+}
+
 export function executeAction(action: ActionRecord, agents: AgentContract[]): ActionRecord {
   const assigned = assignAction(action, agents);
   if (assigned.status === "blocked") return assigned;
@@ -65,7 +80,7 @@ export function executeAction(action: ActionRecord, agents: AgentContract[]): Ac
   if (running.status !== "doing") return running;
   return {
     ...transitionAction(running, "done"),
-    result: `Exécutée par ${running.owner}`
+    result: buildActionOutcome(running)
   };
 }
 
