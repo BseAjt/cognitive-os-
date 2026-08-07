@@ -1,0 +1,25 @@
+{
+  "name": "Executive Twin Cloud Dev",
+  "image": "mcr.microsoft.com/devcontainers/typescript-node:1-22-bookworm",
+  "workspaceFolder": "/workspaces/cognitive-os-",
+  "forwardPorts": [3000],
+  "portsAttributes": {
+    "3000": {
+      "label": "Executive Twin",
+      "onAutoForward": "openPreview"
+    }
+  },
+  "postCreateCommand": "cd executiveos-app && npm ci",
+  "postStartCommand": "cd executiveos-app && npm run dev",
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "dbaeumer.vscode-eslint",
+        "esbenp.prettier-vscode",
+        "bradlc.vscode-tailwindcss",
+        "github.vscode-pull-request-github"
+      ]
+    }
+  },
+  "remoteUser": "node"
+}
