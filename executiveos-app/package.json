@@ -6,7 +6,7 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "test:runtime": "node --experimental-strip-types --test tests/*.test.ts",
+    "test:runtime": "node --experimental-strip-types --test tests/*.test.ts domain/*.test.ts",
     "test:e2e": "playwright test",
     "test:e2e:typecheck": "tsc -p tsconfig.e2e.json --noEmit",
     "test:e2e:headed": "playwright test --headed"
