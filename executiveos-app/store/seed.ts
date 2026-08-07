@@ -1,32 +1,24 @@
-import type { Challenge } from "@/types/domain";
+import type { CognitiveCase } from "@/domain/canonical";
 import type { ConversationMessage } from "@/store/types";
 
-export const initialChallenges: Challenge[] = [
+export const initialCases: CognitiveCase[] = [
   {
     id: "executiveos",
     title: "Construire ExecutiveOS",
-    goal: "Démontrer une nouvelle catégorie logicielle centrée sur la décision.",
-    hypothesis: "Les dirigeants paieront pour réduire le coût cognitif de leurs décisions.",
-    impact: 10,
-    urgency: 8,
-    confidence: 72,
-    cognitiveCost: 7,
-    risk: 7,
+    objective: "Démontrer une nouvelle catégorie logicielle centrée sur la décision.",
+    workingHypothesis: "Les dirigeants paieront pour réduire le coût cognitif de leurs décisions.",
     context: "Le Conversation Runtime devient le cœur du produit.",
-    state: "decide"
+    state: "decide",
+    signals: { impact: 10, urgency: 8, confidence: 72, cognitiveCost: 7, risk: 7 }
   },
   {
     id: "positioning",
     title: "Valider le positionnement",
-    goal: "Créer un message immédiatement compris par les dirigeants.",
-    hypothesis: "Decision Operating System est une catégorie claire et mémorisable.",
-    impact: 7,
-    urgency: 5,
-    confidence: 84,
-    cognitiveCost: 3,
-    risk: 3,
+    objective: "Créer un message immédiatement compris par les dirigeants.",
+    workingHypothesis: "Decision Operating System est une catégorie claire et mémorisable.",
     context: "ExecutiveOS est retenu comme nom produit.",
-    state: "explore"
+    state: "explore",
+    signals: { impact: 7, urgency: 5, confidence: 84, cognitiveCost: 3, risk: 3 }
   }
 ];
 
