@@ -5,7 +5,8 @@ import { persist } from "zustand/middleware";
 import { createActionSlice, createCaseSlice, createConversationSlice, createDecisionSlice, createEventSlice, createKnowledgeGraphSlice, createKnowledgeSlice, createMemorySlice } from "./slices";
 import { createExecutiveCommands } from "./commands";
 import { createRuntimeSlice } from "./runtime-slice";
-import type { ActionRecord, AgentContract, CognitiveCase, DecisionRecord, KnowledgeEntity, KnowledgeRecord, KnowledgeRelation, MemoryRecord } from "../domain/canonical";
+import { defaultExecutiveAgents } from "../lib/agent-runtime";
+import type { ActionRecord, AgentContract, AgentRunRecord, CognitiveCase, DecisionRecord, KnowledgeEntity, KnowledgeRecord, KnowledgeRelation, MemoryRecord } from "../domain/canonical";
 import type { ConversationMessage, ExecutiveState, ReasoningRevision } from "./types";
 
 export type { ConversationMessage, ExecutiveState, ReasoningRevision, ReasoningStepId } from "./types";
@@ -26,6 +27,7 @@ type PersistedExecutiveState = {
   actions?: PersistedAction[];
   events?: ExecutiveState["events"];
   agents?: AgentContract[];
+  agentRuns?: AgentRunRecord[];
   reasoningRevisions?: PersistedLegacyRevision[];
   memories?: MemoryRecord[];
   knowledgeRecords?: KnowledgeRecord[];
@@ -36,7 +38,7 @@ type PersistedExecutiveState = {
 function migratePersistedState(persistedState: unknown, version: number): ExecutiveState {
   const state = (persistedState ?? {}) as PersistedExecutiveState;
 
-  if (version >= 9) return state as ExecutiveState;
+  if (version >= 10) return state as ExecutiveState;
 
   const migratedCases: CognitiveCase[] = state.cases ?? (state.challenges ?? []).map((challenge) => ({
     id: challenge.id,
@@ -98,7 +100,8 @@ function migratePersistedState(persistedState: unknown, version: number): Execut
     decisions: migratedDecisions,
     actions: migratedActions,
     events: state.events ?? [],
-    agents: state.agents ?? [],
+    agents: state.agents?.length ? state.agents : defaultExecutiveAgents,
+    agentRuns: state.agentRuns ?? [],
     reasoningRevisions: migratedRevisions,
     memories: state.memories ?? [],
     knowledgeRecords: state.knowledgeRecords ?? [],
@@ -123,7 +126,7 @@ export const useExecutiveStore = create<ExecutiveState>()(
     }),
     {
       name: "executiveos-v2",
-      version: 9,
+      version: 10,
       migrate: migratePersistedState
     }
   )
