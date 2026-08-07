@@ -11,9 +11,11 @@ type Step = { id: ReasoningStepId; label: string; title: string; detail: string;
 type ReasoningFlowProps = {
   challenge: Challenge;
   frame: DecisionFrame;
+  activeStepId?: ReasoningStepId;
+  onStepChange?: (stepId: ReasoningStepId) => void;
 };
 
-export function ReasoningFlowV3({ challenge, frame }: ReasoningFlowProps) {
+export function ReasoningFlowV3({ challenge, frame, activeStepId, onStepChange }: ReasoningFlowProps) {
   const reasoningRevisions = useExecutiveStore((state) => state.reasoningRevisions);
   const addReasoningRevision = useExecutiveStore((state) => state.addReasoningRevision);
   const steps = useMemo<Step[]>(() => [
@@ -26,8 +28,13 @@ export function ReasoningFlowV3({ challenge, frame }: ReasoningFlowProps) {
     { id: "consequences", label: "Conséquences", title: "Impacts et actions reliés à la décision finale", detail: "Les conséquences seront enrichies à partir des actions, dépendances et résultats observés après arbitrage.", status: "future" }
   ], [challenge, frame]);
 
-  const [selectedId, setSelectedId] = useState<ReasoningStepId>("question");
+  const [internalSelectedId, setInternalSelectedId] = useState<ReasoningStepId>("question");
   const [draft, setDraft] = useState("");
+  const selectedId = activeStepId ?? internalSelectedId;
+  const selectStep = (stepId: ReasoningStepId) => {
+    setInternalSelectedId(stepId);
+    onStepChange?.(stepId);
+  };
   const selected = steps.find((step) => step.id === selectedId) ?? steps[0];
   const revisionsForStep = (stepId: ReasoningStepId) => reasoningRevisions.filter((item) => item.challengeId === challenge.id && item.stepId === stepId);
   const selectedRevisions = revisionsForStep(selected.id);
@@ -35,7 +42,7 @@ export function ReasoningFlowV3({ challenge, frame }: ReasoningFlowProps) {
   function addRevision() {
     const clean = draft.trim();
     if (!clean) return;
-    addReasoningRevision({ challengeId: challenge.id, stepId: selected.id, content: clean });
+    addReasoningRevision({ challengeId: challenge.id, stepId: selected.id, content: clean, confidence: challenge.confidence, risk: challenge.risk });
     setDraft("");
   }
 
@@ -52,7 +59,7 @@ export function ReasoningFlowV3({ challenge, frame }: ReasoningFlowProps) {
 
       <div className="mt-6 overflow-x-auto pb-2">
         <div className="flex min-w-[1050px] items-stretch gap-3">
-          {steps.map((step, index) => <FlowStep key={step.id} index={index + 1} {...step} selected={step.id === selected.id} version={revisionsForStep(step.id).length + 1} isLast={index === steps.length - 1} onClick={() => setSelectedId(step.id)} />)}
+          {steps.map((step, index) => <FlowStep key={step.id} index={index + 1} {...step} selected={step.id === selected.id} version={revisionsForStep(step.id).length + 1} isLast={index === steps.length - 1} onClick={() => selectStep(step.id)} />)}
         </div>
       </div>
 

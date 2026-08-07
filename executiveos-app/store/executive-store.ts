@@ -20,6 +20,8 @@ export interface ReasoningRevision {
   stepId: ReasoningStepId;
   version: number;
   content: string;
+  confidence?: number;
+  risk?: number;
   createdAt: string;
 }
 
