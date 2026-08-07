@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { DecisionTimelineV3 } from "@/components/decision-timeline-v3";
+import { ImpactAnalysisV3 } from "@/components/impact-analysis-v3";
 import { ReasoningFlowV3 } from "@/components/reasoning-flow-v3";
 import type { DecisionFrame } from "@/lib/decision-room";
 import type { ReasoningStepId } from "@/store/executive-store";
@@ -49,6 +50,8 @@ export function DecisionCanvas({ challenge, frame, decisions, actions, onCreateA
       <ReasoningFlowV3 challenge={challenge} frame={frame} activeStepId={activeStepId} onStepChange={setActiveStepId} />
 
       <DecisionTimelineV3 challenge={challenge} decisions={decisions} actions={actions} activeStepId={activeStepId} onStepSelect={setActiveStepId} />
+
+      <ImpactAnalysisV3 challenge={challenge} frame={frame} decisions={decisions} actions={actions} />
 
       <div className="grid gap-5 xl:grid-cols-[1.15fr_.85fr]">
         <div className="space-y-5">
