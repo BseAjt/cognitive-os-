@@ -27,6 +27,27 @@ export const createExecutiveCommands: StateCreator<ExecutiveState, [], [], Execu
         requiredCapability: action.requiredCapability
       }));
 
+      const memories = result.memory.map((memory) => ({
+        id: crypto.randomUUID(),
+        caseId,
+        kind: memory.kind,
+        content: memory.content,
+        confidence: memory.confidence,
+        durable: memory.durable,
+        source: "unified_runtime" as const,
+        createdAt: timestamp
+      }));
+
+      const knowledgeRecords = result.knowledge.map((knowledge) => ({
+        id: crypto.randomUUID(),
+        caseId,
+        type: knowledge.type,
+        title: knowledge.title,
+        confidence: knowledge.confidence,
+        source: "unified_runtime" as const,
+        createdAt: timestamp
+      }));
+
       const reasoningRevisions = result.reasoning.map((revision) => {
         const existingCount = state.reasoningRevisions.filter(
           (item) => item.caseId === caseId && item.stepId === revision.stepId
@@ -47,9 +68,11 @@ export const createExecutiveCommands: StateCreator<ExecutiveState, [], [], Execu
         {
           id: crypto.randomUUID(),
           type: "RuntimeCycleCompleted",
-          detail: `${result.trace.filter((item) => item.status === "completed").length} étapes · ${result.memory.filter((item) => item.durable).length} mémoires · ${result.knowledge.length} connaissances`,
+          detail: `${result.trace.filter((item) => item.status === "completed").length} étapes · ${memories.filter((item) => item.durable).length} mémoires · ${knowledgeRecords.length} connaissances`,
           createdAt: timestamp
         },
+        ...(memories.length ? [{ id: crypto.randomUUID(), type: "MemoryPersisted", detail: `${memories.length} mémoire(s) persistée(s)`, createdAt: timestamp }] : []),
+        ...(knowledgeRecords.length ? [{ id: crypto.randomUUID(), type: "KnowledgePersisted", detail: `${knowledgeRecords.length} connaissance(s) persistée(s)`, createdAt: timestamp }] : []),
         ...(decision ? [{ id: crypto.randomUUID(), type: "DecisionCaptured", detail: decision.outcome, createdAt: timestamp }] : []),
         ...actions.map((action) => ({ id: crypto.randomUUID(), type: "ActionCreated", detail: action.title, createdAt: timestamp }))
       ];
@@ -65,6 +88,8 @@ export const createExecutiveCommands: StateCreator<ExecutiveState, [], [], Execu
         ],
         decisions: decision ? [decision, ...state.decisions] : state.decisions,
         actions: actions.length ? [...actions, ...state.actions] : state.actions,
+        memories: memories.length ? [...memories, ...state.memories] : state.memories,
+        knowledgeRecords: knowledgeRecords.length ? [...knowledgeRecords, ...state.knowledgeRecords] : state.knowledgeRecords,
         reasoningRevisions: reasoningRevisions.length ? [...state.reasoningRevisions, ...reasoningRevisions] : state.reasoningRevisions,
         events: [...events, ...state.events]
       };
