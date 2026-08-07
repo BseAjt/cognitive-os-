@@ -55,8 +55,8 @@ function deriveCaseObjects(decisions:DecisionRecord[], actions:ActionRecord[], m
 
 function migratePersistedState(persistedState:unknown, version:number):ExecutiveState{
   const state=(persistedState??{}) as PersistedExecutiveState;
-  if(version>=17) return state as ExecutiveState;
-  if(version>=16) return { ...state, kernelTransactions: state.kernelTransactions ?? [], kernelEvents: state.kernelEvents ?? [] } as ExecutiveState;
+  if(version>=17) return state as unknown as ExecutiveState;
+  if(version>=16) return { ...state, kernelTransactions: state.kernelTransactions ?? [], kernelEvents: state.kernelEvents ?? [] } as unknown as ExecutiveState;
 
   let cases:CognitiveCase[];
   let messages:ConversationMessage[];
@@ -103,7 +103,7 @@ function migratePersistedState(persistedState:unknown, version:number):Executive
     knowledgeRelations:mergeSeedById(state.knowledgeRelations, initialKnowledgeRelations),
     kernelTransactions:[],
     kernelEvents:[]
-  } as ExecutiveState;
+  } as unknown as ExecutiveState;
 }
 
 export const useExecutiveStore = create<ExecutiveState>()(
