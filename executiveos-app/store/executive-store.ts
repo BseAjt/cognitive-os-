@@ -17,9 +17,9 @@ type PersistedExecutiveState = Partial<ExecutiveState> & {
   messages?: PersistedMessageV3[];
 };
 
-function migratePersistedState(persistedState: unknown, version: number): PersistedExecutiveState {
+function migratePersistedState(persistedState: unknown, version: number): ExecutiveState {
   const state = (persistedState ?? {}) as PersistedExecutiveState;
-  if (version >= 4 || !state.messages) return state;
+  if (version >= 4 || !state.messages) return state as ExecutiveState;
 
   return {
     ...state,
@@ -30,7 +30,7 @@ function migratePersistedState(persistedState: unknown, version: number): Persis
       text: message.text,
       createdAt: message.createdAt
     }))
-  };
+  } as ExecutiveState;
 }
 
 export const useExecutiveStore = create<ExecutiveState>()(
