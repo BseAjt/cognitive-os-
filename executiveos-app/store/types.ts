@@ -1,4 +1,4 @@
-import type { ActionRecord, AgentContract, AgentRunRecord, CognitiveCase, CognitiveEventRecord, DecisionRecord, KnowledgeEntity, KnowledgeRecord, KnowledgeRelation, LearningEventRecord, MemoryRecord, ReflectionRecord } from "../domain/canonical.ts";
+import type { ActionRecord, AgentContract, AgentRunRecord, CognitiveCase, CognitiveEventRecord, CognitiveProfileRecord, DecisionRecord, KnowledgeEntity, KnowledgeRecord, KnowledgeRelation, LearningEventRecord, MemoryRecord, ReflectionRecord } from "../domain/canonical.ts";
 import type { UnifiedRuntimeResult } from "../lib/unified-runtime.ts";
 
 export interface ConversationMessage {
@@ -61,6 +61,11 @@ export interface ReflectionSlice {
   prependReflection: (record: ReflectionRecord) => void;
 }
 
+export interface CognitiveProfileSlice {
+  cognitiveProfiles: CognitiveProfileRecord[];
+  upsertCognitiveProfile: (record: CognitiveProfileRecord) => void;
+}
+
 export interface MemorySlice {
   memories: MemoryRecord[];
   prependMemories: (records: MemoryRecord[]) => void;
@@ -89,36 +94,11 @@ export interface RuntimeSlice {
 }
 
 export interface ExecutiveCommands {
-  applyRuntimeCycle: (input: {
-    caseId: string;
-    userText: string;
-    result: UnifiedRuntimeResult;
-    createdAt?: string;
-  }) => void;
-  recordConversationTurn: (input: {
-    caseId: string;
-    userText: string;
-    assistantText: string;
-    intent: string;
-    extractionCount: number;
-    casePatch: Partial<CognitiveCase>;
-    createdAt?: string;
-  }) => void;
-  captureDecision: (input: {
-    caseId: string;
-    text: string;
-    recommendation: string;
-    confidence: number;
-    rationale?: string;
-    createdAt?: string;
-  }) => void;
-  createAction: (input: {
-    caseId: string;
-    title: string;
-    owner?: string;
-    requiredCapability?: string;
-  }) => void;
+  applyRuntimeCycle: (input: { caseId: string; userText: string; result: UnifiedRuntimeResult; createdAt?: string }) => void;
+  recordConversationTurn: (input: { caseId: string; userText: string; assistantText: string; intent: string; extractionCount: number; casePatch: Partial<CognitiveCase>; createdAt?: string }) => void;
+  captureDecision: (input: { caseId: string; text: string; recommendation: string; confidence: number; rationale?: string; createdAt?: string }) => void;
+  createAction: (input: { caseId: string; title: string; owner?: string; requiredCapability?: string }) => void;
   applyCriticalSignal: () => void;
 }
 
-export type ExecutiveState = CaseSlice & ConversationSlice & DecisionSlice & ActionSlice & EventSlice & LearningSlice & ReflectionSlice & MemorySlice & KnowledgeSlice & KnowledgeGraphSlice & RuntimeSlice & ExecutiveCommands;
+export type ExecutiveState = CaseSlice & ConversationSlice & DecisionSlice & ActionSlice & EventSlice & LearningSlice & ReflectionSlice & CognitiveProfileSlice & MemorySlice & KnowledgeSlice & KnowledgeGraphSlice & RuntimeSlice & ExecutiveCommands;
