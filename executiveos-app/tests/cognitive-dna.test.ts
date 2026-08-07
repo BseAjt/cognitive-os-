@@ -41,5 +41,5 @@ for(const [name,file,expected] of [
  ["runtime recalibrates profile",commands,"buildCognitiveProfile"],
  ["runtime persists profile",commands,"cognitiveProfiles: [profile"],
  ["runtime projects profile graph node",commands,"type: \"cognitive_profile\""],
- ["persistence schema includes dossier objects v16",store,"version: 16"]
+ ["persistence schema includes Kernel observability v17",store,"version: 17"]
 ] as const) test(name,()=>assert.ok(file.includes(expected),`Missing cognitive DNA contract: ${expected}`));
