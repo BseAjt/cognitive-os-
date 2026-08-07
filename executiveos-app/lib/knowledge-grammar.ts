@@ -17,7 +17,7 @@ export interface EntityDefinition {
 }
 
 export const ENTITY_DEFINITIONS: Record<EntityType, EntityDefinition> = {
-  organization: def("organization", "Represents the legal or operating entity governed by the Twin", ["id","name","ownerId"], ["industry","jurisdiction","strategy","metadata"], ["draft","active","archived"], ["Every entity belongs to one organization","An organization must have one accountable owner"]),
+  organization: def("organization", "Represents the legal or operating entity governed by ExecutiveOS", ["id","name","ownerId"], ["industry","jurisdiction","strategy","metadata"], ["draft","active","archived"], ["Every entity belongs to one organization","An organization must have one accountable owner"]),
   person: def("person", "Represents an individual actor, stakeholder or decision maker", ["id","name"], ["title","email","teamIds","decisionRights","metadata"], ["draft","active","archived"], ["A person may own decisions, attend meetings, sponsor projects and define goals"]),
   team: def("team", "Represents an organizational group with responsibilities", ["id","name","organizationId"], ["leaderId","memberIds","mandate"], ["draft","active","archived"], ["A team must belong to one organization"]),
   project: def("project", "Represents a bounded initiative delivering outcomes", ["id","title","ownerId","status"], ["goalIds","riskIds","kpiIds","deadline"], ["draft","active","blocked","completed","archived"], ["A project must have an owner and at least one intended outcome"]),

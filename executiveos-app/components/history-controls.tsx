@@ -3,9 +3,9 @@
 import { useExecutiveStore } from "@/store/executive-store";
 
 export function HistoryControls() {
-  const activeChallengeId = useExecutiveStore((state) => state.activeChallengeId);
+  const activeCaseId = useExecutiveStore((state) => state.activeCaseId);
   const messageCount = useExecutiveStore(
-    (state) => state.messages.filter((message) => message.challengeId === state.activeChallengeId).length
+    (state) => state.messages.filter((message) => message.caseId === state.activeCaseId).length
   );
   const clearConversationHistory = useExecutiveStore((state) => state.clearConversationHistory);
 
@@ -13,12 +13,12 @@ export function HistoryControls() {
     if (!messageCount) return;
 
     const confirmed = window.confirm(
-      "Effacer définitivement tout l’historique de conversation du Challenge actif ?"
+      "Effacer définitivement tout l’historique de conversation du cas actif ?"
     );
 
     if (!confirmed) return;
 
-    clearConversationHistory(activeChallengeId);
+    clearConversationHistory(activeCaseId);
     window.location.reload();
   }
 
@@ -27,7 +27,7 @@ export function HistoryControls() {
       type="button"
       onClick={clearHistory}
       disabled={!messageCount}
-      title="Effacer l’historique du Challenge actif"
+      title="Effacer l’historique du cas actif"
       className="fixed bottom-5 right-5 z-40 rounded-xl border border-[#ff7185]/40 bg-[#2a1420]/95 px-4 py-3 text-sm font-semibold text-[#ffc0ca] shadow-2xl backdrop-blur transition hover:bg-[#3a1725] disabled:cursor-not-allowed disabled:opacity-40"
     >
       Effacer l’historique

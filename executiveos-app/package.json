@@ -2,11 +2,12 @@
   "name": "executiveos",
   "version": "1.0.0-alpha.1",
   "private": true,
+  "type": "module",
   "scripts": {
     "dev": "next dev",
-    "build": "next build",
+    "build": "npm run test:runtime && next build",
     "start": "next start",
-    "test:runtime": "node --experimental-strip-types --test tests/*.test.ts",
+    "test:runtime": "node --experimental-strip-types --test tests/*.test.ts domain/*.test.ts",
     "test:e2e": "playwright test",
     "test:e2e:typecheck": "tsc -p tsconfig.e2e.json --noEmit",
     "test:e2e:headed": "playwright test --headed"

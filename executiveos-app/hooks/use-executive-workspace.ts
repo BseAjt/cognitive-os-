@@ -1,0 +1,108 @@
+"use client";
+
+import { useMemo, useState } from "react";
+import { runConversationRuntime, type CognitiveExtraction } from "@/lib/conversation-runtime";
+import type { DecisionFrame } from "@/lib/decision-runtime";
+import { caseScore } from "@/lib/scheduler";
+import { useExecutiveStore } from "@/store/executive-store";
+
+export function useExecutiveWorkspace() {
+  const store = useExecutiveStore();
+  const [input, setInput] = useState("");
+  const [lastExtractions, setLastExtractions] = useState<CognitiveExtraction[]>([]);
+  const [lastNextAction, setLastNextAction] = useState("");
+  const [decisionFrame, setDecisionFrame] = useState<DecisionFrame | null>(null);
+  const [showGraph, setShowGraph] = useState(true);
+
+  const rankedCases = useMemo(
+    () => [...store.cases].sort((a, b) => caseScore(b) - caseScore(a)),
+    [store.cases]
+  );
+
+  const activeCase = store.cases.find((item) => item.id === store.activeCaseId) ?? rankedCases[0];
+  const activeCaseId = activeCase.id;
+  const messages = useMemo(
+    () => store.messages.filter((message) => message.caseId === activeCaseId),
+    [store.messages, activeCaseId]
+  );
+  const decisions = useMemo(
+    () => store.decisions.filter((decision) => decision.caseId === activeCaseId),
+    [store.decisions, activeCaseId]
+  );
+  const actions = useMemo(
+    () => store.actions.filter((action) => action.caseId === activeCaseId),
+    [store.actions, activeCaseId]
+  );
+
+  function resetTransientReasoning() {
+    setLastExtractions([]);
+    setLastNextAction("");
+    setDecisionFrame(null);
+  }
+
+  function selectCase(caseId: string) {
+    store.setActiveCase(caseId);
+    resetTransientReasoning();
+  }
+
+  function createAction(title: string) {
+    store.createAction({ caseId: activeCaseId, title });
+  }
+
+  function processMessage(message: string) {
+    const clean = message.trim();
+    if (!clean) return;
+
+    const result = runConversationRuntime(clean, activeCase);
+    const createdAt = new Date().toISOString();
+
+    store.recordConversationTurn({
+      caseId: activeCaseId,
+      userText: clean,
+      assistantText: result.response,
+      intent: result.intent,
+      extractionCount: result.extractions.length,
+      casePatch: result.casePatch,
+      createdAt
+    });
+
+    const decision = result.extractions.find((item) => item.kind === "decision");
+    if (decision) {
+      store.captureDecision({
+        caseId: activeCaseId,
+        text: decision.text,
+        recommendation: result.nextAction,
+        confidence: decision.confidence,
+        createdAt
+      });
+    }
+
+    const action = result.extractions.find((item) => item.kind === "action");
+    if (action) store.createAction({ caseId: activeCaseId, title: action.text });
+
+    setLastExtractions(result.extractions);
+    setLastNextAction(result.nextAction);
+    setDecisionFrame(result.decisionFrame ?? null);
+    setInput("");
+  }
+
+  return {
+    input,
+    setInput,
+    showGraph,
+    setShowGraph,
+    rankedCases,
+    activeCase,
+    activeCaseId,
+    messages,
+    decisions,
+    actions,
+    lastExtractions,
+    lastNextAction,
+    decisionFrame,
+    processMessage,
+    createAction,
+    selectCase,
+    runCriticalSimulation: store.applyCriticalSignal
+  };
+}

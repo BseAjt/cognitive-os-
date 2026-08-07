@@ -1,27 +1,23 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { assessContext, answerContextItem, workforceRestructuringContextSeed } from "../lib/context-engine.ts";
-import { buildDecisionFrame } from "../lib/decision-room.ts";
+import { buildDecisionFrame } from "../lib/decision-runtime.ts";
 import { buildScenarioPortfolio } from "../lib/scenario-builder.ts";
 import { conveneExecutiveCouncil } from "../lib/executive-council.ts";
-import type { Challenge } from "../types/domain.ts";
+import type { CognitiveCase } from "../domain/canonical.ts";
 
-const challenge: Challenge = {
+const cognitiveCase: CognitiveCase = {
   id: "council-case",
   title: "Restructuration",
-  goal: "Décider",
-  hypothesis: "",
-  impact: 9,
-  urgency: 8,
-  confidence: 55,
-  cognitiveCost: 8,
-  risk: 9,
+  objective: "Décider",
+  workingHypothesis: "",
   context: "",
-  state: "decide"
+  state: "decide",
+  signals: { impact: 9, urgency: 8, confidence: 55, cognitiveCost: 8, risk: 9 }
 };
 
 function buildCouncil(items = workforceRestructuringContextSeed) {
-  const frame = buildDecisionFrame("Dois-je faire un plan social ?", challenge);
+  const frame = buildDecisionFrame("Dois-je faire un plan social ?", cognitiveCase);
   const readiness = assessContext(items);
   const portfolio = buildScenarioPortfolio(frame, items, readiness);
   return conveneExecutiveCouncil(items, readiness, portfolio);

@@ -1,15 +1,16 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import type { ContextItem, ContextReadiness } from "@/lib/context-engine";
-import type { DecisionFrame } from "@/lib/decision-room";
+import type { ContextRecord } from "@/domain/canonical";
+import type { ContextAssessment } from "@/lib/context-engine";
+import type { DecisionFrame } from "@/lib/decision-runtime";
 import { conveneExecutiveCouncil } from "@/lib/executive-council";
 import { buildScenarioPortfolio } from "@/lib/scenario-builder";
 
 interface ExecutiveCouncilProps {
   frame: DecisionFrame;
-  contextItems: ContextItem[];
-  readiness: ContextReadiness;
+  contextItems: ContextRecord[];
+  readiness: ContextAssessment;
   onCreateAction: (title: string) => void;
 }
 

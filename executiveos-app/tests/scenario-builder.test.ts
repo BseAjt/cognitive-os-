@@ -1,26 +1,28 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { buildDecisionFrame } from "../lib/decision-room.ts";
+import { buildDecisionFrame } from "../lib/decision-runtime.ts";
 import { assessContext, workforceRestructuringContextSeed } from "../lib/context-engine.ts";
 import { buildScenarioPortfolio, scoreScenario } from "../lib/scenario-builder.ts";
-import type { Challenge } from "../types/domain.ts";
+import type { CognitiveCase } from "../domain/canonical.ts";
 
-const challenge: Challenge = {
+const cognitiveCase: CognitiveCase = {
   id: "scenario-test",
   title: "Restructuration",
-  goal: "Décider",
-  hypothesis: "",
-  impact: 9,
-  urgency: 8,
-  confidence: 55,
-  cognitiveCost: 8,
-  risk: 8,
+  objective: "Décider",
+  workingHypothesis: "",
   context: "",
-  state: "decide"
+  state: "decide",
+  signals: {
+    impact: 9,
+    urgency: 8,
+    confidence: 55,
+    cognitiveCost: 8,
+    risk: 8
+  }
 };
 
 test("workforce restructuring portfolio contains three seeded scenarios", () => {
-  const frame = buildDecisionFrame("Dois-je faire un plan social ?", challenge);
+  const frame = buildDecisionFrame("Dois-je faire un plan social ?", cognitiveCase);
   const readiness = assessContext(workforceRestructuringContextSeed);
   const portfolio = buildScenarioPortfolio(frame, workforceRestructuringContextSeed, readiness);
   assert.equal(portfolio.scenarios.length, 3);
@@ -28,7 +30,7 @@ test("workforce restructuring portfolio contains three seeded scenarios", () => 
 });
 
 test("recommendation remains blocked while required context is missing", () => {
-  const frame = buildDecisionFrame("Faut-il réduire les effectifs ?", challenge);
+  const frame = buildDecisionFrame("Faut-il réduire les effectifs ?", cognitiveCase);
   const readiness = assessContext(workforceRestructuringContextSeed);
   const portfolio = buildScenarioPortfolio(frame, workforceRestructuringContextSeed, readiness);
   assert.equal(portfolio.recommendationAllowed, false);
@@ -37,7 +39,7 @@ test("recommendation remains blocked while required context is missing", () => {
 });
 
 test("seeded scenarios expose impacts, assumptions and exit conditions", () => {
-  const frame = buildDecisionFrame("Faut-il engager un PSE ?", challenge);
+  const frame = buildDecisionFrame("Faut-il engager un PSE ?", cognitiveCase);
   const readiness = assessContext(workforceRestructuringContextSeed);
   const portfolio = buildScenarioPortfolio(frame, workforceRestructuringContextSeed, readiness);
   for (const scenario of portfolio.scenarios) {
