@@ -1,7 +1,8 @@
 import { runRuntimePipeline, type RuntimePipelineResult, type RuntimeStage, type UnifiedRuntimeInput } from "./runtime-pipeline.ts";
+import { scheduleKernelCycle, type KernelLane, type KernelPriority, type KernelScheduleDecision } from "./kernel-scheduler.ts";
 
 export type KernelStatus = "running" | "completed" | "blocked" | "failed";
-export type KernelEventType = "KernelCycleStarted" | "KernelStageTransitioned" | "KernelCycleBlocked" | "KernelCycleCompleted" | "KernelCycleFailed";
+export type KernelEventType = "KernelCycleStarted" | "KernelCycleScheduled" | "KernelStageTransitioned" | "KernelCycleBlocked" | "KernelCycleCompleted" | "KernelCycleFailed";
 
 export interface KernelEvent {
   id: string;
@@ -24,6 +25,9 @@ export interface KernelTransaction {
   blockedStages: RuntimeStage[];
   skippedStages: RuntimeStage[];
   eventCount: number;
+  priority?: KernelPriority;
+  lane?: KernelLane;
+  scheduleScore?: number;
 }
 
 export interface ExecutiveKernelExecution {
@@ -34,6 +38,7 @@ export interface ExecutiveKernelExecution {
 
 export interface ExecutiveKernelDependencies {
   runtime?: (input: UnifiedRuntimeInput) => RuntimePipelineResult;
+  scheduler?: (input: UnifiedRuntimeInput) => KernelScheduleDecision;
   now?: () => string;
   idFactory?: () => string;
 }
@@ -44,6 +49,7 @@ export interface ExecutiveKernel {
 
 export function createExecutiveKernel(dependencies: ExecutiveKernelDependencies = {}): ExecutiveKernel {
   const runtime = dependencies.runtime ?? runRuntimePipeline;
+  const scheduler = dependencies.scheduler ?? scheduleKernelCycle;
   const now = dependencies.now ?? (() => new Date().toISOString());
   const idFactory = dependencies.idFactory ?? (() => crypto.randomUUID());
 
@@ -51,6 +57,7 @@ export function createExecutiveKernel(dependencies: ExecutiveKernelDependencies 
     execute(input) {
       const transactionId = idFactory();
       const startedAt = now();
+      const schedule = scheduler(input);
       const events: KernelEvent[] = [{
         id: idFactory(),
         transactionId,
@@ -59,6 +66,14 @@ export function createExecutiveKernel(dependencies: ExecutiveKernelDependencies 
         status: "running",
         detail: `Cycle cognitif démarré pour ${input.cognitiveCase.title}.`,
         createdAt: startedAt
+      }, {
+        id: idFactory(),
+        transactionId,
+        caseId: input.cognitiveCase.id,
+        type: "KernelCycleScheduled",
+        status: "running",
+        detail: `Priorité ${schedule.priority} · lane ${schedule.lane} · score ${schedule.score}/100 · ${schedule.reasons.join(" · ")}.`,
+        createdAt: now()
       }];
 
       try {
@@ -111,7 +126,10 @@ export function createExecutiveKernel(dependencies: ExecutiveKernelDependencies 
             completedStages: result.trace.filter((item) => item.status === "completed").map((item) => item.stage),
             blockedStages,
             skippedStages: result.trace.filter((item) => item.status === "skipped").map((item) => item.stage),
-            eventCount: events.length
+            eventCount: events.length,
+            priority: schedule.priority,
+            lane: schedule.lane,
+            scheduleScore: schedule.score
           },
           events,
           result
