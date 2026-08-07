@@ -1,11 +1,15 @@
-import type { CognitiveCase } from "../domain/canonical.ts";
-import type { DecisionCategory, DecisionModel, DecisionOptionModel } from "../domain/canonical.ts";
+import type {
+  CognitiveCase,
+  ContextRecord,
+  DecisionCategory,
+  DecisionModel,
+  DecisionOptionModel
+} from "../domain/canonical.ts";
 import {
   assessContext,
   buildAdaptiveQuestions,
   workforceRestructuringContextSeed,
   type ContextAssessment,
-  type ContextItem,
   type ContextQuestion
 } from "./context-engine.ts";
 
@@ -15,7 +19,7 @@ export type { DecisionCategory };
 
 export interface DecisionRuntimeResult {
   frame: DecisionFrame;
-  contextItems: ContextItem[];
+  contextItems: ContextRecord[];
   assessment: ContextAssessment;
   nextQuestion?: ContextQuestion;
   recommendationAllowed: boolean;
@@ -25,7 +29,7 @@ export interface DecisionRuntimeResult {
 
 const WORKFORCE_RESTRUCTURING_PATTERN = /plan social|\bpse\b|licenciement(?:s)? économique(?:s)?|suppression(?:s)? de postes?|réduction d['’]effectifs?|restructuration|compression d['’]effectifs?|départs? contraints?/i;
 
-export function runDecisionRuntime(message: string, cognitiveCase: CognitiveCase, existingContext?: ContextItem[]): DecisionRuntimeResult {
+export function runDecisionRuntime(message: string, cognitiveCase: CognitiveCase, existingContext?: ContextRecord[]): DecisionRuntimeResult {
   const frame = buildDecisionFrame(message, cognitiveCase);
   const contextItems = existingContext ?? createDecisionContext(frame);
   const assessment = assessContext(contextItems);
@@ -43,7 +47,7 @@ export function runDecisionRuntime(message: string, cognitiveCase: CognitiveCase
   };
 }
 
-export function evaluateDecisionContext(frame: DecisionFrame, contextItems: ContextItem[]): Omit<DecisionRuntimeResult, "contextItems"> {
+export function evaluateDecisionContext(frame: DecisionFrame, contextItems: ContextRecord[]): Omit<DecisionRuntimeResult, "contextItems"> {
   const assessment = assessContext(contextItems);
   const recommendationAllowed = !frame.requiresContext || assessment.recommendationAllowed;
   return {
@@ -56,7 +60,7 @@ export function evaluateDecisionContext(frame: DecisionFrame, contextItems: Cont
   };
 }
 
-export function createDecisionContext(frame: DecisionFrame): ContextItem[] {
+export function createDecisionContext(frame: DecisionFrame): ContextRecord[] {
   if (frame.category === "workforce_restructuring") {
     return workforceRestructuringContextSeed.map((item) => ({ ...item, caseId: frame.question }));
   }
