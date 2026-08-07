@@ -2,11 +2,11 @@
 
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
-import { createActionSlice, createCaseSlice, createConversationSlice, createDecisionSlice, createEventSlice, createKnowledgeGraphSlice, createKnowledgeSlice, createMemorySlice } from "./slices";
+import { createActionSlice, createCaseSlice, createConversationSlice, createDecisionSlice, createEventSlice, createKnowledgeGraphSlice, createKnowledgeSlice, createLearningSlice, createMemorySlice } from "./slices";
 import { createExecutiveCommands } from "./commands";
 import { createRuntimeSlice } from "./runtime-slice";
 import { defaultExecutiveAgents } from "../lib/agent-runtime";
-import type { ActionRecord, AgentContract, AgentRunRecord, CognitiveCase, DecisionRecord, KnowledgeEntity, KnowledgeRecord, KnowledgeRelation, MemoryRecord } from "../domain/canonical";
+import type { ActionRecord, AgentContract, AgentRunRecord, CognitiveCase, DecisionRecord, KnowledgeEntity, KnowledgeRecord, KnowledgeRelation, LearningEventRecord, MemoryRecord } from "../domain/canonical";
 import type { ConversationMessage, ExecutiveState, ReasoningRevision } from "./types";
 
 export type { ConversationMessage, ExecutiveState, ReasoningRevision, ReasoningStepId } from "./types";
@@ -28,6 +28,7 @@ type PersistedExecutiveState = {
   events?: ExecutiveState["events"];
   agents?: AgentContract[];
   agentRuns?: AgentRunRecord[];
+  learningEvents?: LearningEventRecord[];
   reasoningRevisions?: PersistedLegacyRevision[];
   memories?: MemoryRecord[];
   knowledgeRecords?: KnowledgeRecord[];
@@ -37,61 +38,17 @@ type PersistedExecutiveState = {
 
 function migratePersistedState(persistedState: unknown, version: number): ExecutiveState {
   const state = (persistedState ?? {}) as PersistedExecutiveState;
-
-  if (version >= 10) return state as ExecutiveState;
+  if (version >= 11) return state as ExecutiveState;
 
   const migratedCases: CognitiveCase[] = state.cases ?? (state.challenges ?? []).map((challenge) => ({
-    id: challenge.id,
-    title: challenge.title,
-    objective: challenge.goal,
-    workingHypothesis: challenge.hypothesis,
-    context: challenge.context,
-    state: challenge.state,
-    signals: {
-      impact: challenge.impact,
-      urgency: challenge.urgency,
-      confidence: challenge.confidence,
-      cognitiveCost: challenge.cognitiveCost,
-      risk: challenge.risk
-    }
+    id: challenge.id, title: challenge.title, objective: challenge.goal, workingHypothesis: challenge.hypothesis,
+    context: challenge.context, state: challenge.state,
+    signals: { impact: challenge.impact, urgency: challenge.urgency, confidence: challenge.confidence, cognitiveCost: challenge.cognitiveCost, risk: challenge.risk }
   }));
-
-  const migratedMessages: ConversationMessage[] = (state.messages ?? []).map((message) => ({
-    id: message.id,
-    caseId: message.caseId ?? message.challengeId ?? "executiveos",
-    role: message.role,
-    text: message.text,
-    createdAt: message.createdAt
-  }));
-
-  const migratedDecisions: DecisionRecord[] = (state.decisions ?? []).map((decision) => ({
-    id: decision.id,
-    caseId: decision.caseId ?? decision.challengeId ?? "executiveos",
-    recommendation: decision.recommendation,
-    outcome: decision.outcome ?? decision.finalDecision ?? "",
-    rationale: decision.rationale,
-    confidence: decision.confidence,
-    createdAt: decision.createdAt
-  }));
-
-  const migratedActions: ActionRecord[] = (state.actions ?? []).map((action) => ({
-    id: action.id,
-    caseId: action.caseId ?? action.challengeId ?? "executiveos",
-    title: action.title,
-    owner: action.owner,
-    progress: action.progress,
-    status: action.status,
-    requiredCapability: action.requiredCapability,
-    assignedAgentId: action.assignedAgentId,
-    blockedReason: action.blockedReason,
-    dueAt: action.dueAt,
-    result: action.result
-  }));
-
-  const migratedRevisions: ReasoningRevision[] = (state.reasoningRevisions ?? []).map((revision) => ({
-    ...revision,
-    caseId: revision.caseId ?? revision.challengeId ?? "executiveos"
-  }));
+  const migratedMessages: ConversationMessage[] = (state.messages ?? []).map((message) => ({ id: message.id, caseId: message.caseId ?? message.challengeId ?? "executiveos", role: message.role, text: message.text, createdAt: message.createdAt }));
+  const migratedDecisions: DecisionRecord[] = (state.decisions ?? []).map((decision) => ({ id: decision.id, caseId: decision.caseId ?? decision.challengeId ?? "executiveos", recommendation: decision.recommendation, outcome: decision.outcome ?? decision.finalDecision ?? "", rationale: decision.rationale, confidence: decision.confidence, createdAt: decision.createdAt }));
+  const migratedActions: ActionRecord[] = (state.actions ?? []).map((action) => ({ id: action.id, caseId: action.caseId ?? action.challengeId ?? "executiveos", title: action.title, owner: action.owner, progress: action.progress, status: action.status, requiredCapability: action.requiredCapability, assignedAgentId: action.assignedAgentId, blockedReason: action.blockedReason, dueAt: action.dueAt, result: action.result }));
+  const migratedRevisions: ReasoningRevision[] = (state.reasoningRevisions ?? []).map((revision) => ({ ...revision, caseId: revision.caseId ?? revision.challengeId ?? "executiveos" }));
 
   return {
     cases: migratedCases,
@@ -102,6 +59,7 @@ function migratePersistedState(persistedState: unknown, version: number): Execut
     events: state.events ?? [],
     agents: state.agents?.length ? state.agents : defaultExecutiveAgents,
     agentRuns: state.agentRuns ?? [],
+    learningEvents: state.learningEvents ?? [],
     reasoningRevisions: migratedRevisions,
     memories: state.memories ?? [],
     knowledgeRecords: state.knowledgeRecords ?? [],
@@ -118,16 +76,13 @@ export const useExecutiveStore = create<ExecutiveState>()(
       ...createDecisionSlice(...args),
       ...createActionSlice(...args),
       ...createEventSlice(...args),
+      ...createLearningSlice(...args),
       ...createMemorySlice(...args),
       ...createKnowledgeSlice(...args),
       ...createKnowledgeGraphSlice(...args),
       ...createRuntimeSlice(...args),
       ...createExecutiveCommands(...args)
     }),
-    {
-      name: "executiveos-v2",
-      version: 10,
-      migrate: migratePersistedState
-    }
+    { name: "executiveos-v2", version: 11, migrate: migratePersistedState }
   )
 );
