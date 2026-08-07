@@ -14,21 +14,21 @@
     "validate": "npm run test:runtime && npm run typecheck && npm run build && npm run test:e2e:typecheck && npm run test:e2e"
   },
   "dependencies": {
-    "@supabase/ssr": "latest",
-    "@supabase/supabase-js": "latest",
-    "@xyflow/react": "latest",
+    "@supabase/ssr": "0.12.3",
+    "@supabase/supabase-js": "2.110.8",
+    "@xyflow/react": "12.11.2",
     "next": "^16.1.0",
     "react": "^19.2.0",
     "react-dom": "^19.2.0",
-    "zustand": "latest"
+    "zustand": "5.0.14"
   },
   "devDependencies": {
     "@playwright/test": "^1.54.2",
-    "@tailwindcss/postcss": "latest",
+    "@tailwindcss/postcss": "4.3.3",
     "@types/node": "^22.0.0",
     "@types/react": "^19.0.0",
     "@types/react-dom": "^19.0.0",
-    "tailwindcss": "latest",
+    "tailwindcss": "4.3.3",
     "typescript": "^5.8.0"
   }
 }
