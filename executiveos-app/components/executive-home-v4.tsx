@@ -10,12 +10,11 @@ import { useExecutiveStore } from "@/store/executive-store";
 import type { CognitiveCase, CognitiveEventRecord } from "@/domain/canonical";
 
 type ShellView = "dossiers" | "case" | "settings";
-type CaseStage = "overview" | "analysis" | "decision" | "execution" | "learning" | "history";
+type WorkspaceSection = "overview" | "analysis" | "execution" | "learning" | "history";
 
-const STAGES: Array<{ id: CaseStage; label: string }> = [
+const WORKSPACE_SECTIONS: Array<{ id: WorkspaceSection; label: string }> = [
   { id: "overview", label: "Vue d’ensemble" },
-  { id: "analysis", label: "Analyse" },
-  { id: "decision", label: "Décision" },
+  { id: "analysis", label: "Analyse & décision" },
   { id: "execution", label: "Exécution" },
   { id: "learning", label: "Apprentissage" },
   { id: "history", label: "Historique" }
@@ -24,13 +23,11 @@ const STAGES: Array<{ id: CaseStage; label: string }> = [
 export function ExecutiveHomeV4() {
   const store = useExecutiveStore();
   const [shell, setShell] = useState<ShellView>("dossiers");
-  const [stage, setStage] = useState<CaseStage>("overview");
   const [prompt, setPrompt] = useState("");
   const activeCase = store.cases.find((item) => item.id === store.activeCaseId) ?? store.cases[0];
 
   function openCase(id: string) {
     store.setActiveCase(id);
-    setStage("overview");
     setShell("case");
   }
 
@@ -58,7 +55,7 @@ export function ExecutiveHomeV4() {
     store.applyRuntimeCycle({ caseId: activeCase.id, userText: clean, result });
     setPrompt("");
     setShell("case");
-    setStage("analysis");
+    requestAnimationFrame(() => document.getElementById("analysis")?.scrollIntoView({ behavior: "smooth", block: "start" }));
   }
 
   return <div className="min-h-screen bg-[#07111f] text-white md:grid md:grid-cols-[238px_minmax(0,1fr)]">
@@ -89,7 +86,7 @@ export function ExecutiveHomeV4() {
 
       <main className="mx-auto max-w-[1540px] p-4 md:p-7 xl:p-9">
         {shell === "dossiers" && <DossiersHome onOpen={openCase} />}
-        {shell === "case" && activeCase && <CaseWorkspace cognitiveCase={activeCase} stage={stage} onStage={setStage} onBack={() => setShell("dossiers")} />}
+        {shell === "case" && activeCase && <CaseWorkspace cognitiveCase={activeCase} onBack={() => setShell("dossiers")} />}
         {shell === "settings" && <SettingsPanel />}
       </main>
     </div>
@@ -144,7 +141,7 @@ function DossierCard({ item, onOpen }: { item: CognitiveCase; onOpen: () => void
   </button>;
 }
 
-function CaseWorkspace({ cognitiveCase, stage, onStage, onBack }: { cognitiveCase: CognitiveCase; stage: CaseStage; onStage: (stage: CaseStage) => void; onBack: () => void }) {
+function CaseWorkspace({ cognitiveCase, onBack }: { cognitiveCase: CognitiveCase; onBack: () => void }) {
   const store = useExecutiveStore();
   const [editing, setEditing] = useState(false);
   const [title, setTitle] = useState(cognitiveCase.title);
@@ -156,6 +153,10 @@ function CaseWorkspace({ cognitiveCase, stage, onStage, onBack }: { cognitiveCas
     setEditing(false);
   }
 
+  function goTo(section: WorkspaceSection) {
+    document.getElementById(section)?.scrollIntoView({ behavior: "smooth", block: "start" });
+  }
+
   return <section>
     <button onClick={onBack} className="mb-4 text-sm text-[#8393ad] hover:text-white">← Mes dossiers</button>
     <div className="rounded-[28px] border border-white/[.08] bg-[#0d192b]/88 p-5 md:p-7">
@@ -163,37 +164,58 @@ function CaseWorkspace({ cognitiveCase, stage, onStage, onBack }: { cognitiveCas
         <div className="min-w-0 flex-1">{editing ? <div className="space-y-3"><input value={title} onChange={(e) => setTitle(e.target.value)} className="w-full rounded-xl border border-white/[.08] bg-[#091422] px-4 py-3 text-2xl font-semibold outline-none"/><textarea value={objective} onChange={(e) => setObjective(e.target.value)} className="min-h-24 w-full rounded-xl border border-white/[.08] bg-[#091422] px-4 py-3 text-sm leading-6 outline-none"/><div className="flex gap-2"><button onClick={save} className="rounded-lg bg-[#7c5cff] px-4 py-2 text-xs font-bold">Enregistrer</button><button onClick={() => setEditing(false)} className="rounded-lg border border-white/[.08] px-4 py-2 text-xs">Annuler</button></div></div> : <><div className="text-[10px] font-black uppercase tracking-[.18em] text-[#9d83ff]">Dossier cognitif · {stateLabel(cognitiveCase.state)}</div><h1 className="mt-3 text-3xl font-semibold tracking-[-.035em] md:text-4xl">{cognitiveCase.title}</h1><p className="mt-3 max-w-4xl text-base leading-7 text-[#91a2bd]">{cognitiveCase.objective}</p></>}</div>
         {!editing && <button onClick={() => setEditing(true)} className="rounded-xl border border-white/[.08] bg-white/[.03] px-4 py-2 text-xs font-semibold">Modifier le dossier</button>}
       </div>
-      <div className="mt-6 flex gap-2 overflow-x-auto pb-1">{STAGES.map((item) => <button key={item.id} onClick={() => onStage(item.id)} className={`whitespace-nowrap rounded-xl px-4 py-2 text-xs font-semibold ${stage === item.id ? "bg-[#7c5cff] text-white" : "bg-white/[.04] text-[#91a2bd]"}`}>{item.label}</button>)}</div>
+      <div className="mt-6 flex gap-2 overflow-x-auto pb-1">{WORKSPACE_SECTIONS.map((item) => <button key={item.id} onClick={() => goTo(item.id)} className="whitespace-nowrap rounded-xl bg-white/[.04] px-4 py-2 text-xs font-semibold text-[#91a2bd] transition hover:bg-[#7c5cff] hover:text-white">{item.label}</button>)}</div>
     </div>
 
-    <div className="mt-6">
-      {stage === "overview" && <CaseOverview journey={journey} onStage={onStage} />}
-      {(stage === "analysis" || stage === "decision") && <ExecutiveWorkspace />}
-      {stage === "execution" && <ExecutiveRuntimePanel mode="act" />}
-      {stage === "learning" && <LearningPanel caseId={cognitiveCase.id} onStage={onStage} />}
-      {stage === "history" && <HistoryPanel caseId={cognitiveCase.id} onStage={onStage} />}
+    <div className="mt-6 space-y-8">
+      <WorkspaceBlock id="overview" eyebrow="01 · Vue d’ensemble" title="Reprendre exactement là où le dossier s’est arrêté" description="La synthèse opérationnelle du dossier, sa dernière décision, la prochaine action et le dernier apprentissage.">
+        <CaseOverview journey={journey} onNavigate={goTo} />
+      </WorkspaceBlock>
+
+      <WorkspaceBlock id="analysis" eyebrow="02 · Analyse & décision" title="Construire le raisonnement et arbitrer" description="ORION, le reasoning runtime et le canvas décisionnel travaillent ici dans le contexte du même dossier.">
+        <ExecutiveWorkspace />
+      </WorkspaceBlock>
+
+      <WorkspaceBlock id="execution" eyebrow="03 · Exécution" title="Transformer la décision en résultats" description="Les actions du dossier sont affectées, exécutées et produisent des livrables consultables sans quitter le workspace.">
+        <ExecutiveRuntimePanel mode="act" />
+      </WorkspaceBlock>
+
+      <WorkspaceBlock id="learning" eyebrow="04 · Apprentissage" title="Capitaliser ce que l’exécution a appris" description="Mémoire durable, learning events, réflexions et calibration restent rattachés au même dossier.">
+        <LearningPanel caseId={cognitiveCase.id} onNavigate={goTo} />
+      </WorkspaceBlock>
+
+      <WorkspaceBlock id="history" eyebrow="05 · Historique" title="Rejouer la trajectoire du dossier" description="Les événements deviennent une timeline navigable vers les objets qu’ils ont créés ou modifiés.">
+        <HistoryPanel caseId={cognitiveCase.id} onNavigate={goTo} />
+      </WorkspaceBlock>
     </div>
   </section>;
 }
 
-function CaseOverview({ journey, onStage }: { journey: ReturnType<typeof buildCaseJourney>; onStage: (stage: CaseStage) => void }) {
-  const nextStage: CaseStage = journey.nextAction ? "execution" : journey.latestDecision ? "execution" : "analysis";
+function WorkspaceBlock({ id, eyebrow, title, description, children }: { id: WorkspaceSection; eyebrow: string; title: string; description: string; children: React.ReactNode }) {
+  return <section id={id} className="scroll-mt-28">
+    <div className="mb-4"><div className="text-[10px] font-black uppercase tracking-[.18em] text-[#9d83ff]">{eyebrow}</div><h2 className="mt-2 text-2xl font-semibold tracking-[-.025em] md:text-3xl">{title}</h2><p className="mt-2 max-w-4xl text-sm leading-6 text-[#8294af]">{description}</p></div>
+    {children}
+  </section>;
+}
+
+function CaseOverview({ journey, onNavigate }: { journey: ReturnType<typeof buildCaseJourney>; onNavigate: (section: WorkspaceSection) => void }) {
+  const nextSection: WorkspaceSection = journey.nextAction ? "execution" : "analysis";
   return <div className="grid gap-5 xl:grid-cols-[1.2fr_.8fr]">
     <article className="rounded-[26px] border border-[#7c5cff]/25 bg-[linear-gradient(135deg,rgba(124,92,255,.12),rgba(13,25,43,.94))] p-5 md:p-6">
       <div className="text-[10px] font-black uppercase tracking-[.18em] text-[#b7a9ff]">Là où tu en étais</div>
       <h2 className="mt-3 text-2xl font-semibold">{journey.latestDecision?.outcome ?? "Aucune décision encore formalisée"}</h2>
       <p className="mt-3 text-sm leading-6 text-[#aab7ca]">{journey.latestDecision?.rationale ?? journey.latestReflection?.summary ?? "Commence par poser la question, explorer les hypothèses et construire les options."}</p>
-      <button onClick={() => onStage(nextStage)} className="mt-5 rounded-xl bg-[#7c5cff] px-5 py-3 text-sm font-bold">Continuer depuis ici →</button>
+      <button onClick={() => onNavigate(nextSection)} className="mt-5 rounded-xl bg-[#7c5cff] px-5 py-3 text-sm font-bold">Continuer depuis ici →</button>
     </article>
     <div className="grid gap-3">
-      <Outcome eyebrow="Décision" title={journey.latestDecision?.outcome ?? "À construire"} text={journey.latestDecision ? `${journey.latestDecision.confidence}% de confiance` : "Aucun arbitrage enregistré"} onClick={() => onStage("decision")}/>
-      <Outcome eyebrow="Prochaine action" title={journey.nextAction?.title ?? "À définir"} text={journey.nextAction ? `${journey.nextAction.owner} · ${journey.nextAction.progress}%` : "Le plan d’action sera créé après la décision"} onClick={() => onStage("execution")}/>
-      <Outcome eyebrow="Dernier apprentissage" title={journey.latestLearning?.title ?? journey.latestReflection?.summary ?? "Pas encore d’apprentissage"} text={journey.latestLearning?.detail ?? "Les résultats réels alimenteront cette section"} onClick={() => onStage("learning")}/>
+      <Outcome eyebrow="Décision" title={journey.latestDecision?.outcome ?? "À construire"} text={journey.latestDecision ? `${journey.latestDecision.confidence}% de confiance` : "Aucun arbitrage enregistré"} onClick={() => onNavigate("analysis")}/>
+      <Outcome eyebrow="Prochaine action" title={journey.nextAction?.title ?? "À définir"} text={journey.nextAction ? `${journey.nextAction.owner} · ${journey.nextAction.progress}%` : "Le plan d’action sera créé après la décision"} onClick={() => onNavigate("execution")}/>
+      <Outcome eyebrow="Dernier apprentissage" title={journey.latestLearning?.title ?? journey.latestReflection?.summary ?? "Pas encore d’apprentissage"} text={journey.latestLearning?.detail ?? "Les résultats réels alimenteront cette section"} onClick={() => onNavigate("learning")}/>
     </div>
   </div>;
 }
 
-function LearningPanel({ caseId, onStage }: { caseId: string; onStage: (stage: CaseStage) => void }) {
+function LearningPanel({ caseId, onNavigate }: { caseId: string; onNavigate: (section: WorkspaceSection) => void }) {
   const store = useExecutiveStore();
   const memories = store.memories.filter((item) => item.caseId === caseId);
   const learnings = store.learningEvents.filter((item) => item.caseId === caseId);
@@ -204,21 +226,21 @@ function LearningPanel({ caseId, onStage }: { caseId: string; onStage: (stage: C
     <Panel title="Réflexions"><>{reflections.map((item) => <Item key={item.id} title={item.summary} text={[...item.learned, ...item.uncertainties].join(" · ")} meta={`${item.confidence}%`}/>)}</></Panel>
     <Panel title="Mémoire durable">{memories.map((item) => <Item key={item.id} title={item.kind} text={item.content} meta={`${item.confidence}%`}/>)}</Panel>
     <Panel title="Calibration">{profile ? <div className="grid grid-cols-2 gap-3"><Metric label="Calibration" value={profile.calibration}/><Metric label="Stabilité" value={profile.beliefStability}/><Metric label="Risque" value={profile.riskDiscipline}/><Metric label="Apprentissage" value={profile.learningQuality}/></div> : <p className="text-sm text-[#71839e]">Pas assez de traces pour calibrer le dossier.</p>}</Panel>
-    <button onClick={() => onStage("history")} className="xl:col-span-2 rounded-xl border border-white/[.08] bg-white/[.03] px-4 py-3 text-sm font-semibold">Voir tout l’historique →</button>
+    <button onClick={() => onNavigate("history")} className="xl:col-span-2 rounded-xl border border-white/[.08] bg-white/[.03] px-4 py-3 text-sm font-semibold">Voir tout l’historique →</button>
   </div>;
 }
 
-function HistoryPanel({ caseId, onStage }: { caseId: string; onStage: (stage: CaseStage) => void }) {
+function HistoryPanel({ caseId, onNavigate }: { caseId: string; onNavigate: (section: WorkspaceSection) => void }) {
   const store = useExecutiveStore();
   const events = store.events.filter((event) => event.detail.includes(caseId) || event.type === "CaseCreated" || store.actions.some((a) => a.caseId === caseId && event.detail.includes(a.id))).slice(0, 30);
-  function destination(event: CognitiveEventRecord): CaseStage {
+  function destination(event: CognitiveEventRecord): WorkspaceSection {
     const view = resolveEventDestination(event).view;
     if (view === "act") return "execution";
-    if (view === "decision") return "decision";
+    if (view === "decision") return "analysis";
     if (view === "understand") return "learning";
     return "overview";
   }
-  return <Panel title="Timeline du dossier">{events.length ? events.map((event) => <button key={event.id} onClick={() => onStage(destination(event))} className="block w-full rounded-2xl border border-white/[.07] bg-white/[.025] p-4 text-left hover:border-[#7c5cff]/40"><div className="flex justify-between gap-3"><strong className="text-sm">{event.type}</strong><span className="text-[10px] text-[#9d83ff]">Ouvrir →</span></div><p className="mt-2 text-sm text-[#91a2bd]">{event.detail}</p><span className="mt-2 block text-[10px] text-[#667995]">{new Date(event.createdAt).toLocaleString("fr-FR")}</span></button>) : <p className="text-sm text-[#71839e]">La timeline se remplira au fil du travail sur ce dossier.</p>}</Panel>;
+  return <Panel title="Timeline du dossier">{events.length ? events.map((event) => <button key={event.id} onClick={() => onNavigate(destination(event))} className="block w-full rounded-2xl border border-white/[.07] bg-white/[.025] p-4 text-left hover:border-[#7c5cff]/40"><div className="flex justify-between gap-3"><strong className="text-sm">{event.type}</strong><span className="text-[10px] text-[#9d83ff]">Ouvrir →</span></div><p className="mt-2 text-sm text-[#91a2bd]">{event.detail}</p><span className="mt-2 block text-[10px] text-[#667995]">{new Date(event.createdAt).toLocaleString("fr-FR")}</span></button>) : <p className="text-sm text-[#71839e]">La timeline se remplira au fil du travail sur ce dossier.</p>}</Panel>;
 }
 
 function SettingsPanel() {
