@@ -1,61 +1,28 @@
-export type EntityType =
-  | "organization" | "organizational_unit" | "person" | "goal" | "kpi" | "project"
-  | "decision_case" | "context_item" | "scenario" | "assessment" | "decision" | "review_trigger" | "outcome"
-  | "risk" | "opportunity" | "action" | "commitment" | "experience" | "evidence" | "memory" | "learning" | "insight"
-  | "customer" | "supplier" | "product" | "process" | "application" | "contract" | "market" | "twin_profile";
+import type {
+  KnowledgeEntity,
+  KnowledgeEntityType,
+  KnowledgeRelation,
+  KnowledgeRelationType,
+  KnowledgeSnapshot
+} from "@/domain/canonical";
 
-export type RelationType =
-  | "PART_OF" | "MEMBER_OF" | "REPORTS_TO" | "OWNS" | "SPONSORS"
-  | "SUPPORTS" | "MEASURES" | "ADVANCES" | "CONFLICTS_WITH" | "DEPENDS_ON"
-  | "CONCERNS" | "USES_CONTEXT" | "CONSIDERS" | "ASSESSED_BY" | "SELECTS" | "REJECTS" | "RESULTS_IN" | "REQUIRES_REVIEW_WHEN"
-  | "DERIVED_FROM" | "SUPPORTED_BY" | "CONTRADICTED_BY" | "SUPERSEDES" | "VALIDATES" | "INVALIDATES" | "LEARNED_FROM"
-  | "CREATES" | "ASSIGNED_TO" | "BLOCKS" | "MITIGATES" | "MONITORS" | "ACHIEVES" | "AFFECTS";
-
-export interface BaseEntity {
-  id: string;
-  organizationId: string;
-  type: EntityType;
-  title: string;
-  status: string;
-  createdAt: string;
-  updatedAt: string;
-  source?: string;
-}
-
-export interface GraphRelation {
-  id: string;
-  organizationId: string;
-  sourceId: string;
-  sourceType: EntityType;
-  targetId: string;
-  targetType: EntityType;
-  relationType: RelationType;
-  confidence: number;
-  provenance: string;
-  validFrom: string;
-  validTo?: string;
-}
-
-export interface ExecutiveTwinSeed {
-  entities: BaseEntity[];
-  relations: GraphRelation[];
-  briefing: {
-    twinHealth: number;
-    openDecisions: number;
-    criticalRisks: number;
-    invalidatedHypotheses: number;
-    dueCommitments: number;
-    newKnowledge: number;
-    recommendation: string;
-  };
-}
+/** @deprecated Prefer KnowledgeEntityType. */
+export type EntityType = KnowledgeEntityType;
+/** @deprecated Prefer KnowledgeRelationType. */
+export type RelationType = KnowledgeRelationType;
+/** @deprecated Prefer KnowledgeEntity. */
+export type BaseEntity = KnowledgeEntity;
+/** @deprecated Prefer KnowledgeRelation. */
+export type GraphRelation = KnowledgeRelation;
+/** @deprecated Prefer KnowledgeSnapshot. */
+export type ExecutiveTwinSeed = KnowledgeSnapshot;
 
 const now = "2026-08-06T15:00:00.000Z";
 const org = "org-novaris";
 
-export const executiveTwinSeed: ExecutiveTwinSeed = {
+export const executiveTwinSeed: KnowledgeSnapshot = {
   briefing: {
-    twinHealth: 72,
+    systemHealth: 72,
     openDecisions: 3,
     criticalRisks: 2,
     invalidatedHypotheses: 1,
@@ -94,15 +61,15 @@ export const executiveTwinSeed: ExecutiveTwinSeed = {
   ]
 };
 
-function entity(id: string, type: EntityType, title: string, status: string): BaseEntity {
+function entity(id: string, type: KnowledgeEntityType, title: string, status: string): KnowledgeEntity {
   return { id, organizationId: org, type, title, status, createdAt: now, updatedAt: now, source: "Release 1 demonstration seed" };
 }
 
-function relation(id: string, sourceId: string, sourceType: EntityType, targetId: string, targetType: EntityType, relationType: RelationType, confidence: number, provenance: string): GraphRelation {
+function relation(id: string, sourceId: string, sourceType: KnowledgeEntityType, targetId: string, targetType: KnowledgeEntityType, relationType: KnowledgeRelationType, confidence: number, provenance: string): KnowledgeRelation {
   return { id, organizationId: org, sourceId, sourceType, targetId, targetType, relationType, confidence, provenance, validFrom: now };
 }
 
-export function validateExecutiveTwinSeed(seed: ExecutiveTwinSeed): string[] {
+export function validateExecutiveTwinSeed(seed: KnowledgeSnapshot): string[] {
   const errors: string[] = [];
   const ids = new Set(seed.entities.map((item) => item.id));
   if (ids.size !== seed.entities.length) errors.push("Entity identifiers must be unique.");
@@ -114,6 +81,6 @@ export function validateExecutiveTwinSeed(seed: ExecutiveTwinSeed): string[] {
   return errors;
 }
 
-export function entityCounts(seed: ExecutiveTwinSeed): Record<string, number> {
+export function entityCounts(seed: KnowledgeSnapshot): Record<string, number> {
   return seed.entities.reduce<Record<string, number>>((counts, item) => ({ ...counts, [item.type]: (counts[item.type] ?? 0) + 1 }), {});
 }
