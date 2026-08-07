@@ -27,7 +27,7 @@ const DECISION_PATTERNS = [
   /\bquel scénario\b.*\b(?:choisir|retenir)\b/, /\bchoisir entre\b/, /\bnous devons choisir\b/,
   /\bje dois décider\b/, /\bje veux décider\b/,
   /\bje me demande si\b.*\b(?:dois|devons|devrait|devrions|faut)\b/,
-  /\bdevrions-nous\b/, /\bdoit-on\b/, /\bshould i\b/, /\bshould we\b/,
+  /\bdevrions-nous\b/, /\bdevons-nous\b/, /\bdoit-on\b/, /\bshould i\b/, /\bshould we\b/,
   /\bi need to decide whether\b/, /\bwould it be better to\b/
 ];
 
