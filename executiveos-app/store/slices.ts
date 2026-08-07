@@ -1,6 +1,6 @@
 import type { StateCreator } from "zustand";
-import type { ExecutiveState, CaseSlice, ConversationSlice, DecisionSlice, ActionSlice, EventSlice } from "@/store/types";
-import { initialCases, initialMessages } from "@/store/seed";
+import type { ExecutiveState, CaseSlice, ConversationSlice, DecisionSlice, ActionSlice, EventSlice } from "./types.ts";
+import { initialCases, initialMessages } from "./seed.ts";
 
 export const createCaseSlice: StateCreator<ExecutiveState, [], [], CaseSlice> = (set) => ({
   cases: initialCases,
