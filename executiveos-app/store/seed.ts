@@ -1,4 +1,4 @@
-import type { CognitiveCase } from "../domain/canonical.ts";
+import type { ActionRecord, AgentContract, CognitiveCase } from "../domain/canonical.ts";
 import type { ConversationMessage } from "./types.ts";
 
 export const initialCases: CognitiveCase[] = [
@@ -30,4 +30,16 @@ export const initialMessages: ConversationMessage[] = [
     text: "Bonjour Sébastien. Tu reprends ExecutiveOS. Le principal sujet est maintenant la validation du Conversation Runtime. Que souhaites-tu approfondir ?",
     createdAt: new Date().toISOString()
   }
+];
+
+export const initialAgents: AgentContract[] = [
+  { id: "orion", name: "ORION", role: "Orchestrateur exécutif", specialty: "Synthèse et orchestration", capabilities: ["analysis", "orchestration", "decision"], status: "online", version: "2.0.0" },
+  { id: "athena", name: "ATHENA", role: "Chief Strategy Officer", specialty: "Stratégie", capabilities: ["analysis", "strategy", "decision"], status: "online", version: "2.0.0" },
+  { id: "turing", name: "TURING", role: "CTO", specialty: "Technologie et architecture", capabilities: ["analysis", "technology", "execution"], status: "online", version: "2.0.0" },
+  { id: "seneca", name: "SENECA", role: "Chief Reflection Officer", specialty: "Critique et risques", capabilities: ["analysis", "reflection", "risk"], status: "online", version: "2.0.0" }
+];
+
+export const initialRuntimeActions: ActionRecord[] = [
+  { id: "runtime-context", caseId: "executiveos", title: "Valider le contrat du Context Engine", owner: "Non affecté", progress: 0, status: "todo", requiredCapability: "analysis" },
+  { id: "runtime-architecture", caseId: "executiveos", title: "Vérifier l’architecture du runtime agentique", owner: "Non affecté", progress: 0, status: "todo", requiredCapability: "technology" }
 ];
