@@ -1,15 +1,17 @@
 {
   "name": "executiveos",
-  "version": "1.0.0-alpha.1",
+  "version": "1.0.0-rc.1",
   "private": true,
   "scripts": {
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
+    "typecheck": "tsc --noEmit",
     "test:runtime": "node --experimental-strip-types --test tests/*.test.ts",
     "test:e2e": "playwright test",
     "test:e2e:typecheck": "tsc -p tsconfig.e2e.json --noEmit",
-    "test:e2e:headed": "playwright test --headed"
+    "test:e2e:headed": "playwright test --headed",
+    "validate": "npm run test:runtime && npm run typecheck && npm run build && npm run test:e2e:typecheck && npm run test:e2e"
   },
   "dependencies": {
     "@supabase/ssr": "latest",
