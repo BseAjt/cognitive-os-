@@ -36,7 +36,7 @@ const here=dirname(fileURLToPath(import.meta.url)); const root=resolve(here,".."
 const canonical=source("domain/canonical.ts"),types=source("store/types.ts"),slices=source("store/slices.ts"),commands=source("store/commands.ts"),store=source("store/executive-store.ts");
 for(const [name,file,expected] of [
  ["canonical cognitive profile exists",canonical,"interface CognitiveProfileRecord"],
- ["state exposes cognitive profiles",types,"cognitiveProfiles:CognitiveProfileRecord[]"],
+ ["state exposes cognitive profiles",types,"cognitiveProfiles: CognitiveProfileRecord[]"],
  ["profile slice initializes",slices,"cognitiveProfiles: []"],
  ["runtime recalibrates profile",commands,"buildCognitiveProfile"],
  ["runtime persists profile",commands,"cognitiveProfiles: [profile"],
