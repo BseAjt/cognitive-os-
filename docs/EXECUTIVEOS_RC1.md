@@ -46,7 +46,7 @@ There is one canonical GitHub Actions workflow: `.github/workflows/runtime-tests
 
 Every relevant pull request and every push to `main` must run:
 
-1. deterministic dependency install with `npm ci`;
+1. dependency installation;
 2. runtime regression tests;
 3. TypeScript application validation;
 4. production Next.js build;
@@ -54,6 +54,10 @@ Every relevant pull request and every push to `main` must run:
 6. browser end-to-end tests.
 
 The application also exposes `npm run validate` to execute the complete validation chain locally.
+
+### Dependency reproducibility
+
+RC1 currently uses `npm install --no-audit --no-fund` because no `package-lock.json` exists in the repository yet. Generating and committing a lockfile from an environment with access to the public npm registry is the next hardening step; once committed, the CI install step should be switched to `npm ci`.
 
 ## Branch and PR policy
 
