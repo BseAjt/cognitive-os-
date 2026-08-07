@@ -59,6 +59,8 @@ export const createExecutiveCommands: StateCreator<ExecutiveState, [], [], Execu
         knowledgeEntities: mergeById(state.knowledgeEntities, [...graph.entities, profileEntity]),
         knowledgeRelations: mergeById(state.knowledgeRelations, [...graph.relations, profileRelation]),
         reasoningRevisions: reasoningRevisions.length ? [...state.reasoningRevisions, ...reasoningRevisions] : state.reasoningRevisions,
+        kernelTransactions: [result.kernel, ...state.kernelTransactions.filter((item) => item.id !== result.kernel.id)],
+        kernelEvents: [...result.kernelEvents, ...state.kernelEvents.filter((item) => item.transactionId !== result.kernel.id)],
         events: [...events, ...state.events]
       };
     });

@@ -1,4 +1,5 @@
 import type { ActionRecord, AgentContract, AgentRunRecord, CognitiveCase, CognitiveEventRecord, CognitiveProfileRecord, DecisionRecord, DossierObjectRecord, KnowledgeEntity, KnowledgeRecord, KnowledgeRelation, LearningEventRecord, MemoryRecord, ReflectionRecord } from "../domain/canonical.ts";
+import type { KernelEvent, KernelTransaction } from "../lib/executive-kernel.ts";
 import type { UnifiedRuntimeResult } from "../lib/unified-runtime.ts";
 
 export interface ConversationMessage {
@@ -88,6 +89,12 @@ export interface KnowledgeGraphSlice {
   mergeKnowledgeGraph: (entities: KnowledgeEntity[], relations: KnowledgeRelation[]) => void;
 }
 
+export interface KernelSlice {
+  kernelTransactions: KernelTransaction[];
+  kernelEvents: KernelEvent[];
+  recordKernelExecution: (transaction: KernelTransaction, events: KernelEvent[]) => void;
+}
+
 export interface RuntimeSlice {
   agents: AgentContract[];
   agentRuns: AgentRunRecord[];
@@ -107,4 +114,4 @@ export interface ExecutiveCommands {
   applyCriticalSignal: () => void;
 }
 
-export type ExecutiveState = CaseSlice & ConversationSlice & DossierObjectSlice & DecisionSlice & ActionSlice & EventSlice & LearningSlice & ReflectionSlice & CognitiveProfileSlice & MemorySlice & KnowledgeSlice & KnowledgeGraphSlice & RuntimeSlice & ExecutiveCommands;
+export type ExecutiveState = CaseSlice & ConversationSlice & DossierObjectSlice & DecisionSlice & ActionSlice & EventSlice & LearningSlice & ReflectionSlice & CognitiveProfileSlice & MemorySlice & KnowledgeSlice & KnowledgeGraphSlice & KernelSlice & RuntimeSlice & ExecutiveCommands;

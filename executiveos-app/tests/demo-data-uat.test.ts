@@ -137,7 +137,7 @@ test("B4.3 persists conversation-derived objects as first-class dossier records"
   assert.ok(commands.includes("const decisionObject: DossierObjectRecord[]"));
   assert.ok(commands.includes("const actionObjects: DossierObjectRecord[]"));
   assert.ok(commands.includes("DossierObjectsCreated"));
-  assert.ok(store.includes("version: 16"));
+  assert.ok(store.includes("version: 17"));
 });
 
 test("B4.3 exposes dossier objects in the same ORION workspace", () => {
