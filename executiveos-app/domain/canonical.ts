@@ -5,6 +5,7 @@ export type ContextDomain = "strategy" | "finance" | "people" | "operations" | "
 export type ContextKind = "fact" | "hypothesis" | "constraint" | "preference" | "uncertainty" | "goal";
 export type ContextRequirement = "required" | "important" | "optional";
 export type ContextStatus = "missing" | "draft" | "verified" | "stale" | "contested";
+export type MemoryKind = "goal" | "hypothesis" | "risk" | "decision" | "action" | "question" | "context";
 
 export interface CognitiveCase {
   id: string;
@@ -60,6 +61,27 @@ export interface CognitiveEventRecord {
   id: string;
   type: string;
   detail: string;
+  createdAt: string;
+}
+
+export interface MemoryRecord {
+  id: string;
+  caseId: string;
+  kind: MemoryKind;
+  content: string;
+  confidence: number;
+  durable: boolean;
+  source: "unified_runtime" | "manual" | "migration";
+  createdAt: string;
+}
+
+export interface KnowledgeRecord {
+  id: string;
+  caseId: string;
+  type: "context_item" | "risk" | "decision" | "action" | "insight";
+  title: string;
+  confidence: number;
+  source: "unified_runtime" | "manual" | "migration";
   createdAt: string;
 }
 

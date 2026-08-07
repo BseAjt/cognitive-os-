@@ -1,4 +1,4 @@
-import type { ActionRecord, AgentContract, CognitiveCase, CognitiveEventRecord, DecisionRecord } from "../domain/canonical.ts";
+import type { ActionRecord, AgentContract, CognitiveCase, CognitiveEventRecord, DecisionRecord, KnowledgeRecord, MemoryRecord } from "../domain/canonical.ts";
 import type { UnifiedRuntimeResult } from "../lib/unified-runtime.ts";
 
 export interface ConversationMessage {
@@ -51,6 +51,16 @@ export interface EventSlice {
   prependEvent: (event: CognitiveEventRecord) => void;
 }
 
+export interface MemorySlice {
+  memories: MemoryRecord[];
+  prependMemories: (records: MemoryRecord[]) => void;
+}
+
+export interface KnowledgeSlice {
+  knowledgeRecords: KnowledgeRecord[];
+  prependKnowledge: (records: KnowledgeRecord[]) => void;
+}
+
 export interface RuntimeSlice {
   agents: AgentContract[];
   reasoningRevisions: ReasoningRevision[];
@@ -94,4 +104,4 @@ export interface ExecutiveCommands {
   applyCriticalSignal: () => void;
 }
 
-export type ExecutiveState = CaseSlice & ConversationSlice & DecisionSlice & ActionSlice & EventSlice & RuntimeSlice & ExecutiveCommands;
+export type ExecutiveState = CaseSlice & ConversationSlice & DecisionSlice & ActionSlice & EventSlice & MemorySlice & KnowledgeSlice & RuntimeSlice & ExecutiveCommands;

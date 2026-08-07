@@ -2,64 +2,19 @@
 
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
-import { createActionSlice, createCaseSlice, createConversationSlice, createDecisionSlice, createEventSlice } from "./slices";
+import { createActionSlice, createCaseSlice, createConversationSlice, createDecisionSlice, createEventSlice, createKnowledgeSlice, createMemorySlice } from "./slices";
 import { createExecutiveCommands } from "./commands";
 import { createRuntimeSlice } from "./runtime-slice";
-import type { ActionRecord, AgentContract, CognitiveCase, DecisionRecord } from "../domain/canonical";
+import type { ActionRecord, AgentContract, CognitiveCase, DecisionRecord, KnowledgeRecord, MemoryRecord } from "../domain/canonical";
 import type { ConversationMessage, ExecutiveState, ReasoningRevision } from "./types";
 
 export type { ConversationMessage, ExecutiveState, ReasoningRevision, ReasoningStepId } from "./types";
 
-type PersistedMessage = Omit<ConversationMessage, "caseId"> & {
-  caseId?: string;
-  challengeId?: string;
-};
-
-type PersistedDecision = {
-  id: string;
-  caseId?: string;
-  challengeId?: string;
-  recommendation: string;
-  outcome?: string;
-  finalDecision?: string;
-  rationale: string;
-  confidence: number;
-  createdAt: string;
-};
-
-type PersistedAction = {
-  id: string;
-  caseId?: string;
-  challengeId?: string;
-  title: string;
-  owner: string;
-  progress: number;
-  status: ActionRecord["status"];
-  requiredCapability?: string;
-  assignedAgentId?: string | null;
-  blockedReason?: string;
-  dueAt?: string | null;
-  result?: string;
-};
-
-type PersistedLegacyChallenge = {
-  id: string;
-  title: string;
-  goal: string;
-  hypothesis: string;
-  impact: number;
-  urgency: number;
-  confidence: number;
-  cognitiveCost: number;
-  risk: number;
-  context: string;
-  state: CognitiveCase["state"];
-};
-
-type PersistedLegacyRevision = Omit<ReasoningRevision, "caseId"> & {
-  caseId?: string;
-  challengeId?: string;
-};
+type PersistedMessage = Omit<ConversationMessage, "caseId"> & { caseId?: string; challengeId?: string };
+type PersistedDecision = { id: string; caseId?: string; challengeId?: string; recommendation: string; outcome?: string; finalDecision?: string; rationale: string; confidence: number; createdAt: string };
+type PersistedAction = { id: string; caseId?: string; challengeId?: string; title: string; owner: string; progress: number; status: ActionRecord["status"]; requiredCapability?: string; assignedAgentId?: string | null; blockedReason?: string; dueAt?: string | null; result?: string };
+type PersistedLegacyChallenge = { id: string; title: string; goal: string; hypothesis: string; impact: number; urgency: number; confidence: number; cognitiveCost: number; risk: number; context: string; state: CognitiveCase["state"] };
+type PersistedLegacyRevision = Omit<ReasoningRevision, "caseId"> & { caseId?: string; challengeId?: string };
 
 type PersistedExecutiveState = {
   cases?: CognitiveCase[];
@@ -72,12 +27,14 @@ type PersistedExecutiveState = {
   events?: ExecutiveState["events"];
   agents?: AgentContract[];
   reasoningRevisions?: PersistedLegacyRevision[];
+  memories?: MemoryRecord[];
+  knowledgeRecords?: KnowledgeRecord[];
 };
 
 function migratePersistedState(persistedState: unknown, version: number): ExecutiveState {
   const state = (persistedState ?? {}) as PersistedExecutiveState;
 
-  if (version >= 7) return state as ExecutiveState;
+  if (version >= 8) return state as ExecutiveState;
 
   const migratedCases: CognitiveCase[] = state.cases ?? (state.challenges ?? []).map((challenge) => ({
     id: challenge.id,
@@ -140,7 +97,9 @@ function migratePersistedState(persistedState: unknown, version: number): Execut
     actions: migratedActions,
     events: state.events ?? [],
     agents: state.agents ?? [],
-    reasoningRevisions: migratedRevisions
+    reasoningRevisions: migratedRevisions,
+    memories: state.memories ?? [],
+    knowledgeRecords: state.knowledgeRecords ?? []
   } as ExecutiveState;
 }
 
@@ -152,12 +111,14 @@ export const useExecutiveStore = create<ExecutiveState>()(
       ...createDecisionSlice(...args),
       ...createActionSlice(...args),
       ...createEventSlice(...args),
+      ...createMemorySlice(...args),
+      ...createKnowledgeSlice(...args),
       ...createRuntimeSlice(...args),
       ...createExecutiveCommands(...args)
     }),
     {
       name: "executiveos-v2",
-      version: 7,
+      version: 8,
       migrate: migratePersistedState
     }
   )
