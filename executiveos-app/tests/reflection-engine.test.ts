@@ -47,5 +47,5 @@ for (const [name,file,expected] of [
   ["runtime emits reflection event",commands,"ReflectionPersisted"],
   ["recall consumes reflections",recall,"lastReflection"],
   ["graph projects reflection insight",graph,"reflection:${reflection.id}"],
-  ["persistence schema includes dossier objects v16",store,"version: 16"]
+  ["persistence schema includes Kernel observability v17",store,"version: 17"]
 ] as const) test(name,()=>assert.ok(file.includes(expected),`Missing reflection contract: ${expected}`));
