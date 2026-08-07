@@ -2,14 +2,14 @@ import type { StateCreator } from "zustand";
 import type { ExecutiveCommands, ExecutiveState } from "@/store/types";
 
 export const createExecutiveCommands: StateCreator<ExecutiveState, [], [], ExecutiveCommands> = (set, get) => ({
-  recordConversationTurn: ({ challengeId, userText, assistantText, intent, extractionCount, challengePatch, createdAt }) => {
+  recordConversationTurn: ({ caseId, userText, assistantText, intent, extractionCount, challengePatch, createdAt }) => {
     const timestamp = createdAt ?? new Date().toISOString();
     set((state) => ({
-      challenges: state.challenges.map((challenge) => challenge.id === challengeId ? { ...challenge, ...challengePatch } : challenge),
+      challenges: state.challenges.map((challenge) => challenge.id === caseId ? { ...challenge, ...challengePatch } : challenge),
       messages: [
         ...state.messages,
-        { id: crypto.randomUUID(), challengeId, role: "user", text: userText, createdAt: timestamp },
-        { id: crypto.randomUUID(), challengeId, role: "assistant", text: assistantText, createdAt: timestamp }
+        { id: crypto.randomUUID(), caseId, role: "user", text: userText, createdAt: timestamp },
+        { id: crypto.randomUUID(), caseId, role: "assistant", text: assistantText, createdAt: timestamp }
       ],
       events: [
         { id: crypto.randomUUID(), type: "ConversationParsed", detail: `${intent} · ${extractionCount} objets détectés`, createdAt: timestamp },
@@ -18,12 +18,12 @@ export const createExecutiveCommands: StateCreator<ExecutiveState, [], [], Execu
     }));
   },
 
-  captureDecision: ({ challengeId, text, recommendation, confidence, rationale, createdAt }) => {
+  captureDecision: ({ caseId, text, recommendation, confidence, rationale, createdAt }) => {
     const timestamp = createdAt ?? new Date().toISOString();
     set((state) => ({
       decisions: [{
         id: crypto.randomUUID(),
-        challengeId,
+        challengeId: caseId,
         recommendation,
         finalDecision: text,
         rationale: rationale ?? "Décision extraite de la conversation.",
@@ -34,12 +34,12 @@ export const createExecutiveCommands: StateCreator<ExecutiveState, [], [], Execu
     }));
   },
 
-  createAction: ({ challengeId, title, owner }) => {
+  createAction: ({ caseId, title, owner }) => {
     const timestamp = new Date().toISOString();
     set((state) => ({
       actions: [{
         id: crypto.randomUUID(),
-        challengeId,
+        challengeId: caseId,
         title,
         owner: owner ?? "À assigner",
         progress: 0,
@@ -51,10 +51,10 @@ export const createExecutiveCommands: StateCreator<ExecutiveState, [], [], Execu
 
   applyCriticalSignal: () => {
     const timestamp = new Date().toISOString();
-    const activeId = get().activeChallengeId;
+    const activeCaseId = get().activeChallengeId;
     set((state) => ({
       challenges: state.challenges.map((challenge) =>
-        challenge.id === activeId
+        challenge.id === activeCaseId
           ? {
               ...challenge,
               confidence: 41,
