@@ -28,4 +28,27 @@ function migratePersistedState(persistedState:unknown, version:number):Executive
  return { cases:migratedCases, activeCaseId:state.activeCaseId??state.activeChallengeId??migratedCases[0]?.id??"executiveos", messages:migratedMessages, decisions:migratedDecisions, actions:migratedActions, events:state.events??[], agents:state.agents?.length?state.agents:defaultExecutiveAgents, agentRuns:state.agentRuns??[], learningEvents:state.learningEvents??[], reflections:state.reflections??[], cognitiveProfiles:state.cognitiveProfiles??[], reasoningRevisions:migratedRevisions, memories:state.memories??[], knowledgeRecords:state.knowledgeRecords??[], knowledgeEntities:state.knowledgeEntities??[], knowledgeRelations:state.knowledgeRelations??[] } as ExecutiveState;
 }
 
-export const useExecutiveStore=create<ExecutiveState>()(persist((...args)=>({ ...createCaseSlice(...args), ...createConversationSlice(...args), ...createDecisionSlice(...args), ...createActionSlice(...args), ...createEventSlice(...args), ...createLearningSlice(...args), ...createReflectionSlice(...args), ...createCognitiveProfileSlice(...args), ...createMemorySlice(...args), ...createKnowledgeSlice(...args), ...createKnowledgeGraphSlice(...args), ...createRuntimeSlice(...args), ...createExecutiveCommands(...args) }),{name:"executiveos-v2",version:13,migrate:migratePersistedState}));
+export const useExecutiveStore = create<ExecutiveState>()(
+  persist(
+    (...args) => ({
+      ...createCaseSlice(...args),
+      ...createConversationSlice(...args),
+      ...createDecisionSlice(...args),
+      ...createActionSlice(...args),
+      ...createEventSlice(...args),
+      ...createLearningSlice(...args),
+      ...createReflectionSlice(...args),
+      ...createCognitiveProfileSlice(...args),
+      ...createMemorySlice(...args),
+      ...createKnowledgeSlice(...args),
+      ...createKnowledgeGraphSlice(...args),
+      ...createRuntimeSlice(...args),
+      ...createExecutiveCommands(...args)
+    }),
+    {
+      name: "executiveos-v2",
+      version: 13,
+      migrate: migratePersistedState
+    }
+  )
+);
