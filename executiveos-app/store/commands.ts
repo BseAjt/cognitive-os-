@@ -22,11 +22,23 @@ export const createExecutiveCommands: StateCreator<ExecutiveState, [], [], Execu
         id: crypto.randomUUID(),
         caseId,
         title: action.title,
-        owner: "À assigner",
+        owner: action.preferredAgentName ?? "À assigner",
         progress: 0,
         status: "todo" as const,
-        requiredCapability: action.requiredCapability
+        requiredCapability: action.requiredCapability,
+        assignedAgentId: action.preferredAgentId ?? null
       }));
+
+      const agentRun = {
+        id: crypto.randomUUID(),
+        caseId,
+        orchestratorId: result.agents.orchestratorId,
+        selectedAgentIds: result.agents.selectedAgentIds,
+        contributions: result.agents.contributions,
+        synthesis: result.agents.synthesis,
+        confidence: result.agents.confidence,
+        createdAt: timestamp
+      };
 
       const memories = result.memory.map((memory) => ({
         id: crypto.randomUUID(),
@@ -87,11 +99,17 @@ export const createExecutiveCommands: StateCreator<ExecutiveState, [], [], Execu
           detail: `${result.trace.filter((item) => item.status === "completed").length} étapes · ${memories.filter((item) => item.durable).length} mémoires · ${knowledgeRecords.length} connaissances`,
           createdAt: timestamp
         },
+        {
+          id: crypto.randomUUID(),
+          type: "AgentCouncilCompleted",
+          detail: `ORION · ${result.agents.selectedAgentIds.length} spécialiste(s) · confiance ${result.agents.confidence}%`,
+          createdAt: timestamp
+        },
         ...(memories.length ? [{ id: crypto.randomUUID(), type: "MemoryPersisted", detail: `${memories.length} mémoire(s) persistée(s)`, createdAt: timestamp }] : []),
         ...(knowledgeRecords.length ? [{ id: crypto.randomUUID(), type: "KnowledgePersisted", detail: `${knowledgeRecords.length} connaissance(s) persistée(s)`, createdAt: timestamp }] : []),
         ...(graph.entities.length ? [{ id: crypto.randomUUID(), type: "KnowledgeGraphProjected", detail: `${graph.entities.length} entité(s) · ${graph.relations.length} relation(s)`, createdAt: timestamp }] : []),
         ...(decision ? [{ id: crypto.randomUUID(), type: "DecisionCaptured", detail: decision.outcome, createdAt: timestamp }] : []),
-        ...actions.map((action) => ({ id: crypto.randomUUID(), type: "ActionCreated", detail: action.title, createdAt: timestamp }))
+        ...actions.map((action) => ({ id: crypto.randomUUID(), type: "ActionCreated", detail: action.assignedAgentId ? `${action.title} → ${action.owner}` : action.title, createdAt: timestamp }))
       ];
 
       return {
@@ -105,6 +123,7 @@ export const createExecutiveCommands: StateCreator<ExecutiveState, [], [], Execu
         ],
         decisions: decision ? [decision, ...state.decisions] : state.decisions,
         actions: actions.length ? [...actions, ...state.actions] : state.actions,
+        agentRuns: [agentRun, ...state.agentRuns],
         memories: memories.length ? [...memories, ...state.memories] : state.memories,
         knowledgeRecords: knowledgeRecords.length ? [...knowledgeRecords, ...state.knowledgeRecords] : state.knowledgeRecords,
         knowledgeEntities: mergeById(state.knowledgeEntities, graph.entities),

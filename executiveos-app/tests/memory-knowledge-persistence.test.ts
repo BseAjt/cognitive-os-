@@ -43,7 +43,7 @@ for (const [name, file, expected] of [
   ["runtime persists memory", commands, "source: \"unified_runtime\" as const"],
   ["runtime writes memories atomically", commands, "memories: memories.length"],
   ["runtime writes knowledge atomically", commands, "knowledgeRecords: knowledgeRecords.length"],
-  ["persistence schema includes graph migration v9", store, "version: 9"],
+  ["persistence schema includes agent migration v10", store, "version: 10"],
   ["store composes memory slice", store, "createMemorySlice"],
   ["store composes knowledge slice", store, "createKnowledgeSlice"]
 ] as const) {

@@ -5,6 +5,7 @@ import type { ExecutiveState, RuntimeSlice } from "./types.ts";
 
 export const createRuntimeSlice: StateCreator<ExecutiveState, [], [], RuntimeSlice> = (set) => ({
   agents: initialAgents,
+  agentRuns: [],
   reasoningRevisions: [],
   addReasoningRevision: (revision) =>
     set((state) => {

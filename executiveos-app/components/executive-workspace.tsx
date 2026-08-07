@@ -35,7 +35,13 @@ export function ExecutiveWorkspace() {
     const clean = message.trim();
     if (!clean) return;
 
-    const result = runUnifiedRuntime({ message: clean, cognitiveCase: active });
+    const result = runUnifiedRuntime({
+      message: clean,
+      cognitiveCase: active,
+      agents: store.agents,
+      memories: store.memories.filter((memory) => memory.caseId === active.id),
+      knowledgeRecords: store.knowledgeRecords.filter((record) => record.caseId === active.id)
+    });
     store.applyRuntimeCycle({ caseId: active.id, userText: clean, result });
 
     setLastExtractions(result.conversation.extractions);

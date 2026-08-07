@@ -43,6 +43,25 @@ export interface AgentContract {
   version: string;
 }
 
+export interface AgentContributionRecord {
+  agentId: string;
+  agentName: string;
+  focus: string;
+  content: string;
+  confidence: number;
+}
+
+export interface AgentRunRecord {
+  id: string;
+  caseId: string;
+  orchestratorId: string;
+  selectedAgentIds: string[];
+  contributions: AgentContributionRecord[];
+  synthesis: string;
+  confidence: number;
+  createdAt: string;
+}
+
 export interface ActionRecord {
   id: string;
   caseId: string;

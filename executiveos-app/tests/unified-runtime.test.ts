@@ -21,8 +21,10 @@ const cognitiveCase: CognitiveCase = {
 
 test("unified runtime exposes the complete ordered cognitive cycle", () => {
   const result = runUnifiedRuntime({ message: "Le risque est le budget. Il faut analyser la trésorerie.", cognitiveCase });
-  assert.deepEqual(result.trace.map((item) => item.stage), ["context", "reasoning", "decision", "action", "memory", "knowledge"]);
+  assert.deepEqual(result.trace.map((item) => item.stage), ["context", "reasoning", "agents", "decision", "action", "memory", "knowledge"]);
   assert.ok(result.reasoning.length >= 2);
+  assert.equal(result.trace.find((item) => item.stage === "agents")?.status, "completed");
+  assert.ok(result.agents.selectedAgentIds.length >= 1);
   assert.equal(result.actions.length, 1);
   assert.equal(result.actions[0].requiredCapability, "finance");
   assert.ok(result.memory.some((item) => item.durable));
@@ -53,7 +55,7 @@ test("questions are captured but not promoted as durable memory", () => {
   assert.equal(result.knowledge[0].type, "insight");
 });
 
-test("reasoning proposals map cognitive objects onto reasoning steps", () => {
+test("reasoning proposals map cognitive objects and agent reviews onto reasoning steps", () => {
   const result = runUnifiedRuntime({
     message: "Je pense que le marché est prêt. Le risque est le churn. Il faut tester avec cinq clients.",
     cognitiveCase
@@ -61,4 +63,5 @@ test("reasoning proposals map cognitive objects onto reasoning steps", () => {
   assert.ok(result.reasoning.some((item) => item.stepId === "hypothesis"));
   assert.ok(result.reasoning.some((item) => item.stepId === "objections"));
   assert.ok(result.reasoning.some((item) => item.stepId === "consequences"));
+  assert.ok(result.reasoning.some((item) => item.content.includes("ORION")));
 });

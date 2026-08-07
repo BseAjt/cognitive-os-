@@ -1,7 +1,8 @@
-import type { CognitiveCase, ContextRecord } from "../domain/canonical.ts";
+import type { AgentContract, CognitiveCase, ContextRecord, KnowledgeRecord, MemoryRecord } from "../domain/canonical.ts";
+import { defaultExecutiveAgents, preferredAgentForCapability, runAgentOrchestration, type AgentOrchestrationResult } from "./agent-runtime.ts";
 import { runConversationRuntime, type CognitiveExtraction, type RuntimeResult } from "./conversation-runtime.ts";
 
-export type RuntimeStage = "context" | "reasoning" | "decision" | "action" | "memory" | "knowledge";
+export type RuntimeStage = "context" | "reasoning" | "agents" | "decision" | "action" | "memory" | "knowledge";
 export type ReasoningStepId = "question" | "hypothesis" | "evidence" | "options" | "objections" | "decision" | "consequences";
 
 export interface RuntimeStageTrace {
@@ -27,6 +28,8 @@ export interface DecisionProposal {
 export interface ActionProposal {
   title: string;
   requiredCapability: string;
+  preferredAgentId?: string;
+  preferredAgentName?: string;
 }
 
 export interface MemoryCandidate {
@@ -46,11 +49,15 @@ export interface UnifiedRuntimeInput {
   message: string;
   cognitiveCase: CognitiveCase;
   contextItems?: ContextRecord[];
+  agents?: AgentContract[];
+  memories?: MemoryRecord[];
+  knowledgeRecords?: KnowledgeRecord[];
 }
 
 export interface UnifiedRuntimeResult {
   conversation: RuntimeResult;
   reasoning: ReasoningProposal[];
+  agents: AgentOrchestrationResult;
   decision?: DecisionProposal;
   actions: ActionProposal[];
   memory: MemoryCandidate[];
@@ -60,33 +67,76 @@ export interface UnifiedRuntimeResult {
 }
 
 export function runUnifiedRuntime(input: UnifiedRuntimeInput): UnifiedRuntimeResult {
+  const agents = input.agents?.length ? input.agents : defaultExecutiveAgents;
   const conversation = runConversationRuntime(input.message, input.cognitiveCase);
-  const reasoning = conversation.extractions.map((extraction) => toReasoningProposal(extraction, input.cognitiveCase));
+  const agentOrchestration = runAgentOrchestration({
+    message: input.message,
+    cognitiveCase: input.cognitiveCase,
+    agents,
+    extractions: conversation.extractions,
+    memories: input.memories,
+    knowledgeRecords: input.knowledgeRecords
+  });
+
+  const reasoning: ReasoningProposal[] = [
+    ...conversation.extractions.map((extraction) => toReasoningProposal(extraction, input.cognitiveCase)),
+    ...agentOrchestration.contributions.map((contribution) => ({
+      stepId: contribution.agentId === "seneca" ? "objections" as const : contribution.agentId === "turing" ? "evidence" as const : "options" as const,
+      content: `${contribution.agentName} — ${contribution.content}`,
+      confidence: contribution.confidence,
+      risk: contribution.agentId === "seneca" ? input.cognitiveCase.signals.risk : undefined
+    })),
+    ...(agentOrchestration.contributions.length ? [{
+      stepId: "options" as const,
+      content: agentOrchestration.synthesis,
+      confidence: agentOrchestration.confidence
+    }] : [])
+  ];
+
   const decisionExtraction = conversation.extractions.find((item) => item.kind === "decision");
   const decision = decisionExtraction
     ? {
         outcome: decisionExtraction.text,
         recommendation: conversation.decisionFrame?.recommendation ?? conversation.nextAction,
-        confidence: decisionExtraction.confidence,
+        confidence: Math.round((decisionExtraction.confidence + agentOrchestration.confidence) / 2),
         rationale: conversation.decisionFrame
-          ? `Décision structurée par le Decision Runtime (${conversation.decisionFrame.category}).`
-          : "Décision extraite de la conversation."
+          ? `Décision structurée par le Decision Runtime (${conversation.decisionFrame.category}) et revue par ORION.`
+          : "Décision extraite de la conversation et revue par ORION."
       }
     : undefined;
+
   const actions = conversation.extractions
     .filter((item) => item.kind === "action")
-    .map((item) => ({ title: item.text, requiredCapability: inferCapability(item.text) }));
+    .map((item) => {
+      const requiredCapability = inferCapability(item.text);
+      const preferred = preferredAgentForCapability(requiredCapability, agents, agentOrchestration.selectedAgentIds);
+      return {
+        title: item.text,
+        requiredCapability,
+        preferredAgentId: preferred?.id,
+        preferredAgentName: preferred?.name
+      };
+    });
+
   const memory = conversation.extractions.map((item) => ({
     kind: item.kind,
     content: item.text,
     confidence: item.confidence,
     durable: item.kind !== "question"
   }));
-  const knowledge = conversation.extractions.map(toKnowledgeCandidate);
+  const knowledge = [
+    ...conversation.extractions.map(toKnowledgeCandidate),
+    ...(agentOrchestration.contributions.length ? [{
+      type: "insight" as const,
+      title: agentOrchestration.synthesis,
+      confidence: agentOrchestration.confidence
+    }] : [])
+  ];
 
   const trace: RuntimeStageTrace[] = [
     { stage: "context", status: "completed", detail: `${conversation.extractions.length} éléments cognitifs extraits.` },
     { stage: "reasoning", status: reasoning.length ? "completed" : "skipped", detail: `${reasoning.length} propositions de révision.` },
+    { stage: "agents", status: agentOrchestration.contributions.length ? "completed" : "skipped", detail: `${agentOrchestration.selectedAgentIds.length} spécialiste(s) mobilisé(s) par ORION.` },
     {
       stage: "decision",
       status: conversation.decisionFrame?.requiresContext && !conversation.decisionFrame.recommendation ? "blocked" : decision ? "completed" : "skipped",
@@ -102,12 +152,15 @@ export function runUnifiedRuntime(input: UnifiedRuntimeInput): UnifiedRuntimeRes
   return {
     conversation,
     reasoning,
+    agents: agentOrchestration,
     decision,
     actions,
     memory,
     knowledge,
     trace,
-    nextAction: conversation.nextAction
+    nextAction: agentOrchestration.contributions.length
+      ? `${conversation.nextAction} · ORION: ${agentOrchestration.synthesis}`
+      : conversation.nextAction
   };
 }
 
@@ -137,7 +190,7 @@ function reasoningStepFor(kind: CognitiveExtraction["kind"]): ReasoningStepId {
 function inferCapability(text: string): string {
   const lower = text.toLowerCase();
   if (/jurid|legal|contrat|conform/.test(lower)) return "legal";
-  if (/tech|architecture|système|api|code/.test(lower)) return "technology";
+  if (/tech|architecture|système|api|code|runtime|logiciel/.test(lower)) return "technology";
   if (/finance|budget|cash|trésorerie|roi/.test(lower)) return "finance";
   if (/rh|recrut|équipe|poste|effectif/.test(lower)) return "people";
   return "analysis";
