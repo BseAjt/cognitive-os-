@@ -2,90 +2,30 @@
 
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
-import { createActionSlice, createCaseSlice, createConversationSlice, createDecisionSlice, createEventSlice, createKnowledgeGraphSlice, createKnowledgeSlice, createLearningSlice, createMemorySlice, createReflectionSlice } from "./slices";
+import { createActionSlice, createCaseSlice, createCognitiveProfileSlice, createConversationSlice, createDecisionSlice, createEventSlice, createKnowledgeGraphSlice, createKnowledgeSlice, createLearningSlice, createMemorySlice, createReflectionSlice } from "./slices";
 import { createExecutiveCommands } from "./commands";
 import { createRuntimeSlice } from "./runtime-slice";
 import { defaultExecutiveAgents } from "../lib/agent-runtime";
-import type { ActionRecord, AgentContract, AgentRunRecord, CognitiveCase, DecisionRecord, KnowledgeEntity, KnowledgeRecord, KnowledgeRelation, LearningEventRecord, MemoryRecord, ReflectionRecord } from "../domain/canonical";
+import type { ActionRecord, AgentContract, AgentRunRecord, CognitiveCase, CognitiveProfileRecord, DecisionRecord, KnowledgeEntity, KnowledgeRecord, KnowledgeRelation, LearningEventRecord, MemoryRecord, ReflectionRecord } from "../domain/canonical";
 import type { ConversationMessage, ExecutiveState, ReasoningRevision } from "./types";
 
 export type { ConversationMessage, ExecutiveState, ReasoningRevision, ReasoningStepId } from "./types";
+type PersistedMessage = Omit<ConversationMessage,"caseId"> & {caseId?:string;challengeId?:string};
+type PersistedDecision = {id:string;caseId?:string;challengeId?:string;recommendation:string;outcome?:string;finalDecision?:string;rationale:string;confidence:number;createdAt:string};
+type PersistedAction = {id:string;caseId?:string;challengeId?:string;title:string;owner:string;progress:number;status:ActionRecord["status"];requiredCapability?:string;assignedAgentId?:string|null;blockedReason?:string;dueAt?:string|null;result?:string};
+type PersistedLegacyChallenge = {id:string;title:string;goal:string;hypothesis:string;impact:number;urgency:number;confidence:number;cognitiveCost:number;risk:number;context:string;state:CognitiveCase["state"]};
+type PersistedLegacyRevision = Omit<ReasoningRevision,"caseId"> & {caseId?:string;challengeId?:string};
+type PersistedExecutiveState = { cases?:CognitiveCase[]; challenges?:PersistedLegacyChallenge[]; activeCaseId?:string; activeChallengeId?:string; messages?:PersistedMessage[]; decisions?:PersistedDecision[]; actions?:PersistedAction[]; events?:ExecutiveState["events"]; agents?:AgentContract[]; agentRuns?:AgentRunRecord[]; learningEvents?:LearningEventRecord[]; reflections?:ReflectionRecord[]; cognitiveProfiles?:CognitiveProfileRecord[]; reasoningRevisions?:PersistedLegacyRevision[]; memories?:MemoryRecord[]; knowledgeRecords?:KnowledgeRecord[]; knowledgeEntities?:KnowledgeEntity[]; knowledgeRelations?:KnowledgeRelation[] };
 
-type PersistedMessage = Omit<ConversationMessage, "caseId"> & { caseId?: string; challengeId?: string };
-type PersistedDecision = { id: string; caseId?: string; challengeId?: string; recommendation: string; outcome?: string; finalDecision?: string; rationale: string; confidence: number; createdAt: string };
-type PersistedAction = { id: string; caseId?: string; challengeId?: string; title: string; owner: string; progress: number; status: ActionRecord["status"]; requiredCapability?: string; assignedAgentId?: string | null; blockedReason?: string; dueAt?: string | null; result?: string };
-type PersistedLegacyChallenge = { id: string; title: string; goal: string; hypothesis: string; impact: number; urgency: number; confidence: number; cognitiveCost: number; risk: number; context: string; state: CognitiveCase["state"] };
-type PersistedLegacyRevision = Omit<ReasoningRevision, "caseId"> & { caseId?: string; challengeId?: string };
-
-type PersistedExecutiveState = {
-  cases?: CognitiveCase[];
-  challenges?: PersistedLegacyChallenge[];
-  activeCaseId?: string;
-  activeChallengeId?: string;
-  messages?: PersistedMessage[];
-  decisions?: PersistedDecision[];
-  actions?: PersistedAction[];
-  events?: ExecutiveState["events"];
-  agents?: AgentContract[];
-  agentRuns?: AgentRunRecord[];
-  learningEvents?: LearningEventRecord[];
-  reflections?: ReflectionRecord[];
-  reasoningRevisions?: PersistedLegacyRevision[];
-  memories?: MemoryRecord[];
-  knowledgeRecords?: KnowledgeRecord[];
-  knowledgeEntities?: KnowledgeEntity[];
-  knowledgeRelations?: KnowledgeRelation[];
-};
-
-function migratePersistedState(persistedState: unknown, version: number): ExecutiveState {
-  const state = (persistedState ?? {}) as PersistedExecutiveState;
-  if (version >= 12) return state as ExecutiveState;
-
-  const migratedCases: CognitiveCase[] = state.cases ?? (state.challenges ?? []).map((challenge) => ({
-    id: challenge.id, title: challenge.title, objective: challenge.goal, workingHypothesis: challenge.hypothesis,
-    context: challenge.context, state: challenge.state,
-    signals: { impact: challenge.impact, urgency: challenge.urgency, confidence: challenge.confidence, cognitiveCost: challenge.cognitiveCost, risk: challenge.risk }
-  }));
-  const migratedMessages: ConversationMessage[] = (state.messages ?? []).map((message) => ({ id: message.id, caseId: message.caseId ?? message.challengeId ?? "executiveos", role: message.role, text: message.text, createdAt: message.createdAt }));
-  const migratedDecisions: DecisionRecord[] = (state.decisions ?? []).map((decision) => ({ id: decision.id, caseId: decision.caseId ?? decision.challengeId ?? "executiveos", recommendation: decision.recommendation, outcome: decision.outcome ?? decision.finalDecision ?? "", rationale: decision.rationale, confidence: decision.confidence, createdAt: decision.createdAt }));
-  const migratedActions: ActionRecord[] = (state.actions ?? []).map((action) => ({ id: action.id, caseId: action.caseId ?? action.challengeId ?? "executiveos", title: action.title, owner: action.owner, progress: action.progress, status: action.status, requiredCapability: action.requiredCapability, assignedAgentId: action.assignedAgentId, blockedReason: action.blockedReason, dueAt: action.dueAt, result: action.result }));
-  const migratedRevisions: ReasoningRevision[] = (state.reasoningRevisions ?? []).map((revision) => ({ ...revision, caseId: revision.caseId ?? revision.challengeId ?? "executiveos" }));
-
-  return {
-    cases: migratedCases,
-    activeCaseId: state.activeCaseId ?? state.activeChallengeId ?? migratedCases[0]?.id ?? "executiveos",
-    messages: migratedMessages,
-    decisions: migratedDecisions,
-    actions: migratedActions,
-    events: state.events ?? [],
-    agents: state.agents?.length ? state.agents : defaultExecutiveAgents,
-    agentRuns: state.agentRuns ?? [],
-    learningEvents: state.learningEvents ?? [],
-    reflections: state.reflections ?? [],
-    reasoningRevisions: migratedRevisions,
-    memories: state.memories ?? [],
-    knowledgeRecords: state.knowledgeRecords ?? [],
-    knowledgeEntities: state.knowledgeEntities ?? [],
-    knowledgeRelations: state.knowledgeRelations ?? []
-  } as ExecutiveState;
+function migratePersistedState(persistedState:unknown, version:number):ExecutiveState{
+ const state=(persistedState??{}) as PersistedExecutiveState;
+ if(version>=13) return state as ExecutiveState;
+ const migratedCases:CognitiveCase[]=state.cases??(state.challenges??[]).map((challenge)=>({id:challenge.id,title:challenge.title,objective:challenge.goal,workingHypothesis:challenge.hypothesis,context:challenge.context,state:challenge.state,signals:{impact:challenge.impact,urgency:challenge.urgency,confidence:challenge.confidence,cognitiveCost:challenge.cognitiveCost,risk:challenge.risk}}));
+ const migratedMessages:ConversationMessage[]=(state.messages??[]).map((message)=>({id:message.id,caseId:message.caseId??message.challengeId??"executiveos",role:message.role,text:message.text,createdAt:message.createdAt}));
+ const migratedDecisions:DecisionRecord[]=(state.decisions??[]).map((decision)=>({id:decision.id,caseId:decision.caseId??decision.challengeId??"executiveos",recommendation:decision.recommendation,outcome:decision.outcome??decision.finalDecision??"",rationale:decision.rationale,confidence:decision.confidence,createdAt:decision.createdAt}));
+ const migratedActions:ActionRecord[]=(state.actions??[]).map((action)=>({id:action.id,caseId:action.caseId??action.challengeId??"executiveos",title:action.title,owner:action.owner,progress:action.progress,status:action.status,requiredCapability:action.requiredCapability,assignedAgentId:action.assignedAgentId,blockedReason:action.blockedReason,dueAt:action.dueAt,result:action.result}));
+ const migratedRevisions:ReasoningRevision[]=(state.reasoningRevisions??[]).map((revision)=>({...revision,caseId:revision.caseId??revision.challengeId??"executiveos"}));
+ return { cases:migratedCases, activeCaseId:state.activeCaseId??state.activeChallengeId??migratedCases[0]?.id??"executiveos", messages:migratedMessages, decisions:migratedDecisions, actions:migratedActions, events:state.events??[], agents:state.agents?.length?state.agents:defaultExecutiveAgents, agentRuns:state.agentRuns??[], learningEvents:state.learningEvents??[], reflections:state.reflections??[], cognitiveProfiles:state.cognitiveProfiles??[], reasoningRevisions:migratedRevisions, memories:state.memories??[], knowledgeRecords:state.knowledgeRecords??[], knowledgeEntities:state.knowledgeEntities??[], knowledgeRelations:state.knowledgeRelations??[] } as ExecutiveState;
 }
 
-export const useExecutiveStore = create<ExecutiveState>()(
-  persist(
-    (...args) => ({
-      ...createCaseSlice(...args),
-      ...createConversationSlice(...args),
-      ...createDecisionSlice(...args),
-      ...createActionSlice(...args),
-      ...createEventSlice(...args),
-      ...createLearningSlice(...args),
-      ...createReflectionSlice(...args),
-      ...createMemorySlice(...args),
-      ...createKnowledgeSlice(...args),
-      ...createKnowledgeGraphSlice(...args),
-      ...createRuntimeSlice(...args),
-      ...createExecutiveCommands(...args)
-    }),
-    { name: "executiveos-v2", version: 12, migrate: migratePersistedState }
-  )
-);
+export const useExecutiveStore=create<ExecutiveState>()(persist((...args)=>({ ...createCaseSlice(...args), ...createConversationSlice(...args), ...createDecisionSlice(...args), ...createActionSlice(...args), ...createEventSlice(...args), ...createLearningSlice(...args), ...createReflectionSlice(...args), ...createCognitiveProfileSlice(...args), ...createMemorySlice(...args), ...createKnowledgeSlice(...args), ...createKnowledgeGraphSlice(...args), ...createRuntimeSlice(...args), ...createExecutiveCommands(...args) }),{name:"executiveos-v2",version:13,migrate:migratePersistedState}));
