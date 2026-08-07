@@ -1,5 +1,5 @@
 import type { StateCreator } from "zustand";
-import type { ExecutiveState, CaseSlice, ConversationSlice, DecisionSlice, ActionSlice, EventSlice, MemorySlice, KnowledgeSlice } from "./types.ts";
+import type { ExecutiveState, CaseSlice, ConversationSlice, DecisionSlice, ActionSlice, EventSlice, MemorySlice, KnowledgeSlice, KnowledgeGraphSlice } from "./types.ts";
 import { initialCases, initialMessages, initialRuntimeActions } from "./seed.ts";
 
 export const createCaseSlice: StateCreator<ExecutiveState, [], [], CaseSlice> = (set) => ({
@@ -45,3 +45,18 @@ export const createKnowledgeSlice: StateCreator<ExecutiveState, [], [], Knowledg
   knowledgeRecords: [],
   prependKnowledge: (records) => set((state) => ({ knowledgeRecords: [...records, ...state.knowledgeRecords] }))
 });
+
+export const createKnowledgeGraphSlice: StateCreator<ExecutiveState, [], [], KnowledgeGraphSlice> = (set) => ({
+  knowledgeEntities: [],
+  knowledgeRelations: [],
+  mergeKnowledgeGraph: (entities, relations) => set((state) => ({
+    knowledgeEntities: mergeById(state.knowledgeEntities, entities),
+    knowledgeRelations: mergeById(state.knowledgeRelations, relations)
+  }))
+});
+
+function mergeById<T extends { id: string }>(current: T[], incoming: T[]): T[] {
+  const map = new Map(current.map((item) => [item.id, item]));
+  for (const item of incoming) map.set(item.id, item);
+  return [...map.values()];
+}
