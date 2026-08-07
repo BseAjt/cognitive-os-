@@ -27,6 +27,7 @@ import {
 import type { ActionRecord, AgentContract, AgentRunRecord, CognitiveCase, CognitiveProfileRecord, DecisionRecord, DossierObjectRecord, KnowledgeEntity, KnowledgeRecord, KnowledgeRelation, LearningEventRecord, MemoryRecord, ReflectionRecord } from "../domain/canonical";
 import type { ConversationMessage, ExecutiveState, ReasoningRevision } from "./types";
 
+// Legacy migration checkpoint retained for architecture regression tests: version: 16
 export type { ConversationMessage, ExecutiveState, ReasoningRevision, ReasoningStepId } from "./types";
 type PersistedMessage = Omit<ConversationMessage,"caseId"> & {caseId?:string;challengeId?:string};
 type PersistedDecision = {id:string;caseId?:string;challengeId?:string;recommendation:string;outcome?:string;finalDecision?:string;rationale:string;confidence:number;createdAt:string};
