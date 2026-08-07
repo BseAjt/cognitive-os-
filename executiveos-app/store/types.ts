@@ -1,5 +1,4 @@
-import type { ActionRecord, CognitiveEventRecord, DecisionRecord } from "@/domain/canonical";
-import type { Challenge } from "@/types/domain";
+import type { ActionRecord, CognitiveCase, CognitiveEventRecord, DecisionRecord } from "@/domain/canonical";
 
 export interface ConversationMessage {
   id: string;
@@ -9,12 +8,12 @@ export interface ConversationMessage {
   createdAt: string;
 }
 
-export interface ChallengeSlice {
-  challenges: Challenge[];
-  activeChallengeId: string;
-  setActiveChallenge: (id: string) => void;
-  replaceChallenge: (challenge: Challenge) => void;
-  applyChallengePatch: (caseId: string, patch: Partial<Challenge>) => void;
+export interface CaseSlice {
+  cases: CognitiveCase[];
+  activeCaseId: string;
+  setActiveCase: (id: string) => void;
+  replaceCase: (cognitiveCase: CognitiveCase) => void;
+  applyCasePatch: (caseId: string, patch: Partial<CognitiveCase>) => void;
 }
 
 export interface ConversationSlice {
@@ -45,7 +44,7 @@ export interface ExecutiveCommands {
     assistantText: string;
     intent: string;
     extractionCount: number;
-    challengePatch: Partial<Challenge>;
+    casePatch: Partial<CognitiveCase>;
     createdAt?: string;
   }) => void;
   captureDecision: (input: {
@@ -64,4 +63,4 @@ export interface ExecutiveCommands {
   applyCriticalSignal: () => void;
 }
 
-export type ExecutiveState = ChallengeSlice & ConversationSlice & DecisionSlice & ActionSlice & EventSlice & ExecutiveCommands;
+export type ExecutiveState = CaseSlice & ConversationSlice & DecisionSlice & ActionSlice & EventSlice & ExecutiveCommands;
