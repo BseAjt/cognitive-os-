@@ -2,176 +2,163 @@
 
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
-import { assignAction, executeAction, transitionAction } from "@/lib/executive-runtime";
-import type { ActionItem, AgentContract, Challenge, CognitiveEvent, Decision } from "@/types/domain";
+import { createActionSlice, createCaseSlice, createConversationSlice, createDecisionSlice, createEventSlice } from "./slices";
+import { createExecutiveCommands } from "./commands";
+import { createRuntimeSlice } from "./runtime-slice";
+import type { ActionRecord, AgentContract, CognitiveCase, DecisionRecord } from "../domain/canonical";
+import type { ConversationMessage, ExecutiveState, ReasoningRevision } from "./types";
 
-export interface ConversationMessage {
+export type { ConversationMessage, ExecutiveState, ReasoningRevision } from "./types";
+
+type PersistedMessage = Omit<ConversationMessage, "caseId"> & {
+  caseId?: string;
+  challengeId?: string;
+};
+
+type PersistedDecision = {
   id: string;
-  challengeId: string;
-  role: "user" | "assistant";
-  text: string;
+  caseId?: string;
+  challengeId?: string;
+  recommendation: string;
+  outcome?: string;
+  finalDecision?: string;
+  rationale: string;
+  confidence: number;
   createdAt: string;
-}
+};
 
-export type ReasoningStepId = "question" | "hypothesis" | "evidence" | "options" | "objections" | "decision" | "consequences";
-
-export interface ReasoningRevision {
+type PersistedAction = {
   id: string;
-  challengeId: string;
-  stepId: ReasoningStepId;
-  version: number;
-  content: string;
-  confidence?: number;
-  risk?: number;
-  createdAt: string;
+  caseId?: string;
+  challengeId?: string;
+  title: string;
+  owner: string;
+  progress: number;
+  status: ActionRecord["status"];
+  requiredCapability?: string;
+  assignedAgentId?: string | null;
+  blockedReason?: string;
+  dueAt?: string | null;
+  result?: string;
+};
+
+type PersistedLegacyChallenge = {
+  id: string;
+  title: string;
+  goal: string;
+  hypothesis: string;
+  impact: number;
+  urgency: number;
+  confidence: number;
+  cognitiveCost: number;
+  risk: number;
+  context: string;
+  state: CognitiveCase["state"];
+};
+
+type PersistedLegacyRevision = Omit<ReasoningRevision, "caseId"> & {
+  caseId?: string;
+  challengeId?: string;
+};
+
+type PersistedExecutiveState = {
+  cases?: CognitiveCase[];
+  challenges?: PersistedLegacyChallenge[];
+  activeCaseId?: string;
+  activeChallengeId?: string;
+  messages?: PersistedMessage[];
+  decisions?: PersistedDecision[];
+  actions?: PersistedAction[];
+  events?: ExecutiveState["events"];
+  agents?: AgentContract[];
+  reasoningRevisions?: PersistedLegacyRevision[];
+};
+
+function migratePersistedState(persistedState: unknown, version: number): ExecutiveState {
+  const state = (persistedState ?? {}) as PersistedExecutiveState;
+
+  if (version >= 7) return state as ExecutiveState;
+
+  const migratedCases: CognitiveCase[] = state.cases ?? (state.challenges ?? []).map((challenge) => ({
+    id: challenge.id,
+    title: challenge.title,
+    objective: challenge.goal,
+    workingHypothesis: challenge.hypothesis,
+    context: challenge.context,
+    state: challenge.state,
+    signals: {
+      impact: challenge.impact,
+      urgency: challenge.urgency,
+      confidence: challenge.confidence,
+      cognitiveCost: challenge.cognitiveCost,
+      risk: challenge.risk
+    }
+  }));
+
+  const migratedMessages: ConversationMessage[] = (state.messages ?? []).map((message) => ({
+    id: message.id,
+    caseId: message.caseId ?? message.challengeId ?? "executiveos",
+    role: message.role,
+    text: message.text,
+    createdAt: message.createdAt
+  }));
+
+  const migratedDecisions: DecisionRecord[] = (state.decisions ?? []).map((decision) => ({
+    id: decision.id,
+    caseId: decision.caseId ?? decision.challengeId ?? "executiveos",
+    recommendation: decision.recommendation,
+    outcome: decision.outcome ?? decision.finalDecision ?? "",
+    rationale: decision.rationale,
+    confidence: decision.confidence,
+    createdAt: decision.createdAt
+  }));
+
+  const migratedActions: ActionRecord[] = (state.actions ?? []).map((action) => ({
+    id: action.id,
+    caseId: action.caseId ?? action.challengeId ?? "executiveos",
+    title: action.title,
+    owner: action.owner,
+    progress: action.progress,
+    status: action.status,
+    requiredCapability: action.requiredCapability,
+    assignedAgentId: action.assignedAgentId,
+    blockedReason: action.blockedReason,
+    dueAt: action.dueAt,
+    result: action.result
+  }));
+
+  const migratedRevisions: ReasoningRevision[] = (state.reasoningRevisions ?? []).map((revision) => ({
+    ...revision,
+    caseId: revision.caseId ?? revision.challengeId ?? "executiveos"
+  }));
+
+  return {
+    cases: migratedCases,
+    activeCaseId: state.activeCaseId ?? state.activeChallengeId ?? migratedCases[0]?.id ?? "executiveos",
+    messages: migratedMessages,
+    decisions: migratedDecisions,
+    actions: migratedActions,
+    events: state.events ?? [],
+    agents: state.agents ?? [],
+    reasoningRevisions: migratedRevisions
+  } as ExecutiveState;
 }
-
-interface ExecutiveState {
-  challenges: Challenge[];
-  decisions: Decision[];
-  actions: ActionItem[];
-  agents: AgentContract[];
-  events: CognitiveEvent[];
-  messages: ConversationMessage[];
-  reasoningRevisions: ReasoningRevision[];
-  activeChallengeId: string;
-  setActiveChallenge: (id: string) => void;
-  updateChallenge: (challenge: Challenge) => void;
-  addDecision: (decision: Decision) => void;
-  addActions: (actions: ActionItem[]) => void;
-  addEvent: (type: string, detail: string) => void;
-  addMessages: (messages: ConversationMessage[]) => void;
-  addReasoningRevision: (revision: Omit<ReasoningRevision, "id" | "version" | "createdAt">) => void;
-  clearConversationHistory: (challengeId: string) => void;
-  assignRuntimeAction: (actionId: string) => void;
-  transitionRuntimeAction: (actionId: string, status: ActionItem["status"]) => void;
-  executeRuntimeAction: (actionId: string) => void;
-  clearRuntimeActions: () => void;
-  runCriticalSimulation: () => void;
-}
-
-const initialChallenges: Challenge[] = [
-  {
-    id: "executiveos",
-    title: "Construire ExecutiveOS",
-    goal: "Démontrer une nouvelle catégorie logicielle centrée sur la décision.",
-    hypothesis: "Les dirigeants paieront pour réduire le coût cognitif de leurs décisions.",
-    impact: 10,
-    urgency: 8,
-    confidence: 72,
-    cognitiveCost: 7,
-    risk: 7,
-    context: "Le Conversation Runtime devient le cœur du produit.",
-    state: "decide"
-  },
-  {
-    id: "positioning",
-    title: "Valider le positionnement",
-    goal: "Créer un message immédiatement compris par les dirigeants.",
-    hypothesis: "Decision Operating System est une catégorie claire et mémorisable.",
-    impact: 7,
-    urgency: 5,
-    confidence: 84,
-    cognitiveCost: 3,
-    risk: 3,
-    context: "ExecutiveOS est retenu comme nom produit.",
-    state: "explore"
-  }
-];
-
-const initialAgents: AgentContract[] = [
-  { id: "orion", name: "ORION", role: "Orchestrateur exécutif", specialty: "Synthèse et orchestration", capabilities: ["analysis", "orchestration", "decision"], status: "online", version: "2.0.0" },
-  { id: "athena", name: "ATHENA", role: "Chief Strategy Officer", specialty: "Stratégie", capabilities: ["analysis", "strategy", "decision"], status: "online", version: "2.0.0" },
-  { id: "turing", name: "TURING", role: "CTO", specialty: "Technologie et architecture", capabilities: ["analysis", "technology", "execution"], status: "online", version: "2.0.0" },
-  { id: "seneca", name: "SENECA", role: "Chief Reflection Officer", specialty: "Critique et risques", capabilities: ["analysis", "reflection", "risk"], status: "online", version: "2.0.0" }
-];
-
-const initialActions: ActionItem[] = [
-  { id: "runtime-context", challengeId: "executiveos", title: "Valider le contrat du Context Engine", owner: "Non affecté", progress: 0, status: "todo", requiredCapability: "analysis" },
-  { id: "runtime-architecture", challengeId: "executiveos", title: "Vérifier l’architecture du runtime agentique", owner: "Non affecté", progress: 0, status: "todo", requiredCapability: "technology" }
-];
 
 export const useExecutiveStore = create<ExecutiveState>()(
   persist(
-    (set) => ({
-      challenges: initialChallenges,
-      decisions: [],
-      actions: initialActions,
-      agents: initialAgents,
-      events: [],
-      messages: [
-        {
-          id: "welcome",
-          challengeId: "executiveos",
-          role: "assistant",
-          text: "Bonjour Sébastien. Tu reprends ExecutiveOS. Le principal sujet est maintenant la validation du Conversation Runtime. Que souhaites-tu approfondir ?",
-          createdAt: new Date().toISOString()
-        }
-      ],
-      reasoningRevisions: [],
-      activeChallengeId: "executiveos",
-      setActiveChallenge: (id) => set({ activeChallengeId: id }),
-      updateChallenge: (challenge) =>
-        set((state) => ({
-          challenges: state.challenges.map((item) => item.id === challenge.id ? challenge : item)
-        })),
-      addDecision: (decision) => set((state) => ({ decisions: [decision, ...state.decisions] })),
-      addActions: (actions) => set((state) => ({ actions: [...actions, ...state.actions] })),
-      addEvent: (type, detail) =>
-        set((state) => ({
-          events: [{ id: crypto.randomUUID(), type, detail, createdAt: new Date().toISOString() }, ...state.events]
-        })),
-      addMessages: (messages) => set((state) => ({ messages: [...state.messages, ...messages] })),
-      addReasoningRevision: (revision) =>
-        set((state) => {
-          const versions = state.reasoningRevisions.filter((item) => item.challengeId === revision.challengeId && item.stepId === revision.stepId);
-          const next: ReasoningRevision = {
-            ...revision,
-            id: crypto.randomUUID(),
-            version: versions.length + 1,
-            createdAt: new Date().toISOString()
-          };
-          return {
-            reasoningRevisions: [...state.reasoningRevisions, next],
-            events: [{ id: crypto.randomUUID(), type: "ReasoningRevisionAdded", detail: `${revision.stepId} · v${next.version}`, createdAt: next.createdAt }, ...state.events]
-          };
-        }),
-      clearConversationHistory: (challengeId) =>
-        set((state) => ({
-          messages: state.messages.filter((message) => message.challengeId !== challengeId)
-        })),
-      assignRuntimeAction: (actionId) =>
-        set((state) => ({
-          actions: state.actions.map((action) => action.id === actionId ? assignAction(action, state.agents) : action),
-          events: [{ id: crypto.randomUUID(), type: "RuntimeTaskAssigned", detail: `Affectation de ${actionId}`, createdAt: new Date().toISOString() }, ...state.events]
-        })),
-      transitionRuntimeAction: (actionId, status) =>
-        set((state) => ({
-          actions: state.actions.map((action) => action.id === actionId ? transitionAction(action, status) : action),
-          events: [{ id: crypto.randomUUID(), type: "RuntimeTaskTransitioned", detail: `${actionId} → ${status}`, createdAt: new Date().toISOString() }, ...state.events]
-        })),
-      executeRuntimeAction: (actionId) =>
-        set((state) => ({
-          actions: state.actions.map((action) => action.id === actionId ? executeAction(action, state.agents) : action),
-          events: [{ id: crypto.randomUUID(), type: "RuntimeTaskExecuted", detail: `Exécution de ${actionId}`, createdAt: new Date().toISOString() }, ...state.events]
-        })),
-      clearRuntimeActions: () => set({ actions: initialActions }),
-      runCriticalSimulation: () =>
-        set((state) => ({
-          challenges: state.challenges.map((challenge) =>
-            challenge.id === "executiveos"
-              ? {
-                  ...challenge,
-                  confidence: 41,
-                  urgency: 10,
-                  risk: 9,
-                  context: "Les utilisateurs pilotes remettent en cause la disposition à payer sans intégration calendrier."
-                }
-              : challenge
-          ),
-          events: [{ id: crypto.randomUUID(), type: "CriticalSignalDetected", detail: "La disposition à payer devient incertaine.", createdAt: new Date().toISOString() }, ...state.events]
-        }))
+    (...args) => ({
+      ...createCaseSlice(...args),
+      ...createConversationSlice(...args),
+      ...createDecisionSlice(...args),
+      ...createActionSlice(...args),
+      ...createEventSlice(...args),
+      ...createRuntimeSlice(...args),
+      ...createExecutiveCommands(...args)
     }),
-    { name: "executiveos-v2" }
+    {
+      name: "executiveos-v2",
+      version: 7,
+      migrate: migratePersistedState
+    }
   )
 );
