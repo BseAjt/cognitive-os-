@@ -1,5 +1,5 @@
-import type { CognitiveCase } from "@/domain/canonical";
-import type { ConversationMessage } from "@/store/types";
+import type { CognitiveCase } from "../domain/canonical.ts";
+import type { ConversationMessage } from "./types.ts";
 
 export const initialCases: CognitiveCase[] = [
   {
