@@ -1,4 +1,4 @@
-import type { ActionRecord, AgentRunRecord, CognitiveCase, DecisionRecord, KnowledgeEntity, KnowledgeRelation, MemoryRecord } from "../domain/canonical.ts";
+import type { ActionRecord, AgentRunRecord, CognitiveCase, DecisionRecord, KnowledgeEntity, KnowledgeRelation, LearningEventRecord, MemoryRecord } from "../domain/canonical.ts";
 import type { ReasoningRevision } from "../store/types.ts";
 
 export interface CognitiveRecallInput {
@@ -10,6 +10,7 @@ export interface CognitiveRecallInput {
   knowledgeEntities: KnowledgeEntity[];
   knowledgeRelations: KnowledgeRelation[];
   agentRuns: AgentRunRecord[];
+  learningEvents?: LearningEventRecord[];
 }
 
 export interface CognitiveRecallResult {
@@ -21,6 +22,7 @@ export interface CognitiveRecallResult {
   latestReasoning: ReasoningRevision[];
   relevantKnowledge: KnowledgeEntity[];
   lastAgentRun?: AgentRunRecord;
+  latestLearningEvents: LearningEventRecord[];
   nextBestAction: string;
   confidence: number;
 }
@@ -34,25 +36,11 @@ export function buildCognitiveRecall(input: CognitiveRecallInput): CognitiveReca
   const latestReasoning = latestReasoningPerStep(input.reasoningRevisions.filter((item) => item.caseId === caseId));
   const relevantKnowledge = input.knowledgeEntities.filter((item) => item.caseId === caseId).slice(-12);
   const lastAgentRun = byNewest(input.agentRuns.filter((item) => item.caseId === caseId))[0];
-  const nextBestAction = openActions[0]?.title
-    ?? lastAgentRun?.synthesis
-    ?? input.cognitiveCase.context
-    ?? "Reprendre l’analyse du dossier.";
+  const latestLearningEvents = byNewest((input.learningEvents ?? []).filter((item) => item.caseId === caseId)).slice(0, 6);
+  const nextBestAction = openActions[0]?.title ?? latestLearningEvents[0]?.detail ?? lastAgentRun?.synthesis ?? input.cognitiveCase.context ?? "Reprendre l’analyse du dossier.";
   const confidence = recallConfidence(input.cognitiveCase, lastDecision, durableMemories, latestReasoning, relevantKnowledge);
-  const summary = buildSummary({ cognitiveCase: input.cognitiveCase, lastDecision, openActions, durableMemories, latestReasoning, lastAgentRun, nextBestAction });
-
-  return {
-    caseId,
-    summary,
-    lastDecision,
-    openActions,
-    durableMemories,
-    latestReasoning,
-    relevantKnowledge,
-    lastAgentRun,
-    nextBestAction,
-    confidence
-  };
+  const summary = buildSummary({ cognitiveCase: input.cognitiveCase, lastDecision, openActions, durableMemories, latestReasoning, lastAgentRun, latestLearningEvents, nextBestAction });
+  return { caseId, summary, lastDecision, openActions, durableMemories, latestReasoning, relevantKnowledge, lastAgentRun, latestLearningEvents, nextBestAction, confidence };
 }
 
 function latestReasoningPerStep(revisions: ReasoningRevision[]): ReasoningRevision[] {
@@ -64,13 +52,7 @@ function latestReasoningPerStep(revisions: ReasoningRevision[]): ReasoningRevisi
   return [...latest.values()].sort((a, b) => a.createdAt.localeCompare(b.createdAt));
 }
 
-function recallConfidence(
-  cognitiveCase: CognitiveCase,
-  decision: DecisionRecord | undefined,
-  memories: MemoryRecord[],
-  reasoning: ReasoningRevision[],
-  knowledge: KnowledgeEntity[]
-): number {
+function recallConfidence(cognitiveCase: CognitiveCase, decision: DecisionRecord | undefined, memories: MemoryRecord[], reasoning: ReasoningRevision[], knowledge: KnowledgeEntity[]): number {
   let score = cognitiveCase.signals.confidence;
   if (decision) score += 5;
   if (memories.length >= 2) score += 4;
@@ -79,15 +61,7 @@ function recallConfidence(
   return Math.max(0, Math.min(100, score));
 }
 
-function buildSummary(input: {
-  cognitiveCase: CognitiveCase;
-  lastDecision?: DecisionRecord;
-  openActions: ActionRecord[];
-  durableMemories: MemoryRecord[];
-  latestReasoning: ReasoningRevision[];
-  lastAgentRun?: AgentRunRecord;
-  nextBestAction: string;
-}): string {
+function buildSummary(input: { cognitiveCase: CognitiveCase; lastDecision?: DecisionRecord; openActions: ActionRecord[]; durableMemories: MemoryRecord[]; latestReasoning: ReasoningRevision[]; lastAgentRun?: AgentRunRecord; latestLearningEvents: LearningEventRecord[]; nextBestAction: string; }): string {
   const parts = [
     `Objectif: ${input.cognitiveCase.objective}`,
     input.cognitiveCase.workingHypothesis ? `Hypothèse active: ${input.cognitiveCase.workingHypothesis}` : null,
@@ -95,6 +69,7 @@ function buildSummary(input: {
     input.openActions.length ? `Actions ouvertes: ${input.openActions.slice(0, 3).map((item) => item.title).join(" · ")}` : null,
     input.latestReasoning.length ? `Raisonnement repris: ${input.latestReasoning.slice(-3).map((item) => item.content).join(" · ")}` : null,
     input.durableMemories.length ? `Mémoire durable: ${input.durableMemories.slice(0, 3).map((item) => item.content).join(" · ")}` : null,
+    input.latestLearningEvents.length ? `Apprentissages récents: ${input.latestLearningEvents.slice(0, 3).map((item) => item.title).join(" · ")}` : null,
     input.lastAgentRun ? `Dernier conseil ORION: ${input.lastAgentRun.synthesis}` : null,
     `Prochaine meilleure action: ${input.nextBestAction}`
   ].filter((item): item is string => Boolean(item));
