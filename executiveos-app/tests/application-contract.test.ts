@@ -16,21 +16,26 @@ const storeTypes = source("store/types.ts");
 const commands = source("store/commands.ts");
 const runtimeSlice = source("store/runtime-slice.ts");
 const unifiedRuntime = source("lib/unified-runtime.ts");
+const executiveKernel = source("lib/executive-kernel.ts");
+const runtimePipeline = source("lib/runtime-pipeline.ts");
 const graph = source("components/reasoning-graph.tsx");
 const layout = source("app/layout.tsx");
 
 const contracts: Array<[string, string, string]> = [
-  ["workspace invokes unified runtime", workspace, "const result = runUnifiedRuntime({"],
+  ["workspace invokes unified runtime compatibility facade", workspace, "const result = runUnifiedRuntime({"],
   ["workspace feeds runtime agent catalogue", workspace, "agents: store.agents"],
   ["workspace feeds persistent memory", workspace, "memories: store.memories.filter"],
   ["workspace feeds persistent knowledge", workspace, "knowledgeRecords: store.knowledgeRecords.filter"],
   ["workspace applies runtime cycle atomically", workspace, "store.applyRuntimeCycle({"],
   ["dossier-first shell switches canonical cases", home, "store.setActiveCase(id)"],
   ["workspace uses canonical case score", workspace, "caseScore("],
-  ["unified runtime delegates conversation analysis", unifiedRuntime, "runConversationRuntime(input.message, input.cognitiveCase)"],
-  ["unified runtime exposes agent orchestration", unifiedRuntime, "agents: AgentOrchestrationResult"],
-  ["unified runtime exposes memory candidates", unifiedRuntime, "memory: MemoryCandidate[]"],
-  ["unified runtime exposes knowledge candidates", unifiedRuntime, "knowledge: KnowledgeCandidate[]"],
+  ["unified runtime routes every execution through the Executive Kernel", unifiedRuntime, "executeExecutiveKernel(input)"],
+  ["Executive Kernel owns runtime pipeline execution", executiveKernel, "const result = runtime(input)"],
+  ["Executive Kernel emits stage transitions", executiveKernel, "KernelStageTransitioned"],
+  ["runtime pipeline delegates conversation analysis", runtimePipeline, "runConversationRuntime(input.message, input.cognitiveCase)"],
+  ["runtime pipeline exposes agent orchestration", runtimePipeline, "agents: AgentOrchestrationResult"],
+  ["runtime pipeline exposes memory candidates", runtimePipeline, "memory: MemoryCandidate[]"],
+  ["runtime pipeline exposes knowledge candidates", runtimePipeline, "knowledge: KnowledgeCandidate[]"],
   ["command layer persists runtime cycle", commands, "applyRuntimeCycle:"],
   ["store persistence is enabled", store, "persist("],
   ["store persistence key is stable", store, "name: \"executiveos-v2\""],
