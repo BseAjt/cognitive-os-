@@ -1,5 +1,5 @@
 import type { StateCreator } from "zustand";
-import type { ExecutiveCommands, ExecutiveState } from "@/store/types";
+import type { ExecutiveCommands, ExecutiveState } from "./types.ts";
 
 export const createExecutiveCommands: StateCreator<ExecutiveState, [], [], ExecutiveCommands> = (set, get) => ({
   recordConversationTurn: ({ caseId, userText, assistantText, intent, extractionCount, casePatch, createdAt }) => {
