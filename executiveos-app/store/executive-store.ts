@@ -14,18 +14,21 @@ type PersistedMessage = Omit<ConversationMessage, "caseId"> & {
   challengeId?: string;
 };
 
-type PersistedDecision = Partial<DecisionRecord> & {
+type PersistedDecision = {
   id: string;
+  caseId?: string;
   challengeId?: string;
-  finalDecision?: string;
   recommendation: string;
+  outcome?: string;
+  finalDecision?: string;
   rationale: string;
   confidence: number;
   createdAt: string;
 };
 
-type PersistedAction = Partial<ActionRecord> & {
+type PersistedAction = {
   id: string;
+  caseId?: string;
   challengeId?: string;
   title: string;
   owner: string;
@@ -33,7 +36,7 @@ type PersistedAction = Partial<ActionRecord> & {
   status: ActionRecord["status"];
 };
 
-type PersistedExecutiveState = Partial<ExecutiveState> & {
+type PersistedExecutiveState = Omit<Partial<ExecutiveState>, "messages" | "decisions" | "actions"> & {
   messages?: PersistedMessage[];
   decisions?: PersistedDecision[];
   actions?: PersistedAction[];
@@ -42,7 +45,7 @@ type PersistedExecutiveState = Partial<ExecutiveState> & {
 function migratePersistedState(persistedState: unknown, version: number): ExecutiveState {
   const state = (persistedState ?? {}) as PersistedExecutiveState;
 
-  const migratedMessages = (state.messages ?? []).map((message) => ({
+  const migratedMessages: ConversationMessage[] = (state.messages ?? []).map((message) => ({
     id: message.id,
     caseId: message.caseId ?? message.challengeId ?? "executiveos",
     role: message.role,
@@ -50,7 +53,7 @@ function migratePersistedState(persistedState: unknown, version: number): Execut
     createdAt: message.createdAt
   }));
 
-  const migratedDecisions = (state.decisions ?? []).map((decision) => ({
+  const migratedDecisions: DecisionRecord[] = (state.decisions ?? []).map((decision) => ({
     id: decision.id,
     caseId: decision.caseId ?? decision.challengeId ?? "executiveos",
     recommendation: decision.recommendation,
@@ -60,7 +63,7 @@ function migratePersistedState(persistedState: unknown, version: number): Execut
     createdAt: decision.createdAt
   }));
 
-  const migratedActions = (state.actions ?? []).map((action) => ({
+  const migratedActions: ActionRecord[] = (state.actions ?? []).map((action) => ({
     id: action.id,
     caseId: action.caseId ?? action.challengeId ?? "executiveos",
     title: action.title,
