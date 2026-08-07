@@ -21,7 +21,8 @@ const cognitiveCase: CognitiveCase = {
 
 test("unified runtime exposes the complete ordered cognitive cycle", () => {
   const result = runUnifiedRuntime({ message: "Le risque est le budget. Il faut analyser la trésorerie.", cognitiveCase });
-  assert.deepEqual(result.trace.map((item) => item.stage), ["context", "reasoning", "agents", "decision", "action", "memory", "knowledge"]);
+  assert.deepEqual(result.trace.map((item) => item.stage), ["recall", "context", "reasoning", "agents", "decision", "action", "memory", "knowledge"]);
+  assert.equal(result.trace[0].status, "skipped");
   assert.ok(result.reasoning.length >= 2);
   assert.equal(result.trace.find((item) => item.stage === "agents")?.status, "completed");
   assert.ok(result.agents.selectedAgentIds.length >= 1);
@@ -30,6 +31,17 @@ test("unified runtime exposes the complete ordered cognitive cycle", () => {
   assert.ok(result.memory.some((item) => item.durable));
   assert.ok(result.knowledge.some((item) => item.type === "risk"));
   assert.ok(result.knowledge.some((item) => item.type === "action"));
+});
+
+test("recall summary is injected before new reasoning", () => {
+  const result = runUnifiedRuntime({
+    message: "Et maintenant ?",
+    cognitiveCase,
+    recallSummary: "Dernière décision: lancer le pilote. Prochaine meilleure action: mesurer l'adoption."
+  });
+  assert.equal(result.trace[0].stage, "recall");
+  assert.equal(result.trace[0].status, "completed");
+  assert.ok(result.reasoning.some((item) => item.content.startsWith("Recall —")));
 });
 
 test("ordinary decision creates a decision proposal", () => {
