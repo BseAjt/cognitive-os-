@@ -38,12 +38,12 @@ export function ExecutiveOSHomeDashboard({
           <div className="flex items-start justify-between">
             <div>
               <span className="text-xs font-black tracking-[.14em] text-[#42d59d]">SYSTEM HEALTH</span>
-              <strong className="mt-3 block text-6xl">{briefing.twinHealth}%</strong>
+              <strong className="mt-3 block text-6xl">{briefing.systemHealth}%</strong>
             </div>
             <span className="rounded-full bg-[#ffbc57]/10 px-3 py-1 text-xs text-[#ffd895]">En apprentissage</span>
           </div>
           <div className="mt-6 h-3 overflow-hidden rounded-full bg-white/5">
-            <div className="h-full bg-gradient-to-r from-[#7c5cff] to-[#42d59d]" style={{ width: `${briefing.twinHealth}%` }} />
+            <div className="h-full bg-gradient-to-r from-[#7c5cff] to-[#42d59d]" style={{ width: `${briefing.systemHealth}%` }} />
           </div>
           <p className="mt-5 text-sm leading-6 text-[#91a2bd]">Bonne couverture stratégique et financière. Les domaines humain, juridique et opérationnel doivent encore être consolidés.</p>
         </article>
