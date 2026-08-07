@@ -26,6 +26,7 @@ export interface CaseSlice {
   cases: CognitiveCase[];
   activeCaseId: string;
   setActiveCase: (id: string) => void;
+  createCase: (input: { title: string; objective: string; context?: string }) => string;
   replaceCase: (cognitiveCase: CognitiveCase) => void;
   applyCasePatch: (caseId: string, patch: Partial<CognitiveCase>) => void;
 }
