@@ -1,13 +1,13 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { createStore } from "zustand/vanilla";
-import { createActionSlice, createChallengeSlice, createConversationSlice, createDecisionSlice, createEventSlice } from "../store/slices.ts";
+import { createActionSlice, createCaseSlice, createConversationSlice, createDecisionSlice, createEventSlice } from "../store/slices.ts";
 import { createExecutiveCommands } from "../store/commands.ts";
 import type { ExecutiveState } from "../store/types.ts";
 
 function createExecutiveTestStore() {
   return createStore<ExecutiveState>()((...args) => ({
-    ...createChallengeSlice(...args),
+    ...createCaseSlice(...args),
     ...createConversationSlice(...args),
     ...createDecisionSlice(...args),
     ...createActionSlice(...args),
@@ -26,14 +26,20 @@ test("conversation command updates state atomically", () => {
     assistantText: "Décision structurée",
     intent: "decision",
     extractionCount: 1,
-    challengePatch: { urgency: 9, state: "decide" },
+    casePatch: {
+      state: "decide",
+      signals: {
+        ...store.getState().cases.find((item) => item.id === "executiveos")!.signals,
+        urgency: 9
+      }
+    },
     createdAt: "2026-08-07T12:00:00.000Z"
   });
 
   const state = store.getState();
   assert.equal(state.messages.length, beforeMessages + 2);
   assert.equal(state.messages.at(-1)?.caseId, "executiveos");
-  assert.equal(state.challenges.find((item) => item.id === "executiveos")?.urgency, 9);
+  assert.equal(state.cases.find((item) => item.id === "executiveos")?.signals.urgency, 9);
   assert.equal(state.events[0].type, "ConversationParsed");
 });
 
@@ -57,12 +63,12 @@ test("decision and action commands own canonical records and side effects", () =
   assert.ok(state.events.some((event) => event.type === "ActionCreated"));
 });
 
-test("critical signal targets the active challenge", () => {
+test("critical signal targets the active case", () => {
   const store = createExecutiveTestStore();
-  store.getState().setActiveChallenge("positioning");
+  store.getState().setActiveCase("positioning");
   store.getState().applyCriticalSignal();
-  const active = store.getState().challenges.find((item) => item.id === "positioning");
-  assert.equal(active?.risk, 9);
-  assert.equal(active?.urgency, 10);
+  const active = store.getState().cases.find((item) => item.id === "positioning");
+  assert.equal(active?.signals.risk, 9);
+  assert.equal(active?.signals.urgency, 10);
   assert.equal(store.getState().events[0].type, "CriticalSignalDetected");
 });
