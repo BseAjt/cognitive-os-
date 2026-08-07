@@ -2,10 +2,10 @@
 
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
-import { createActionSlice, createCaseSlice, createConversationSlice, createDecisionSlice, createEventSlice, createKnowledgeSlice, createMemorySlice } from "./slices";
+import { createActionSlice, createCaseSlice, createConversationSlice, createDecisionSlice, createEventSlice, createKnowledgeGraphSlice, createKnowledgeSlice, createMemorySlice } from "./slices";
 import { createExecutiveCommands } from "./commands";
 import { createRuntimeSlice } from "./runtime-slice";
-import type { ActionRecord, AgentContract, CognitiveCase, DecisionRecord, KnowledgeRecord, MemoryRecord } from "../domain/canonical";
+import type { ActionRecord, AgentContract, CognitiveCase, DecisionRecord, KnowledgeEntity, KnowledgeRecord, KnowledgeRelation, MemoryRecord } from "../domain/canonical";
 import type { ConversationMessage, ExecutiveState, ReasoningRevision } from "./types";
 
 export type { ConversationMessage, ExecutiveState, ReasoningRevision, ReasoningStepId } from "./types";
@@ -29,12 +29,14 @@ type PersistedExecutiveState = {
   reasoningRevisions?: PersistedLegacyRevision[];
   memories?: MemoryRecord[];
   knowledgeRecords?: KnowledgeRecord[];
+  knowledgeEntities?: KnowledgeEntity[];
+  knowledgeRelations?: KnowledgeRelation[];
 };
 
 function migratePersistedState(persistedState: unknown, version: number): ExecutiveState {
   const state = (persistedState ?? {}) as PersistedExecutiveState;
 
-  if (version >= 8) return state as ExecutiveState;
+  if (version >= 9) return state as ExecutiveState;
 
   const migratedCases: CognitiveCase[] = state.cases ?? (state.challenges ?? []).map((challenge) => ({
     id: challenge.id,
@@ -99,7 +101,9 @@ function migratePersistedState(persistedState: unknown, version: number): Execut
     agents: state.agents ?? [],
     reasoningRevisions: migratedRevisions,
     memories: state.memories ?? [],
-    knowledgeRecords: state.knowledgeRecords ?? []
+    knowledgeRecords: state.knowledgeRecords ?? [],
+    knowledgeEntities: state.knowledgeEntities ?? [],
+    knowledgeRelations: state.knowledgeRelations ?? []
   } as ExecutiveState;
 }
 
@@ -113,12 +117,13 @@ export const useExecutiveStore = create<ExecutiveState>()(
       ...createEventSlice(...args),
       ...createMemorySlice(...args),
       ...createKnowledgeSlice(...args),
+      ...createKnowledgeGraphSlice(...args),
       ...createRuntimeSlice(...args),
       ...createExecutiveCommands(...args)
     }),
     {
       name: "executiveos-v2",
-      version: 8,
+      version: 9,
       migrate: migratePersistedState
     }
   )
