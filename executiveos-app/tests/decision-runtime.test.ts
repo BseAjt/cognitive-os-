@@ -5,24 +5,26 @@ import {
   evaluateDecisionContext,
   runDecisionRuntime
 } from "../lib/decision-runtime.ts";
-import type { Challenge } from "../types/domain.ts";
+import type { CognitiveCase } from "../domain/canonical.ts";
 
-const challenge: Challenge = {
+const cognitiveCase: CognitiveCase = {
   id: "decision-runtime",
   title: "Decision runtime",
-  goal: "Tester le moteur de décision",
-  hypothesis: "",
-  impact: 8,
-  urgency: 6,
-  confidence: 72,
-  cognitiveCost: 5,
-  risk: 5,
+  objective: "Tester le moteur de décision",
+  workingHypothesis: "",
   context: "",
-  state: "decide"
+  state: "decide",
+  signals: {
+    impact: 8,
+    urgency: 6,
+    confidence: 72,
+    cognitiveCost: 5,
+    risk: 5
+  }
 };
 
 test("generic decision runtime returns scored options and recommendation", () => {
-  const result = runDecisionRuntime("Faut-il lancer une nouvelle offre ?", challenge);
+  const result = runDecisionRuntime("Faut-il lancer une nouvelle offre ?", cognitiveCase);
   assert.equal(result.frame.category, "launch");
   assert.equal(result.frame.options.length, 3);
   assert.ok(result.frame.options.every((option) => option.score !== null));
@@ -31,7 +33,7 @@ test("generic decision runtime returns scored options and recommendation", () =>
 });
 
 test("regulated workforce decision blocks recommendation while context is incomplete", () => {
-  const result = runDecisionRuntime("Faut-il lancer un plan social ?", challenge);
+  const result = runDecisionRuntime("Faut-il lancer un plan social ?", cognitiveCase);
   assert.equal(result.frame.category, "workforce_restructuring");
   assert.equal(result.frame.requiresContext, true);
   assert.equal(result.recommendationAllowed, false);
@@ -41,7 +43,7 @@ test("regulated workforce decision blocks recommendation while context is incomp
 });
 
 test("decision context can be evaluated independently from UI", () => {
-  const initial = runDecisionRuntime("Faut-il recruter un CTO ?", challenge);
+  const initial = runDecisionRuntime("Faut-il recruter un CTO ?", cognitiveCase);
   const completed = createDecisionContext(initial.frame).map((item) => ({
     ...item,
     value: "Documenté",
