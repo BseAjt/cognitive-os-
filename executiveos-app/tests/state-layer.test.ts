@@ -16,7 +16,7 @@ function createExecutiveTestStore() {
   }));
 }
 
-test("conversation command updates a cognitive case atomically", () => {
+test("conversation command updates state atomically", () => {
   const store = createExecutiveTestStore();
   const beforeMessages = store.getState().messages.length;
 
@@ -37,7 +37,7 @@ test("conversation command updates a cognitive case atomically", () => {
   assert.equal(state.events[0].type, "ConversationParsed");
 });
 
-test("decision and action commands accept canonical caseId", () => {
+test("decision and action commands own canonical records and side effects", () => {
   const store = createExecutiveTestStore();
   store.getState().captureDecision({
     caseId: "executiveos",
@@ -49,15 +49,15 @@ test("decision and action commands accept canonical caseId", () => {
   store.getState().createAction({ caseId: "executiveos", title: "Définir les critères du pilote" });
 
   const state = store.getState();
-  assert.equal(state.decisions[0].challengeId, "executiveos");
-  assert.equal(state.decisions[0].finalDecision, "Lancer un pilote");
-  assert.equal(state.actions[0].challengeId, "executiveos");
+  assert.equal(state.decisions[0].caseId, "executiveos");
+  assert.equal(state.decisions[0].outcome, "Lancer un pilote");
+  assert.equal(state.actions[0].caseId, "executiveos");
   assert.equal(state.actions[0].title, "Définir les critères du pilote");
   assert.ok(state.events.some((event) => event.type === "DecisionCaptured"));
   assert.ok(state.events.some((event) => event.type === "ActionCreated"));
 });
 
-test("critical signal targets the active case", () => {
+test("critical signal targets the active challenge", () => {
   const store = createExecutiveTestStore();
   store.getState().setActiveChallenge("positioning");
   store.getState().applyCriticalSignal();
