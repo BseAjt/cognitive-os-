@@ -42,7 +42,7 @@ test("action is blocked when no compatible agent exists", () => {
 });
 
 test("task state machine rejects invalid transitions", () => {
-  assert.throws(() => transitionAction(action, "blocked" === "done" ? "done" : "todo"), /Invalid transition/);
+  assert.throws(() => transitionAction({ ...action, status: "done" }, "doing"), /Invalid transition/);
 });
 
 test("executing a todo action assigns, runs and completes it", () => {
