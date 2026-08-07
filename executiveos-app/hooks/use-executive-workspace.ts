@@ -26,11 +26,11 @@ export function useExecutiveWorkspace() {
     [store.messages, activeCaseId]
   );
   const decisions = useMemo(
-    () => store.decisions.filter((decision) => decision.challengeId === activeCaseId),
+    () => store.decisions.filter((decision) => decision.caseId === activeCaseId),
     [store.decisions, activeCaseId]
   );
   const actions = useMemo(
-    () => store.actions.filter((action) => action.challengeId === activeCaseId),
+    () => store.actions.filter((action) => action.caseId === activeCaseId),
     [store.actions, activeCaseId]
   );
 
