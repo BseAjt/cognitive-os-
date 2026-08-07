@@ -8,7 +8,7 @@ import { createRuntimeSlice } from "./runtime-slice";
 import type { ActionRecord, AgentContract, CognitiveCase, DecisionRecord } from "../domain/canonical";
 import type { ConversationMessage, ExecutiveState, ReasoningRevision } from "./types";
 
-export type { ConversationMessage, ExecutiveState, ReasoningRevision } from "./types";
+export type { ConversationMessage, ExecutiveState, ReasoningRevision, ReasoningStepId } from "./types";
 
 type PersistedMessage = Omit<ConversationMessage, "caseId"> & {
   caseId?: string;
