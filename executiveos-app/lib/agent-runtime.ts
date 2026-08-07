@@ -7,6 +7,13 @@ import type {
 } from "../domain/canonical.ts";
 import type { CognitiveExtraction } from "./conversation-runtime.ts";
 
+export const defaultExecutiveAgents: AgentContract[] = [
+  { id: "orion", name: "ORION", role: "Orchestrateur exécutif", specialty: "Synthèse et orchestration", capabilities: ["analysis", "orchestration", "decision"], status: "online", version: "2.1.0" },
+  { id: "athena", name: "ATHENA", role: "Chief Strategy Officer", specialty: "Stratégie", capabilities: ["analysis", "strategy", "decision"], status: "online", version: "2.1.0" },
+  { id: "turing", name: "TURING", role: "CTO", specialty: "Technologie et architecture", capabilities: ["analysis", "technology", "execution"], status: "online", version: "2.1.0" },
+  { id: "seneca", name: "SENECA", role: "Chief Reflection Officer", specialty: "Critique et risques", capabilities: ["analysis", "reflection", "risk"], status: "online", version: "2.1.0" }
+];
+
 export interface AgentOrchestrationInput {
   message: string;
   cognitiveCase: CognitiveCase;
