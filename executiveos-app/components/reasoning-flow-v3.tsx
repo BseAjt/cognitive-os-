@@ -1,32 +1,32 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import type { DecisionFrame } from "@/lib/decision-room";
+import type { DecisionFrame } from "@/lib/decision-runtime";
 import { useExecutiveStore, type ReasoningStepId } from "@/store/executive-store";
-import type { Challenge } from "@/types/domain";
+import type { CognitiveCase } from "@/domain/canonical";
 
 type FlowStatus = "active" | "watch" | "stable" | "future";
 type Step = { id: ReasoningStepId; label: string; title: string; detail: string; status: FlowStatus };
 
 type ReasoningFlowProps = {
-  challenge: Challenge;
+  cognitiveCase: CognitiveCase;
   frame: DecisionFrame;
   activeStepId?: ReasoningStepId;
   onStepChange?: (stepId: ReasoningStepId) => void;
 };
 
-export function ReasoningFlowV3({ challenge, frame, activeStepId, onStepChange }: ReasoningFlowProps) {
+export function ReasoningFlowV3({ cognitiveCase, frame, activeStepId, onStepChange }: ReasoningFlowProps) {
   const reasoningRevisions = useExecutiveStore((state) => state.reasoningRevisions);
   const addReasoningRevision = useExecutiveStore((state) => state.addReasoningRevision);
   const steps = useMemo<Step[]>(() => [
-    { id: "question", label: "Question", title: frame.question || challenge.title, detail: challenge.context, status: "active" },
-    { id: "hypothesis", label: "Hypothèse", title: challenge.hypothesis, detail: "Hypothèse de travail actuelle. Elle peut évoluer à mesure que de nouvelles preuves apparaissent.", status: "active" },
+    { id: "question", label: "Question", title: frame.question || cognitiveCase.title, detail: cognitiveCase.context, status: "active" },
+    { id: "hypothesis", label: "Hypothèse", title: cognitiveCase.workingHypothesis, detail: "Hypothèse de travail actuelle. Elle peut évoluer à mesure que de nouvelles preuves apparaissent.", status: "active" },
     { id: "evidence", label: "Preuves", title: frame.missingInformation.length ? `${frame.missingInformation.length} éléments critiques à compléter` : "Contexte suffisamment documenté", detail: frame.missingInformation.length ? frame.missingInformation.join(" · ") : "Les informations nécessaires au cadrage sont actuellement suffisantes.", status: frame.missingInformation.length ? "watch" : "stable" },
     { id: "options", label: "Options", title: `${frame.options.length} scénarios comparés`, detail: frame.options.map((option) => `${option.title}${option.score !== null ? ` (${option.score})` : ""}`).join(" · "), status: "active" },
     { id: "objections", label: "Objections", title: frame.reviewTrigger, detail: frame.criteria.join(" · "), status: frame.requiresContext ? "watch" : "stable" },
-    { id: "decision", label: "Décision", title: frame.recommendation ?? "Arbitrage encore ouvert", detail: frame.recommendation ? `Confiance ${frame.confidence ?? challenge.confidence}%` : "La décision reste ouverte tant que les éléments critiques ne sont pas consolidés.", status: frame.recommendation ? "stable" : "watch" },
+    { id: "decision", label: "Décision", title: frame.recommendation ?? "Arbitrage encore ouvert", detail: frame.recommendation ? `Confiance ${frame.confidence ?? cognitiveCase.signals.confidence}%` : "La décision reste ouverte tant que les éléments critiques ne sont pas consolidés.", status: frame.recommendation ? "stable" : "watch" },
     { id: "consequences", label: "Conséquences", title: "Impacts et actions reliés à la décision finale", detail: "Les conséquences seront enrichies à partir des actions, dépendances et résultats observés après arbitrage.", status: "future" }
-  ], [challenge, frame]);
+  ], [cognitiveCase, frame]);
 
   const [internalSelectedId, setInternalSelectedId] = useState<ReasoningStepId>("question");
   const [draft, setDraft] = useState("");
@@ -36,13 +36,13 @@ export function ReasoningFlowV3({ challenge, frame, activeStepId, onStepChange }
     onStepChange?.(stepId);
   };
   const selected = steps.find((step) => step.id === selectedId) ?? steps[0];
-  const revisionsForStep = (stepId: ReasoningStepId) => reasoningRevisions.filter((item) => item.challengeId === challenge.id && item.stepId === stepId);
+  const revisionsForStep = (stepId: ReasoningStepId) => reasoningRevisions.filter((item) => item.caseId === cognitiveCase.id && item.stepId === stepId);
   const selectedRevisions = revisionsForStep(selected.id);
 
   function addRevision() {
     const clean = draft.trim();
     if (!clean) return;
-    addReasoningRevision({ challengeId: challenge.id, stepId: selected.id, content: clean, confidence: challenge.confidence, risk: challenge.risk });
+    addReasoningRevision({ caseId: cognitiveCase.id, stepId: selected.id, content: clean, confidence: cognitiveCase.signals.confidence, risk: cognitiveCase.signals.risk });
     setDraft("");
   }
 
