@@ -8,17 +8,17 @@ export const createChallengeSlice: StateCreator<ExecutiveState, [], [], Challeng
   setActiveChallenge: (id) => set({ activeChallengeId: id }),
   replaceChallenge: (challenge) =>
     set((state) => ({ challenges: state.challenges.map((item) => item.id === challenge.id ? challenge : item) })),
-  applyChallengePatch: (challengeId, patch) =>
+  applyChallengePatch: (caseId, patch) =>
     set((state) => ({
-      challenges: state.challenges.map((item) => item.id === challengeId ? { ...item, ...patch } : item)
+      challenges: state.challenges.map((item) => item.id === caseId ? { ...item, ...patch } : item)
     }))
 });
 
 export const createConversationSlice: StateCreator<ExecutiveState, [], [], ConversationSlice> = (set) => ({
   messages: initialMessages,
   appendMessages: (messages) => set((state) => ({ messages: [...state.messages, ...messages] })),
-  clearConversationHistory: (challengeId) =>
-    set((state) => ({ messages: state.messages.filter((message) => message.challengeId !== challengeId) }))
+  clearConversationHistory: (caseId) =>
+    set((state) => ({ messages: state.messages.filter((message) => message.caseId !== caseId) }))
 });
 
 export const createDecisionSlice: StateCreator<ExecutiveState, [], [], DecisionSlice> = (set) => ({
