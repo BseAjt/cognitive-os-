@@ -23,9 +23,9 @@ export const createExecutiveCommands: StateCreator<ExecutiveState, [], [], Execu
     set((state) => ({
       decisions: [{
         id: crypto.randomUUID(),
-        challengeId: caseId,
+        caseId,
         recommendation,
-        finalDecision: text,
+        outcome: text,
         rationale: rationale ?? "Décision extraite de la conversation.",
         confidence,
         createdAt: timestamp
@@ -39,7 +39,7 @@ export const createExecutiveCommands: StateCreator<ExecutiveState, [], [], Execu
     set((state) => ({
       actions: [{
         id: crypto.randomUUID(),
-        challengeId: caseId,
+        caseId,
         title,
         owner: owner ?? "À assigner",
         progress: 0,
