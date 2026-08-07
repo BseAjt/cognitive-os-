@@ -62,43 +62,46 @@ const root = resolve(here, "..");
 const home = readFileSync(resolve(root, "components/executive-home-v4.tsx"), "utf8");
 const runtime = readFileSync(resolve(root, "components/executive-runtime-panel.tsx"), "utf8");
 const workspace = readFileSync(resolve(root, "components/executive-workspace.tsx"), "utf8");
+const slices = readFileSync(resolve(root, "store/slices.ts"), "utf8");
 
-for (const tab of ["Accueil", "Comprendre", "Décider", "Agir", "Explorer", "Paramètres"]) {
-  test(`navigation exposes ${tab}`, () => assert.ok(home.includes(`label: \"${tab}\"`)));
+for (const label of ["Mes dossiers", "Paramètres"]) {
+  test(`primary navigation exposes ${label}`, () => assert.ok(home.includes(label)));
 }
 
-test("global ORION command executes the unified runtime", () => {
+test("primary navigation no longer exposes engine tabs", () => {
+  assert.ok(!home.includes('label: "Comprendre"'));
+  assert.ok(!home.includes('label: "Décider"'));
+  assert.ok(!home.includes('label: "Agir"'));
+  assert.ok(!home.includes('label: "Explorer"'));
+});
+
+test("dossier-first shell exposes cognitive journey stages", () => {
+  for (const label of ["Vue d’ensemble", "Analyse", "Décision", "Exécution", "Apprentissage", "Historique"]) assert.ok(home.includes(label));
+  assert.ok(home.includes("DossiersHome"));
+  assert.ok(home.includes("CaseWorkspace"));
+});
+
+test("users can create and edit dossiers", () => {
+  assert.ok(slices.includes("createCase:"));
+  assert.ok(home.includes("store.createCase"));
+  assert.ok(home.includes("store.applyCasePatch"));
+  assert.ok(home.includes("+ Nouveau dossier"));
+});
+
+test("global ORION command executes inside the active dossier", () => {
   assert.ok(home.includes("runUnifiedRuntime"));
   assert.ok(home.includes("store.applyRuntimeCycle"));
-  assert.ok(home.includes('setView("decision")'));
+  assert.ok(home.includes('setStage("analysis")'));
 });
 
-test("understand tab consumes memory, reflection and cognitive DNA", () => {
-  assert.ok(home.includes("store.memories"));
-  assert.ok(home.includes("store.learningEvents"));
-  assert.ok(home.includes("store.reflections"));
-  assert.ok(home.includes("store.cognitiveProfiles"));
-});
-
-test("settings tab exposes real diagnostic actions", () => {
-  assert.ok(home.includes("store.resetRuntimeActions()"));
-  assert.ok(home.includes("store.clearConversationHistory(active.id)"));
-  assert.ok(home.includes("store.applyCriticalSignal()"));
-});
-
-test("act tab exposes assign, transition and observable execute controls", () => {
+test("execution stays operational inside dossier workflow", () => {
   assert.ok(runtime.includes("assignRuntimeAction(action.id)"));
-  assert.ok(runtime.includes('transitionRuntimeAction(action.id, \"doing\")'));
+  assert.ok(runtime.includes('transitionRuntimeAction(action.id, "doing")'));
   assert.ok(runtime.includes("handleExecute(action.id)"));
-  assert.ok(runtime.includes("useExecutiveStore.getState()"));
   assert.ok(runtime.includes("executionFeedback"));
 });
 
-test("explore tab derives its graph from live store state", () => {
-  assert.ok(runtime.includes("buildRuntimeGraph({ cases, decisions, actions, agents, events })"));
-});
-
-test("decision workspace runs the unified runtime and persists cycles", () => {
+test("decision workspace remains connected to unified runtime", () => {
   assert.ok(workspace.includes("runUnifiedRuntime"));
   assert.ok(workspace.includes("store.applyRuntimeCycle"));
   assert.ok(workspace.includes("DecisionCanvas"));
