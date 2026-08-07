@@ -1,4 +1,5 @@
-import type { ContextItem, ContextReadiness } from "./context-engine";
+import type { ContextRecord } from "../domain/canonical.ts";
+import type { ContextAssessment } from "./context-engine";
 import type { ScenarioPortfolio, Scenario } from "./scenario-builder";
 
 export type CouncilAgentId = "CFO" | "DRH" | "Legal" | "Operations" | "SENECA" | "ATHENA" | "ORION";
@@ -39,15 +40,15 @@ export interface ExecutiveCouncilResult {
   nextActions: string[];
 }
 
-const has = (items: ContextItem[], key: string) => items.find((item) => item.key === key);
-const valid = (items: ContextItem[], key: string) => {
+const has = (items: ContextRecord[], key: string) => items.find((item) => item.key === key);
+const valid = (items: ContextRecord[], key: string) => {
   const item = has(items, key);
   return Boolean(item && item.value.trim() && item.status === "verified");
 };
 
 export function conveneExecutiveCouncil(
-  contextItems: ContextItem[],
-  readiness: ContextReadiness,
+  contextItems: ContextRecord[],
+  readiness: ContextAssessment,
   portfolio: ScenarioPortfolio
 ): ExecutiveCouncilResult {
   const scenarios = new Map(portfolio.scenarios.map((scenario) => [scenario.id, scenario]));
@@ -84,7 +85,7 @@ export function conveneExecutiveCouncil(
   };
 }
 
-function assessCfo(items: ContextItem[], scenarios: Map<string, Scenario>): AgentAssessment {
+function assessCfo(items: ContextRecord[], scenarios: Map<string, Scenario>): AgentAssessment {
   const missing = [!valid(items, "target_savings_million") && "objectif d'économies", !valid(items, "cash_runway_months") && "horizon de trésorerie"].filter(Boolean) as string[];
   const preferred = scenarios.has("cost-containment") ? "cost-containment" : null;
   return assessment("CFO", "Viabilité financière et coût total", missing.length ? "insufficient_context" : "conditional", preferred, missing.length ? 42 : 72,
@@ -93,7 +94,7 @@ function assessCfo(items: ContextItem[], scenarios: Map<string, Scenario>): Agen
     ["Fixer une cible d'économies nette", "Comparer économies brutes et coûts de mise en œuvre"]);
 }
 
-function assessDrh(items: ContextItem[], scenarios: Map<string, Scenario>): AgentAssessment {
+function assessDrh(items: ContextRecord[], scenarios: Map<string, Scenario>): AgentAssessment {
   const missing = [!valid(items, "affected_roles_count") && "périmètre des postes", !valid(items, "critical_skills") && "cartographie des compétences critiques", !valid(items, "alternatives_reviewed") && "alternatives RH étudiées"].filter(Boolean) as string[];
   return assessment("DRH", "Impact humain, compétences et alternatives", missing.length ? "insufficient_context" : "support", scenarios.has("voluntary-mobility") ? "voluntary-mobility" : null, missing.length ? 38 : 76,
     [finding("opportunity", "La mobilité interne et les départs volontaires peuvent réduire l'impact humain si les compétences critiques sont protégées.", "high", ["critical_skills", "alternatives_reviewed"])],
@@ -101,7 +102,7 @@ function assessDrh(items: ContextItem[], scenarios: Map<string, Scenario>): Agen
     ["Protéger explicitement les compétences critiques", "Évaluer le volontariat avant toute mesure contrainte"]);
 }
 
-function assessLegal(items: ContextItem[], scenarios: Map<string, Scenario>): AgentAssessment {
+function assessLegal(items: ContextRecord[], scenarios: Map<string, Scenario>): AgentAssessment {
   const missing = [!valid(items, "legal_jurisdiction") && "juridiction applicable", !valid(items, "social_dialogue_status") && "état du dialogue social"].filter(Boolean) as string[];
   return assessment("Legal", "Conformité, calendrier social et contentieux", missing.length ? "insufficient_context" : "conditional", scenarios.has("voluntary-mobility") ? "voluntary-mobility" : null, missing.length ? 35 : 68,
     [finding("risk", "Une restructuration contrainte reste juridiquement risquée sans diagnostic économique et dialogue social documentés.", "critical", ["legal_jurisdiction", "social_dialogue_status"])],
@@ -109,7 +110,7 @@ function assessLegal(items: ContextItem[], scenarios: Map<string, Scenario>): Ag
     ["Valider le fondement économique", "Sécuriser le calendrier et les consultations"]);
 }
 
-function assessOperations(items: ContextItem[], scenarios: Map<string, Scenario>): AgentAssessment {
+function assessOperations(items: ContextRecord[], scenarios: Map<string, Scenario>): AgentAssessment {
   const impact = has(items, "operational_impact");
   const contested = !impact || impact.status === "contested" || !impact.value.trim();
   return assessment("Operations", "Continuité d'activité et capacité d'exécution", contested ? "insufficient_context" : "conditional", scenarios.has("cost-containment") ? "cost-containment" : null, contested ? 30 : 70,
@@ -118,7 +119,7 @@ function assessOperations(items: ContextItem[], scenarios: Map<string, Scenario>
     ["Construire un plan de continuité", "Tester la capacité résiduelle par fonction"]);
 }
 
-function assessSeneca(items: ContextItem[], scenarios: Map<string, Scenario>): AgentAssessment {
+function assessSeneca(items: ContextRecord[], scenarios: Map<string, Scenario>): AgentAssessment {
   const alternatives = valid(items, "alternatives_reviewed");
   return assessment("SENECA", "Biais, contradictions et conséquences de second ordre", alternatives ? "conditional" : "oppose", scenarios.has("cost-containment") ? "cost-containment" : null, alternatives ? 66 : 74,
     [finding("objection", "Le risque d'ancrage sur le PSE est élevé tant que les alternatives n'ont pas été démontrées comme insuffisantes.", "high", ["alternatives_reviewed"])],
@@ -126,7 +127,7 @@ function assessSeneca(items: ContextItem[], scenarios: Map<string, Scenario>): A
     ["Rendre explicites les scénarios rejetés", "Documenter les effets irréversibles"]);
 }
 
-function assessAthena(items: ContextItem[], scenarios: Map<string, Scenario>): AgentAssessment {
+function assessAthena(items: ContextRecord[], scenarios: Map<string, Scenario>): AgentAssessment {
   const objective = valid(items, "strategic_objective");
   return assessment("ATHENA", "Cohérence stratégique et modèle cible", objective ? "conditional" : "insufficient_context", scenarios.has("voluntary-mobility") ? "voluntary-mobility" : null, objective ? 69 : 40,
     [finding("question", "La décision doit préserver les capacités nécessaires au modèle opérationnel cible, pas seulement réduire les coûts à court terme.", "high", ["strategic_objective", "critical_skills"])],
@@ -157,7 +158,7 @@ function detectDivergences(assessments: AgentAssessment[]): CouncilDivergence[] 
   }];
 }
 
-function buildOrionSynthesis(readiness: ContextReadiness, portfolio: ScenarioPortfolio, assessments: AgentAssessment[], divergences: CouncilDivergence[], dominant: string | null, allowed: boolean): string {
+function buildOrionSynthesis(readiness: ContextAssessment, portfolio: ScenarioPortfolio, assessments: AgentAssessment[], divergences: CouncilDivergence[], dominant: string | null, allowed: boolean): string {
   const blockedAgents = assessments.filter((assessment) => assessment.position === "insufficient_context").map((assessment) => assessment.agent);
   if (!allowed) {
     return `ORION suspend toute recommandation définitive. Le contexte est prêt à ${readiness.readiness} %, ${portfolio.scenarios.filter((scenario) => scenario.score === null).length} scénario(s) restent non scorés et ${blockedAgents.length} agent(s) demandent des informations complémentaires${divergences.length ? ". Une divergence explicite doit aussi être arbitrée" : ""}.`;
