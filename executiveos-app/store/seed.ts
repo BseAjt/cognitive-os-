@@ -33,7 +33,7 @@ export const initialChallenges: Challenge[] = [
 export const initialMessages: ConversationMessage[] = [
   {
     id: "welcome",
-    challengeId: "executiveos",
+    caseId: "executiveos",
     role: "assistant",
     text: "Bonjour Sébastien. Tu reprends ExecutiveOS. Le principal sujet est maintenant la validation du Conversation Runtime. Que souhaites-tu approfondir ?",
     createdAt: new Date().toISOString()
