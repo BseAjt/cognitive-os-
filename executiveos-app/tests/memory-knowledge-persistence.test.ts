@@ -6,21 +6,10 @@ import { fileURLToPath } from "node:url";
 import { runUnifiedRuntime } from "../lib/unified-runtime.ts";
 import type { CognitiveCase } from "../domain/canonical.ts";
 
-const cognitiveCase: CognitiveCase = {
-  id: "memory-case",
-  title: "Mémoire cognitive",
-  objective: "Capitaliser le raisonnement",
-  workingHypothesis: "",
-  context: "",
-  state: "explore",
-  signals: { impact: 8, urgency: 5, confidence: 75, cognitiveCost: 5, risk: 4 }
-};
+const cognitiveCase: CognitiveCase = { id:"memory-case", title:"Mémoire cognitive", objective:"Capitaliser le raisonnement", workingHypothesis:"", context:"", state:"explore", signals:{ impact:8, urgency:5, confidence:75, cognitiveCost:5, risk:4 } };
 
 test("unified runtime produces case-scoped memory and knowledge candidates", () => {
-  const result = runUnifiedRuntime({
-    message: "Je pense que le marché est prêt. Le risque principal est le churn. Il faut interroger cinq clients.",
-    cognitiveCase
-  });
+  const result = runUnifiedRuntime({ message: "Je pense que le marché est prêt. Le risque principal est le churn. Il faut interroger cinq clients.", cognitiveCase });
   assert.ok(result.memory.some((item) => item.kind === "hypothesis" && item.durable));
   assert.ok(result.memory.some((item) => item.kind === "risk" && item.durable));
   assert.ok(result.knowledge.some((item) => item.type === "risk"));
@@ -43,7 +32,7 @@ for (const [name, file, expected] of [
   ["runtime persists memory", commands, "source: \"unified_runtime\" as const"],
   ["runtime writes memories atomically", commands, "memories: memories.length"],
   ["runtime writes knowledge atomically", commands, "knowledgeRecords: knowledgeRecords.length"],
-  ["persistence schema includes learning migration v11", store, "version: 11"],
+  ["persistence schema includes reflection migration v12", store, "version: 12"],
   ["store composes memory slice", store, "createMemorySlice"],
   ["store composes knowledge slice", store, "createKnowledgeSlice"]
 ] as const) {
