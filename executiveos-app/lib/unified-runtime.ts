@@ -69,23 +69,27 @@ export interface UnifiedRuntimeResult {
 
 export function runUnifiedRuntime(input: UnifiedRuntimeInput): UnifiedRuntimeResult {
   const agents = input.agents?.length ? input.agents : defaultExecutiveAgents;
-  const conversation = runConversationRuntime(input.message, input.cognitiveCase);
+  const baseConversation = runConversationRuntime(input.message, input.cognitiveCase);
   const agentMessage = input.recallSummary ? `${input.message}\n\nContexte de reprise:\n${input.recallSummary}` : input.message;
   const agentOrchestration = runAgentOrchestration({
     message: agentMessage,
     cognitiveCase: input.cognitiveCase,
     agents,
-    extractions: conversation.extractions,
+    extractions: baseConversation.extractions,
     memories: input.memories,
     knowledgeRecords: input.knowledgeRecords
   });
+  const conversation: RuntimeResult = {
+    ...baseConversation,
+    response: `${baseConversation.response}\n\n${agentOrchestration.synthesis}`
+  };
 
   const reasoning: ReasoningProposal[] = [
     ...(input.recallSummary ? [{ stepId: "evidence" as const, content: `Recall — ${input.recallSummary}`, confidence: input.cognitiveCase.signals.confidence }] : []),
     ...conversation.extractions.map((extraction) => toReasoningProposal(extraction, input.cognitiveCase)),
     ...agentOrchestration.contributions.map((contribution) => ({
       stepId: contribution.agentId === "seneca" ? "objections" as const : contribution.agentId === "turing" ? "evidence" as const : "options" as const,
-      content: `${contribution.agentName} — ${contribution.content}`,
+      content: `Perspective spécialisée — ${contribution.content}`,
       confidence: contribution.confidence,
       risk: contribution.agentId === "seneca" ? input.cognitiveCase.signals.risk : undefined
     })),
@@ -140,7 +144,7 @@ export function runUnifiedRuntime(input: UnifiedRuntimeInput): UnifiedRuntimeRes
     { stage: "recall", status: input.recallSummary ? "completed" : "skipped", detail: input.recallSummary ? "État de reprise reconstruit avant analyse." : "Aucun historique cognitif à rappeler." },
     { stage: "context", status: "completed", detail: `${conversation.extractions.length} éléments cognitifs extraits.` },
     { stage: "reasoning", status: reasoning.length ? "completed" : "skipped", detail: `${reasoning.length} propositions de révision.` },
-    { stage: "agents", status: agentOrchestration.contributions.length ? "completed" : "skipped", detail: `${agentOrchestration.selectedAgentIds.length} spécialiste(s) mobilisé(s) par ORION.` },
+    { stage: "agents", status: agentOrchestration.contributions.length ? "completed" : "skipped", detail: `ORION · intention ${agentOrchestration.intent} · ${agentOrchestration.selectedAgentIds.length} perspective(s) interne(s).` },
     {
       stage: "decision",
       status: conversation.decisionFrame?.requiresContext && !conversation.decisionFrame.recommendation ? "blocked" : decision ? "completed" : "skipped",
@@ -163,7 +167,7 @@ export function runUnifiedRuntime(input: UnifiedRuntimeInput): UnifiedRuntimeRes
     knowledge,
     trace,
     nextAction: agentOrchestration.contributions.length
-      ? `${conversation.nextAction} · ORION: ${agentOrchestration.synthesis}`
+      ? `${conversation.nextAction} · ${agentOrchestration.synthesis}`
       : conversation.nextAction
   };
 }
