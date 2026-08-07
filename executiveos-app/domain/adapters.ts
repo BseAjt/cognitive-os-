@@ -1,9 +1,4 @@
-import type {
-  ActionRecord,
-  CognitiveCase,
-  CognitiveEventRecord,
-  DecisionRecord
-} from "@/domain/canonical";
+import type { CognitiveCase, CognitiveEventRecord } from "@/domain/canonical";
 
 export interface LegacyChallenge {
   id: string;
@@ -17,25 +12,6 @@ export interface LegacyChallenge {
   risk: number;
   context: string;
   state: CognitiveCase["state"];
-}
-
-export interface LegacyDecision {
-  id: string;
-  challengeId: string;
-  recommendation: string;
-  finalDecision: string;
-  rationale: string;
-  confidence: number;
-  createdAt: string;
-}
-
-export interface LegacyActionItem {
-  id: string;
-  challengeId: string;
-  title: string;
-  owner: string;
-  progress: number;
-  status: ActionRecord["status"];
 }
 
 export function challengeToCase(challenge: LegacyChallenge): CognitiveCase {
@@ -69,29 +45,6 @@ export function caseToChallenge(cognitiveCase: CognitiveCase): LegacyChallenge {
     confidence: cognitiveCase.signals.confidence,
     cognitiveCost: cognitiveCase.signals.cognitiveCost,
     risk: cognitiveCase.signals.risk
-  };
-}
-
-export function decisionToCanonical(decision: LegacyDecision): DecisionRecord {
-  return {
-    id: decision.id,
-    caseId: decision.challengeId,
-    recommendation: decision.recommendation,
-    outcome: decision.finalDecision,
-    rationale: decision.rationale,
-    confidence: decision.confidence,
-    createdAt: decision.createdAt
-  };
-}
-
-export function actionToCanonical(action: LegacyActionItem): ActionRecord {
-  return {
-    id: action.id,
-    caseId: action.challengeId,
-    title: action.title,
-    owner: action.owner,
-    progress: action.progress,
-    status: action.status
   };
 }
 
