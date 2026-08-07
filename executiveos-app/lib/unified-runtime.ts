@@ -1,5 +1,5 @@
 import type { AgentContract, CognitiveCase, ContextRecord, KnowledgeRecord, MemoryRecord } from "../domain/canonical.ts";
-import { preferredAgentForCapability, runAgentOrchestration, type AgentOrchestrationResult } from "./agent-runtime.ts";
+import { defaultExecutiveAgents, preferredAgentForCapability, runAgentOrchestration, type AgentOrchestrationResult } from "./agent-runtime.ts";
 import { runConversationRuntime, type CognitiveExtraction, type RuntimeResult } from "./conversation-runtime.ts";
 
 export type RuntimeStage = "context" | "reasoning" | "agents" | "decision" | "action" | "memory" | "knowledge";
@@ -67,11 +67,12 @@ export interface UnifiedRuntimeResult {
 }
 
 export function runUnifiedRuntime(input: UnifiedRuntimeInput): UnifiedRuntimeResult {
+  const agents = input.agents?.length ? input.agents : defaultExecutiveAgents;
   const conversation = runConversationRuntime(input.message, input.cognitiveCase);
   const agentOrchestration = runAgentOrchestration({
     message: input.message,
     cognitiveCase: input.cognitiveCase,
-    agents: input.agents ?? [],
+    agents,
     extractions: conversation.extractions,
     memories: input.memories,
     knowledgeRecords: input.knowledgeRecords
@@ -100,7 +101,7 @@ export function runUnifiedRuntime(input: UnifiedRuntimeInput): UnifiedRuntimeRes
         confidence: Math.round((decisionExtraction.confidence + agentOrchestration.confidence) / 2),
         rationale: conversation.decisionFrame
           ? `Décision structurée par le Decision Runtime (${conversation.decisionFrame.category}) et revue par ORION.`
-          : `Décision extraite de la conversation et revue par ORION.`
+          : "Décision extraite de la conversation et revue par ORION."
       }
     : undefined;
 
@@ -108,7 +109,7 @@ export function runUnifiedRuntime(input: UnifiedRuntimeInput): UnifiedRuntimeRes
     .filter((item) => item.kind === "action")
     .map((item) => {
       const requiredCapability = inferCapability(item.text);
-      const preferred = preferredAgentForCapability(requiredCapability, input.agents ?? [], agentOrchestration.selectedAgentIds);
+      const preferred = preferredAgentForCapability(requiredCapability, agents, agentOrchestration.selectedAgentIds);
       return {
         title: item.text,
         requiredCapability,
