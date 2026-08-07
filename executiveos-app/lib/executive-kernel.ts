@@ -1,8 +1,9 @@
 import { runRuntimePipeline, type RuntimePipelineResult, type RuntimeStage, type UnifiedRuntimeInput } from "./runtime-pipeline.ts";
 import { scheduleKernelCycle, type KernelLane, type KernelPriority, type KernelScheduleDecision } from "./kernel-scheduler.ts";
+import { evaluateKernelPolicy, type KernelPolicyDecision, type KernelPolicyResult, type KernelPolicyRisk } from "./kernel-policy.ts";
 
 export type KernelStatus = "running" | "completed" | "blocked" | "failed";
-export type KernelEventType = "KernelCycleStarted" | "KernelCycleScheduled" | "KernelStageTransitioned" | "KernelCycleBlocked" | "KernelCycleCompleted" | "KernelCycleFailed";
+export type KernelEventType = "KernelCycleStarted" | "KernelCycleScheduled" | "KernelPolicyEvaluated" | "KernelStageTransitioned" | "KernelCycleBlocked" | "KernelCycleCompleted" | "KernelCycleFailed";
 
 export interface KernelEvent {
   id: string;
@@ -28,6 +29,9 @@ export interface KernelTransaction {
   priority?: KernelPriority;
   lane?: KernelLane;
   scheduleScore?: number;
+  policyDecision?: KernelPolicyDecision;
+  policyRisk?: KernelPolicyRisk;
+  policyRules?: string[];
 }
 
 export interface ExecutiveKernelExecution {
@@ -39,6 +43,7 @@ export interface ExecutiveKernelExecution {
 export interface ExecutiveKernelDependencies {
   runtime?: (input: UnifiedRuntimeInput) => RuntimePipelineResult;
   scheduler?: (input: UnifiedRuntimeInput) => KernelScheduleDecision;
+  policy?: (input: UnifiedRuntimeInput) => KernelPolicyResult;
   now?: () => string;
   idFactory?: () => string;
 }
@@ -50,6 +55,7 @@ export interface ExecutiveKernel {
 export function createExecutiveKernel(dependencies: ExecutiveKernelDependencies = {}): ExecutiveKernel {
   const runtime = dependencies.runtime ?? runRuntimePipeline;
   const scheduler = dependencies.scheduler ?? scheduleKernelCycle;
+  const policy = dependencies.policy ?? evaluateKernelPolicy;
   const now = dependencies.now ?? (() => new Date().toISOString());
   const idFactory = dependencies.idFactory ?? (() => crypto.randomUUID());
 
@@ -58,6 +64,7 @@ export function createExecutiveKernel(dependencies: ExecutiveKernelDependencies 
       const transactionId = idFactory();
       const startedAt = now();
       const schedule = scheduler(input);
+      const policyResult = policy(input);
       const events: KernelEvent[] = [{
         id: idFactory(),
         transactionId,
@@ -73,6 +80,14 @@ export function createExecutiveKernel(dependencies: ExecutiveKernelDependencies 
         type: "KernelCycleScheduled",
         status: "running",
         detail: `Priorité ${schedule.priority} · lane ${schedule.lane} · score ${schedule.score}/100 · ${schedule.reasons.join(" · ")}.`,
+        createdAt: now()
+      }, {
+        id: idFactory(),
+        transactionId,
+        caseId: input.cognitiveCase.id,
+        type: "KernelPolicyEvaluated",
+        status: policyResult.decision === "allow" ? "running" : "blocked",
+        detail: `Policy ${policyResult.decision} · risque ${policyResult.risk} · ${policyResult.rationale}${policyResult.rules.length ? ` · règles: ${policyResult.rules.join(", ")}` : ""}`,
         createdAt: now()
       }];
 
@@ -91,21 +106,25 @@ export function createExecutiveKernel(dependencies: ExecutiveKernelDependencies 
           });
         }
 
-        const blockedStages = result.trace.filter((item) => item.status === "blocked").map((item) => item.stage);
-        if (blockedStages.length) {
+        const runtimeBlockedStages = result.trace.filter((item) => item.status === "blocked").map((item) => item.stage);
+        const policyBlocked = policyResult.decision !== "allow";
+        const blockedStages = runtimeBlockedStages;
+        if (runtimeBlockedStages.length || policyBlocked) {
           events.push({
             id: idFactory(),
             transactionId,
             caseId: input.cognitiveCase.id,
             type: "KernelCycleBlocked",
             status: "blocked",
-            detail: `Cycle partiellement bloqué sur ${blockedStages.join(", ")}.`,
+            detail: runtimeBlockedStages.length
+              ? `Cycle partiellement bloqué sur ${runtimeBlockedStages.join(", ")}.`
+              : `Cycle sous garde-fou Kernel: ${policyResult.rationale}`,
             createdAt: now()
           });
         }
 
         const completedAt = now();
-        const status: KernelStatus = blockedStages.length ? "blocked" : "completed";
+        const status: KernelStatus = runtimeBlockedStages.length || policyBlocked ? "blocked" : "completed";
         events.push({
           id: idFactory(),
           transactionId,
@@ -129,7 +148,10 @@ export function createExecutiveKernel(dependencies: ExecutiveKernelDependencies 
             eventCount: events.length,
             priority: schedule.priority,
             lane: schedule.lane,
-            scheduleScore: schedule.score
+            scheduleScore: schedule.score,
+            policyDecision: policyResult.decision,
+            policyRisk: policyResult.risk,
+            policyRules: policyResult.rules
           },
           events,
           result
