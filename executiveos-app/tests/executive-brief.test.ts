@@ -46,4 +46,11 @@ test("Executive Brief is visible in the dossier workspace",()=>{
  assert.ok(workspace.includes("buildExecutiveCaseBrief"));
  assert.ok(workspace.includes("Risques critiques"));
  assert.ok(workspace.includes("Recommandation ORION"));
+ assert.ok(workspace.includes("B7.6 · Synthèse exécutive sourcée"));
+ assert.ok(workspace.includes("brief.citedEvidence"));
+});
+
+test("B7.6 unifies sources, execution plan and Decision Watch in a cited executive brief",()=>{
+ const brief=buildExecutiveCaseBrief({cognitiveCase,decisions,actions,caseObjects:objects,learningEvents:learnings,reflections,contextSources:[{id:"s1",caseId:"brief",type:"note",title:"Retour pilote",origin:"COMEX",status:"ready",rawContent:"Le budget baisse.",summary:"Budget",wordCount:3,createdAt:"2026-08-08T00:00:00.000Z"}],contextEvidence:[{id:"e1",caseId:"brief",sourceId:"s1",claim:"Le budget disponible baisse de 20 %.",excerpt:"Le budget baisse.",confidence:91,position:0,createdAt:"2026-08-08T00:00:00.000Z"}],decisionActionPlans:[{id:"p1",caseId:"brief",executiveCycleId:"c1",decisionId:"d",recommendation:"Pilote contrôlé",status:"active",actionIds:["a"],dependencies:[],metrics:[],checkpointAt:"2026-08-22T00:00:00.000Z",createdAt:"2026-08-07T10:00:00.000Z"}],decisionWatches:[{id:"w1",caseId:"brief",planId:"p1",decisionId:"d",status:"reopen",signals:[],summary:"Le budget fragilise la décision.",recommendedAction:"Relancer ORION.",evaluatedAt:"2026-08-08T12:00:00.000Z"}],generatedAt:"2026-08-08T13:00:00.000Z"});
+ assert.equal(brief.watchStatus,"reopen");assert.equal(brief.citedEvidence[0]?.citation,"S1");assert.match(brief.executiveSummary,/plan associé compte 1 actions/);assert.equal(brief.generatedAt,"2026-08-08T13:00:00.000Z");
 });

@@ -38,3 +38,15 @@ export interface KnowledgeSnapshot { entities:KnowledgeEntity[]; relations:Knowl
 export interface ContextSourceRecord { id:string; caseId:string; type:ContextSourceType; title:string; origin:string; mimeType?:string; status:ContextSourceStatus; rawContent:string; summary:string; wordCount:number; createdAt:string; processedAt?:string; error?:string }
 export interface ContextEvidenceRecord { id:string; caseId:string; sourceId:string; claim:string; excerpt:string; confidence:number; position:number; createdAt:string }
 export interface CaseContextSynthesis { caseId:string; summary:string; keyFacts:string[]; openQuestions:string[]; sourceIds:string[]; generatedAt:string }
+export type ExecutiveCycleStatus = "completed"|"blocked";
+export interface ExecutiveCycleContribution { agentId:string; agentName:string; mandate:string; position:"support"|"challenge"|"conditional"; analysis:string; confidence:number; evidenceIds:string[]; citations:string[] }
+export interface ExecutiveCycleDivergence { topic:string; agentIds:string[]; description:string; resolution:string }
+export interface ExecutiveCycleRecord { id:string; caseId:string; objective:string; status:ExecutiveCycleStatus; selectedAgentIds:string[]; contributions:ExecutiveCycleContribution[]; divergences:ExecutiveCycleDivergence[]; synthesis:string; recommendation:string|null; confidence:number; missingEvidence:string[]; sourceIds:string[]; createdAt:string }
+export type DecisionActionPlanStatus = "active"|"completed";
+export interface ExecutionMetric { id:string; label:string; target:string; current:string; owner:string }
+export interface ActionDependency { actionId:string; dependsOnActionId:string }
+export interface DecisionActionPlanRecord { id:string; caseId:string; executiveCycleId:string; decisionId:string; recommendation:string; status:DecisionActionPlanStatus; actionIds:string[]; dependencies:ActionDependency[]; metrics:ExecutionMetric[]; checkpointAt:string; createdAt:string }
+export type DecisionWatchStatus = "stable"|"watch"|"reopen";
+export type DecisionWatchSignalType = "new_evidence"|"contradiction"|"blocked_action"|"checkpoint_due";
+export interface DecisionWatchSignal { id:string; type:DecisionWatchSignalType; severity:"info"|"warning"|"critical"; title:string; detail:string; sourceId?:string; evidenceId?:string; citation?:string }
+export interface DecisionWatchRecord { id:string; caseId:string; planId:string; decisionId:string; status:DecisionWatchStatus; signals:DecisionWatchSignal[]; summary:string; recommendedAction:string; evaluatedAt:string }
