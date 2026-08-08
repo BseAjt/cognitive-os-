@@ -14,8 +14,17 @@ export type ContextSourceStatus = "processing" | "ready" | "failed";
 export type PortfolioStatus = "discovery" | "validated" | "active" | "on_hold" | "completed";
 export type StrategicHorizon = "now" | "next" | "later";
 export type IdeaStatus = "captured" | "evaluating" | "promoted" | "rejected";
+export type OrganizationRole = "owner" | "admin" | "member" | "viewer";
+export type InvitationStatus = "pending" | "accepted" | "revoked" | "expired";
+export type CollaborationTargetType = "case" | "decision" | "action" | "project" | "idea";
 
 export interface CognitiveCase { id:string; title:string; objective:string; workingHypothesis:string; context:string; state:CognitiveCaseState; signals:{ impact:number; urgency:number; confidence:number; cognitiveCost:number; risk:number } }
+export interface OrganizationRecord { id:string; name:string; slug:string; plan:"demo"|"team"|"enterprise"; createdAt:string; updatedAt:string }
+export interface OrganizationMemberRecord { id:string; organizationId:string; userId:string; displayName:string; email:string; role:OrganizationRole; status:"active"|"suspended"; joinedAt:string }
+export interface OrganizationInvitationRecord { id:string; organizationId:string; email:string; role:Exclude<OrganizationRole,"owner">; status:InvitationStatus; invitedBy:string; createdAt:string; expiresAt:string }
+export interface CaseAccessRecord { id:string; organizationId:string; caseId:string; memberId:string; access:"view"|"comment"|"edit"|"manage"; grantedBy:string; createdAt:string }
+export interface CollaborationCommentRecord { id:string; organizationId:string; caseId:string; targetType:CollaborationTargetType; targetId:string; authorMemberId:string; body:string; mentions:string[]; resolvedAt?:string; createdAt:string; updatedAt:string }
+export interface AuditLogRecord { id:string; organizationId:string; actorMemberId:string; action:string; targetType:string; targetId:string; caseId?:string; summary:string; metadata:Record<string,string|number|boolean|null>; createdAt:string }
 export interface ProjectRecord { id:string; title:string; summary:string; theme:string; sponsor:string; owner:string; status:PortfolioStatus; horizon:StrategicHorizon; expectedValue:number; strategicFit:number; confidence:number; risk:number; progress:number; caseIds:string[]; dependencyIds:string[]; createdAt:string; updatedAt:string }
 export interface IdeaRecord { id:string; title:string; problem:string; proposition:string; theme:string; author:string; status:IdeaStatus; horizon:StrategicHorizon; novelty:number; expectedValue:number; feasibility:number; confidence:number; linkedProjectId?:string; promotedCaseId?:string; tags:string[]; createdAt:string; updatedAt:string }
 export interface DecisionRecord { id:string; caseId:string; recommendation:string; outcome:string; rationale:string; confidence:number; createdAt:string }

@@ -6,6 +6,7 @@ import { ExecutiveWorkspace } from "@/components/executive-workspace";
 import { ContextIngestionPanel } from "@/components/context-ingestion-panel";
 import { IntegrationFabricPanel } from "@/components/integration-fabric-panel";
 import { InvestorDemoDashboard } from "@/components/investor-demo-dashboard";
+import { CollaborationPanel } from "@/components/collaboration-panel";
 import { buildCognitiveRecall } from "@/lib/cognitive-recall";
 import { buildCaseJourney, resolveEventDestination } from "@/lib/outcome-navigation";
 import { runUnifiedRuntime } from "@/lib/unified-runtime";
@@ -176,6 +177,8 @@ function CaseWorkspace({ cognitiveCase, onBack }: { cognitiveCase: CognitiveCase
     <div className="mt-6 space-y-8">
       <WorkspaceBlock id="overview" eyebrow="01 · Vue d’ensemble" title="Reprendre exactement là où le dossier s’est arrêté" description="La synthèse opérationnelle du dossier, sa dernière décision, la prochaine action et le dernier apprentissage.">
         <CaseOverview journey={journey} onNavigate={goTo} />
+        <div className="h-5"/>
+        <CollaborationPanel caseId={cognitiveCase.id}/>
       </WorkspaceBlock>
 
       <WorkspaceBlock id="context" eyebrow="02 · Sources & contexte" title="Transformer les informations réelles en contexte exploitable" description="Notes, pages web et documents sont rattachés au dossier avec leur provenance, leurs preuves et une synthèse sourcée.">
@@ -257,8 +260,16 @@ function HistoryPanel({ caseId, onNavigate }: { caseId: string; onNavigate: (sec
 
 function SettingsPanel() {
   const store = useExecutiveStore();
+  const [email,setEmail]=useState("");
   const active = store.cases.find((item) => item.id === store.activeCaseId) ?? store.cases[0];
-  return <section><div className="mb-6"><div className="text-[10px] font-black uppercase tracking-[.2em] text-[#7c92b2]">Paramètres</div><h1 className="mt-3 text-4xl font-semibold">ExecutiveOS</h1><p className="mt-3 text-lg text-[#91a2bd]">Diagnostic et actions de maintenance de la démonstration.</p></div><div className="grid gap-5 lg:grid-cols-2"><Panel title="État"><Item title="Dossiers" text={`${store.cases.length} dossier(s) cognitifs`} meta="READY"/><Item title="Exécution" text={`${store.actions.length} action(s) · ${store.agents.length} agents`} meta="READY"/></Panel><Panel title="Modes de données"><button onClick={store.loadInvestorDemo} className="block w-full rounded-xl border border-white/[.08] bg-white/[.03] px-4 py-3 text-left text-sm">Restaurer la démo investisseur</button><button onClick={() => { if (window.confirm("Créer un espace vierge ? Les données locales actuelles seront remplacées.")) store.createBlankWorkspace(); }} className="mt-2 block w-full rounded-xl border border-white/[.08] bg-white/[.03] px-4 py-3 text-left text-sm">Créer un espace vierge</button><button onClick={() => store.resetRuntimeActions()} className="mt-2 block w-full rounded-xl border border-white/[.08] bg-white/[.03] px-4 py-3 text-left text-sm">Réinitialiser les actions</button><button onClick={() => active && store.clearConversationHistory(active.id)} className="mt-2 block w-full rounded-xl border border-white/[.08] bg-white/[.03] px-4 py-3 text-left text-sm">Effacer la conversation du dossier actif</button></Panel></div></section>;
+  const organization=store.organizations.find((item)=>item.id===store.activeOrganizationId);
+  function invite(){if(!email.trim())return;store.inviteMember(email,"member");setEmail("");}
+  return <section><div className="mb-6"><div className="text-[10px] font-black uppercase tracking-[.2em] text-[#7c92b2]">Paramètres</div><h1 className="mt-3 text-4xl font-semibold">ExecutiveOS</h1><p className="mt-3 text-lg text-[#91a2bd]">Organisation, collaboration et maintenance de l’espace.</p></div><div className="grid gap-5 lg:grid-cols-2">
+    <Panel title="Organisation"><Item title={organization?.name??"Organisation"} text={`${store.organizationMembers.length} membre(s) · ${store.organizationInvitations.filter((item)=>item.status==="pending").length} invitation(s)`} meta={(organization?.plan??"demo").toUpperCase()}/><div className="flex gap-2"><input aria-label="E-mail du membre" value={email} onChange={(event)=>setEmail(event.target.value)} placeholder="collaborateur@entreprise.fr" className="min-w-0 flex-1 rounded-xl border border-white/[.08] bg-white/[.03] px-4 py-3 text-sm outline-none"/><button onClick={invite} className="rounded-xl bg-[#7c5cff] px-4 py-2 text-xs font-bold">Inviter</button></div>{store.organizationMembers.map((member)=><Item key={member.id} title={member.displayName} text={member.email} meta={member.role}/>)}</Panel>
+    <Panel title="État"><Item title="Dossiers" text={`${store.cases.length} dossier(s) cognitifs`} meta="READY"/><Item title="Audit" text={`${store.auditLogs.length} événement(s) collaboratif(s)`} meta="ACTIF"/><Item title="Exécution" text={`${store.actions.length} action(s) · ${store.agents.length} agents`} meta="READY"/></Panel>
+    <Panel title="Modes de données"><button onClick={store.loadInvestorDemo} className="block w-full rounded-xl border border-white/[.08] bg-white/[.03] px-4 py-3 text-left text-sm">Restaurer la démo investisseur</button><button onClick={() => { if (window.confirm("Créer un espace vierge ? Les données locales actuelles seront remplacées.")) store.createBlankWorkspace(); }} className="mt-2 block w-full rounded-xl border border-white/[.08] bg-white/[.03] px-4 py-3 text-left text-sm">Créer un espace vierge</button><button onClick={() => store.resetRuntimeActions()} className="mt-2 block w-full rounded-xl border border-white/[.08] bg-white/[.03] px-4 py-3 text-left text-sm">Réinitialiser les actions</button><button onClick={() => active && store.clearConversationHistory(active.id)} className="mt-2 block w-full rounded-xl border border-white/[.08] bg-white/[.03] px-4 py-3 text-left text-sm">Effacer la conversation du dossier actif</button></Panel>
+    <Panel title="Journal d’audit">{store.auditLogs.slice(0,8).map((log)=><Item key={log.id} title={log.action} text={log.summary} meta={new Date(log.createdAt).toLocaleDateString("fr-FR")}/>)}</Panel>
+  </div></section>;
 }
 
 function stateLabel(state: CognitiveCase["state"]) { return { explore: "Exploration", decide: "Décision", execute: "Exécution", learn: "Apprentissage" }[state]; }

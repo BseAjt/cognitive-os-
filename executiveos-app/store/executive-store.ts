@@ -12,6 +12,7 @@ import { createDecisionActionPlanSlice } from "./decision-action-plan-slice";
 import { createDecisionWatchSlice } from "./decision-watch-slice";
 import { createIntegrationFabricSlice } from "./integration-fabric-slice";
 import { createInvestorDemoSlice } from "./investor-demo-slice";
+import { createCollaborationSlice } from "./collaboration-slice";
 import { INVESTOR_DEMO_VERSION } from "../lib/investor-demo";
 import { defaultExecutiveAgents } from "../lib/agent-runtime";
 import type { KernelEvent, KernelTransaction } from "../lib/executive-kernel";
@@ -63,6 +64,7 @@ function deriveCaseObjects(decisions:DecisionRecord[], actions:ActionRecord[], m
 
 function migratePersistedState(persistedState:unknown, version:number):ExecutiveState{
   const state=(persistedState??{}) as PersistedExecutiveState;
+  if(version>=25) return state as unknown as ExecutiveState;
   if(version>=24) return state as unknown as ExecutiveState;
   if(version>=23) return { ...state, projects:[], ideas:[], demoVersion:INVESTOR_DEMO_VERSION } as unknown as ExecutiveState;
   if(version>=22) return { ...state, demoMode:"workspace", demoVersion:INVESTOR_DEMO_VERSION } as unknown as ExecutiveState;
@@ -149,13 +151,14 @@ export const useExecutiveStore = create<ExecutiveState>()(
       ...createDecisionWatchSlice(...args),
       ...createIntegrationFabricSlice(...args),
       ...createInvestorDemoSlice(...args),
+      ...createCollaborationSlice(...args),
       ...createKernelSlice(...args),
       ...createRuntimeSlice(...args),
       ...createExecutiveCommands(...args)
     }),
     {
       name: "executiveos-v2",
-      version: 24,
+      version: 25,
       migrate: migratePersistedState
     }
   )
