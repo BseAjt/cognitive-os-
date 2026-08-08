@@ -96,7 +96,7 @@ create table if not exists public.workspace_snapshots (
 
 -- B10: atomic first-organization bootstrap. This is intentionally callable only
 -- by authenticated users and refuses to create a second owner workspace.
-create or replace function public.bootstrap_organization(p_name text,p_display_name text)
+create or replace function private.bootstrap_organization_core(p_name text,p_display_name text)
 returns table(organization_id uuid,organization_name text,organization_slug text,organization_plan text,organization_created_at timestamptz,member_id uuid,member_joined_at timestamptz)
 language plpgsql security definer set search_path='' as $$
 declare caller_id uuid := auth.uid(); caller_email text := coalesce(auth.jwt()->>'email',''); new_org public.organizations; new_member public.organization_members; base_slug text;
@@ -110,6 +110,14 @@ begin
   insert into public.organization_members(organization_id,user_id,display_name,email,role,status) values(new_org.id,caller_id,trim(p_display_name),caller_email,'owner','active') returning * into new_member;
   return query select new_org.id,new_org.name,new_org.slug,new_org.plan,new_org.created_at,new_member.id,new_member.joined_at;
 end $$;
+revoke all on function private.bootstrap_organization_core(text,text) from public,anon;
+grant execute on function private.bootstrap_organization_core(text,text) to authenticated;
+
+create or replace function public.bootstrap_organization(p_name text,p_display_name text)
+returns table(organization_id uuid,organization_name text,organization_slug text,organization_plan text,organization_created_at timestamptz,member_id uuid,member_joined_at timestamptz)
+language sql security invoker set search_path='' as $$
+  select * from private.bootstrap_organization_core(p_name,p_display_name)
+$$;
 revoke all on function public.bootstrap_organization(text,text) from public,anon;
 grant execute on function public.bootstrap_organization(text,text) to authenticated;
 create or replace function public.save_workspace_snapshot(p_organization_id uuid,p_expected_revision bigint,p_payload jsonb,p_updated_by uuid)

@@ -27,4 +27,6 @@ test("B10 authenticates onboarding and limits all user supplied values",()=>{
   assert.match(schema,/workspace already initialized/);
   assert.match(schema,/revoke all on function public\.bootstrap_organization\(text,text\) from public,anon/);
   assert.match(schema,/grant execute on function public\.bootstrap_organization\(text,text\) to authenticated/);
+  assert.match(schema,/private\.bootstrap_organization_core/);
+  assert.match(schema,/public\.bootstrap_organization[\s\S]*security invoker/);
 });
