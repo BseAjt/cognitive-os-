@@ -64,6 +64,7 @@ function deriveCaseObjects(decisions:DecisionRecord[], actions:ActionRecord[], m
 
 function migratePersistedState(persistedState:unknown, version:number):ExecutiveState{
   const state=(persistedState??{}) as PersistedExecutiveState;
+  if(version>=26) return state as unknown as ExecutiveState;
   if(version>=25) return state as unknown as ExecutiveState;
   if(version>=24) return state as unknown as ExecutiveState;
   if(version>=23) return { ...state, projects:[], ideas:[], demoVersion:INVESTOR_DEMO_VERSION } as unknown as ExecutiveState;
@@ -158,7 +159,7 @@ export const useExecutiveStore = create<ExecutiveState>()(
     }),
     {
       name: "executiveos-v2",
-      version: 25,
+      version: 26,
       migrate: migratePersistedState
     }
   )
