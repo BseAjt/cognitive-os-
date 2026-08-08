@@ -31,7 +31,7 @@ test("opens the active cognitive dossier", async ({ page, isMobile }) => {
 test("searches across the cognitive workspace and opens a result", async ({ page }) => {
   const search = page.getByLabel("Rechercher dans ExecutiveOS");
   await search.fill("ExecutiveOS");
-  const result = page.getByRole("button").filter({ hasText: "Dossier Construire ExecutiveOS" }).first();
+  const result = page.getByRole("button", { name: /Dossier.*Construire ExecutiveOS/ }).first();
   await expect(result).toBeVisible();
   await result.click();
   await expect(page.getByText("Brief vivant · maintenant")).toBeVisible();
