@@ -40,6 +40,10 @@ Un dossier peut convoquer un cycle exécutif persistant autour d'un mandat préc
 
 Gmail, calendrier, Slack, Notion, documents et réunions utilisent désormais un contrat d'intégration unique. Chaque connecteur est autorisé pour un dossier précis, normalise les signaux entrants, déduplique les éléments déjà vus, conserve un curseur et un journal de synchronisation, puis alimente automatiquement les sources, preuves, synthèses et Decision Watch du Bloc 7.
 
+## Bloc 10 — Productization & Activation
+
+Le produit dispose désormais d'un onboarding cloud atomique, d'un centre de contrôle d'activation, d'un profil d'organisation persistant, d'invitations multi-rôles, d'un export complet des données, d'une synchronisation à la demande et de métriques de preuve de valeur. Les événements produit restent rattachés à l'organisation et protégés par RLS ; les indicateurs investisseur sont calculés à partir des traces réelles du workspace.
+
 ## Cloud setup
 
 1. Create a Supabase project.
