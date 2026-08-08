@@ -28,6 +28,10 @@ Open http://localhost:3000
 
 The app works without Supabase configuration using local persisted state.
 
+## Bloc 7.1 — Context Ingestion
+
+Chaque dossier cognitif peut ingérer des notes, des contenus web copiés et des fichiers textuels (`TXT`, `Markdown`, `CSV`, `JSON`, `HTML`). Le runtime conserve la source brute, sa provenance, les preuves extraites et une synthèse citée au niveau du `CognitiveCase`. Les sources sont persistées dans le store versionné et restent isolées par dossier.
+
 ## Cloud setup
 
 1. Create a Supabase project.

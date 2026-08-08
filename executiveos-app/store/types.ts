@@ -1,4 +1,4 @@
-import type { ActionRecord, AgentContract, AgentRunRecord, CognitiveCase, CognitiveEventRecord, CognitiveProfileRecord, DecisionRecord, DossierObjectRecord, KnowledgeEntity, KnowledgeRecord, KnowledgeRelation, LearningEventRecord, MemoryRecord, ReflectionRecord } from "../domain/canonical.ts";
+import type { ActionRecord, AgentContract, AgentRunRecord, CaseContextSynthesis, CognitiveCase, CognitiveEventRecord, CognitiveProfileRecord, ContextEvidenceRecord, ContextSourceRecord, DecisionRecord, DossierObjectRecord, KnowledgeEntity, KnowledgeRecord, KnowledgeRelation, LearningEventRecord, MemoryRecord, ReflectionRecord } from "../domain/canonical.ts";
 import type { KernelEvent, KernelTransaction } from "../lib/executive-kernel.ts";
 import type { UnifiedRuntimeResult } from "../lib/unified-runtime.ts";
 
@@ -89,6 +89,14 @@ export interface KnowledgeGraphSlice {
   mergeKnowledgeGraph: (entities: KnowledgeEntity[], relations: KnowledgeRelation[]) => void;
 }
 
+export interface ContextIngestionSlice {
+  contextSources: ContextSourceRecord[];
+  contextEvidence: ContextEvidenceRecord[];
+  contextSyntheses: CaseContextSynthesis[];
+  ingestContextSource: (input: { caseId:string; type:ContextSourceRecord["type"]; title:string; origin?:string; mimeType?:string; content:string; createdAt?:string }) => string;
+  removeContextSource: (sourceId:string) => void;
+}
+
 export interface KernelSlice {
   kernelTransactions: KernelTransaction[];
   kernelEvents: KernelEvent[];
@@ -114,4 +122,4 @@ export interface ExecutiveCommands {
   applyCriticalSignal: () => void;
 }
 
-export type ExecutiveState = CaseSlice & ConversationSlice & DossierObjectSlice & DecisionSlice & ActionSlice & EventSlice & LearningSlice & ReflectionSlice & CognitiveProfileSlice & MemorySlice & KnowledgeSlice & KnowledgeGraphSlice & KernelSlice & RuntimeSlice & ExecutiveCommands;
+export type ExecutiveState = CaseSlice & ConversationSlice & DossierObjectSlice & DecisionSlice & ActionSlice & EventSlice & LearningSlice & ReflectionSlice & CognitiveProfileSlice & MemorySlice & KnowledgeSlice & KnowledgeGraphSlice & ContextIngestionSlice & KernelSlice & RuntimeSlice & ExecutiveCommands;
