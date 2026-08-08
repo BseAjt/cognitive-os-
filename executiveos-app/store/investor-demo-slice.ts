@@ -5,6 +5,8 @@ import type { ExecutiveState, InvestorDemoSlice } from "./types.ts";
 export const createInvestorDemoSlice: StateCreator<ExecutiveState, [], [], InvestorDemoSlice> = (set) => ({
   demoMode: "workspace",
   demoVersion: INVESTOR_DEMO_VERSION,
+  projects: [],
+  ideas: [],
   loadInvestorDemo: () => set((state) => {
     const demo = createInvestorDemoDataset();
     return {
@@ -17,6 +19,6 @@ export const createInvestorDemoSlice: StateCreator<ExecutiveState, [], [], Inves
     };
   }),
   createBlankWorkspace: () => set({
-    demoMode: "blank", activeCaseId: "", cases: [], messages: [], caseObjects: [], decisions: [], actions: [], events: [], agentRuns: [], learningEvents: [], reflections: [], cognitiveProfiles: [], reasoningRevisions: [], memories: [], knowledgeRecords: [], knowledgeEntities: [], knowledgeRelations: [], kernelTransactions: [], kernelEvents: [], contextSources: [], contextEvidence: [], contextSyntheses: [], executiveCycles: [], decisionActionPlans: [], decisionWatches: [], integrationConnections: [], integrationSyncRuns: []
+    demoMode: "blank", activeCaseId: "", cases: [], projects: [], ideas: [], messages: [], caseObjects: [], decisions: [], actions: [], events: [], agentRuns: [], learningEvents: [], reflections: [], cognitiveProfiles: [], reasoningRevisions: [], memories: [], knowledgeRecords: [], knowledgeEntities: [], knowledgeRelations: [], kernelTransactions: [], kernelEvents: [], contextSources: [], contextEvidence: [], contextSyntheses: [], executiveCycles: [], decisionActionPlans: [], decisionWatches: [], integrationConnections: [], integrationSyncRuns: []
   })
 });

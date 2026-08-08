@@ -1,4 +1,4 @@
-import type { ActionRecord, AgentContract, AgentRunRecord, CaseContextSynthesis, CognitiveCase, CognitiveEventRecord, CognitiveProfileRecord, ContextEvidenceRecord, ContextSourceRecord, DecisionActionPlanRecord, DecisionRecord, DecisionWatchRecord, DossierObjectRecord, ExecutiveCycleRecord, ExternalSignalRecord, IntegrationConnectionRecord, IntegrationProvider, IntegrationSyncRunRecord, KnowledgeEntity, KnowledgeRecord, KnowledgeRelation, LearningEventRecord, MemoryRecord, ReflectionRecord } from "../domain/canonical.ts";
+import type { ActionRecord, AgentContract, AgentRunRecord, CaseContextSynthesis, CognitiveCase, CognitiveEventRecord, CognitiveProfileRecord, ContextEvidenceRecord, ContextSourceRecord, DecisionActionPlanRecord, DecisionRecord, DecisionWatchRecord, DossierObjectRecord, ExecutiveCycleRecord, ExternalSignalRecord, IdeaRecord, IntegrationConnectionRecord, IntegrationProvider, IntegrationSyncRunRecord, KnowledgeEntity, KnowledgeRecord, KnowledgeRelation, LearningEventRecord, MemoryRecord, ProjectRecord, ReflectionRecord } from "../domain/canonical.ts";
 import type { DecisionToActionResult } from "../lib/decision-to-action.ts";
 import type { KernelEvent, KernelTransaction } from "../lib/executive-kernel.ts";
 import type { UnifiedRuntimeResult } from "../lib/unified-runtime.ts";
@@ -126,6 +126,8 @@ export type DemoMode = "investor" | "blank" | "workspace";
 export interface InvestorDemoSlice {
   demoMode: DemoMode;
   demoVersion: string;
+  projects: ProjectRecord[];
+  ideas: IdeaRecord[];
   loadInvestorDemo: () => void;
   createBlankWorkspace: () => void;
 }
