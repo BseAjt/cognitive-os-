@@ -20,6 +20,8 @@ const executiveKernel = source("lib/executive-kernel.ts");
 const runtimePipeline = source("lib/runtime-pipeline.ts");
 const graph = source("components/reasoning-graph.tsx");
 const layout = source("app/layout.tsx");
+const integrationPanel = source("components/integration-fabric-panel.tsx");
+const integrationSlice = source("store/integration-fabric-slice.ts");
 
 const contracts: Array<[string, string, string]> = [
   ["workspace invokes unified runtime compatibility facade", workspace, "const result = runUnifiedRuntime({"],
@@ -52,6 +54,9 @@ const contracts: Array<[string, string, string]> = [
   ["history controls are mounted globally", layout, "<HistoryControls />"],
   ["reasoning graph renders ReactFlow", graph, "<ReactFlow"],
   ["reasoning graph exposes controls", graph, "<Controls />"]
+  ,["B8 Integration Fabric is mounted in the dossier context", home, "<IntegrationFabricPanel caseId={cognitiveCase.id}/>"]
+  ,["B8 sync feeds canonical context sources", integrationSlice, "contextSources"]
+  ,["B8 UI exposes traceable sync history", integrationPanel, "Journal de synchronisation"]
 ];
 
 for (const [name, file, expected] of contracts) {

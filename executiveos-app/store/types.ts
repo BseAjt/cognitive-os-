@@ -1,4 +1,4 @@
-import type { ActionRecord, AgentContract, AgentRunRecord, CaseContextSynthesis, CognitiveCase, CognitiveEventRecord, CognitiveProfileRecord, ContextEvidenceRecord, ContextSourceRecord, DecisionActionPlanRecord, DecisionRecord, DecisionWatchRecord, DossierObjectRecord, ExecutiveCycleRecord, KnowledgeEntity, KnowledgeRecord, KnowledgeRelation, LearningEventRecord, MemoryRecord, ReflectionRecord } from "../domain/canonical.ts";
+import type { ActionRecord, AgentContract, AgentRunRecord, CaseContextSynthesis, CognitiveCase, CognitiveEventRecord, CognitiveProfileRecord, ContextEvidenceRecord, ContextSourceRecord, DecisionActionPlanRecord, DecisionRecord, DecisionWatchRecord, DossierObjectRecord, ExecutiveCycleRecord, ExternalSignalRecord, IntegrationConnectionRecord, IntegrationProvider, IntegrationSyncRunRecord, KnowledgeEntity, KnowledgeRecord, KnowledgeRelation, LearningEventRecord, MemoryRecord, ReflectionRecord } from "../domain/canonical.ts";
 import type { DecisionToActionResult } from "../lib/decision-to-action.ts";
 import type { KernelEvent, KernelTransaction } from "../lib/executive-kernel.ts";
 import type { UnifiedRuntimeResult } from "../lib/unified-runtime.ts";
@@ -114,6 +114,13 @@ export interface DecisionActionPlanSlice {
   activateDecisionActionPlan: (result: DecisionToActionResult) => void;
 }
 export interface DecisionWatchSlice { decisionWatches:DecisionWatchRecord[]; evaluateDecisionPlan:(planId:string,evaluatedAt?:string)=>void }
+export interface IntegrationFabricSlice {
+  integrationConnections:IntegrationConnectionRecord[];
+  integrationSyncRuns:IntegrationSyncRunRecord[];
+  connectIntegration:(input:{provider:IntegrationProvider;caseId:string;label?:string;scopes?:string[]})=>string;
+  disconnectIntegration:(connectionId:string)=>void;
+  syncIntegration:(connectionId:string,signals:ExternalSignalRecord[],startedAt?:string)=>IntegrationSyncRunRecord;
+}
 
 export interface RuntimeSlice {
   agents: AgentContract[];
@@ -134,4 +141,4 @@ export interface ExecutiveCommands {
   applyCriticalSignal: () => void;
 }
 
-export type ExecutiveState = CaseSlice & ConversationSlice & DossierObjectSlice & DecisionSlice & ActionSlice & EventSlice & LearningSlice & ReflectionSlice & CognitiveProfileSlice & MemorySlice & KnowledgeSlice & KnowledgeGraphSlice & ContextIngestionSlice & ExecutiveCycleSlice & DecisionActionPlanSlice & DecisionWatchSlice & KernelSlice & RuntimeSlice & ExecutiveCommands;
+export type ExecutiveState = CaseSlice & ConversationSlice & DossierObjectSlice & DecisionSlice & ActionSlice & EventSlice & LearningSlice & ReflectionSlice & CognitiveProfileSlice & MemorySlice & KnowledgeSlice & KnowledgeGraphSlice & ContextIngestionSlice & ExecutiveCycleSlice & DecisionActionPlanSlice & DecisionWatchSlice & IntegrationFabricSlice & KernelSlice & RuntimeSlice & ExecutiveCommands;
