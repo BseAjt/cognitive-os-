@@ -93,6 +93,18 @@ create table if not exists public.workspace_snapshots (
   updated_by uuid not null references public.organization_members(id),
   updated_at timestamptz not null default now()
 );
+create table if not exists public.organization_product_profiles (
+  organization_id uuid primary key references public.organizations(id) on delete cascade,
+  industry text not null default '', company_size text not null default '1-10', primary_goal text not null default '',
+  decision_cadence text not null default 'weekly' check (decision_cadence in ('daily','weekly','monthly')),
+  orion_tone text not null default 'executive' check (orion_tone in ('executive','challenger','coach')),
+  weekly_brief boolean not null default true, updated_by uuid not null references auth.users(id), updated_at timestamptz not null default now()
+);
+create table if not exists public.product_events (
+  id uuid primary key default gen_random_uuid(), organization_id uuid not null references public.organizations(id) on delete cascade,
+  user_id uuid not null references auth.users(id) on delete cascade, name text not null check (char_length(name) between 1 and 80),
+  properties jsonb not null default '{}', created_at timestamptz not null default now()
+);
 
 -- B10: atomic first-organization bootstrap. This is intentionally callable only
 -- by authenticated users and refuses to create a second owner workspace.
@@ -158,6 +170,8 @@ alter table public.case_access enable row level security;
 alter table public.collaboration_comments enable row level security;
 alter table public.audit_logs enable row level security;
 alter table public.workspace_snapshots enable row level security;
+alter table public.organization_product_profiles enable row level security;
+alter table public.product_events enable row level security;
 create policy "organizations_member_read" on public.organizations for select to authenticated using (private.is_org_member(id));
 create policy "members_org_read" on public.organization_members for select to authenticated using (private.is_org_member(organization_id));
 create policy "members_admin_insert" on public.organization_members for insert to authenticated with check (private.has_org_role(organization_id,array['owner','admin']));
@@ -176,6 +190,11 @@ create policy "audit_actor_insert" on public.audit_logs for insert to authentica
 create policy "workspace_member_read" on public.workspace_snapshots for select to authenticated using (private.is_org_member(organization_id));
 create policy "workspace_editor_insert" on public.workspace_snapshots for insert to authenticated with check (private.has_org_role(organization_id,array['owner','admin','member']) and exists(select 1 from public.organization_members m where m.id=updated_by and m.user_id=(select auth.uid())));
 create policy "workspace_editor_update" on public.workspace_snapshots for update to authenticated using (private.has_org_role(organization_id,array['owner','admin','member'])) with check (private.has_org_role(organization_id,array['owner','admin','member']) and exists(select 1 from public.organization_members m where m.id=updated_by and m.user_id=(select auth.uid())));
+create policy "product_profile_member_read" on public.organization_product_profiles for select to authenticated using (private.is_org_member(organization_id));
+create policy "product_profile_admin_insert" on public.organization_product_profiles for insert to authenticated with check (private.has_org_role(organization_id,array['owner','admin']) and updated_by=(select auth.uid()));
+create policy "product_profile_admin_update" on public.organization_product_profiles for update to authenticated using (private.has_org_role(organization_id,array['owner','admin'])) with check (private.has_org_role(organization_id,array['owner','admin']) and updated_by=(select auth.uid()));
+create policy "product_events_member_insert" on public.product_events for insert to authenticated with check (private.is_org_member(organization_id) and user_id=(select auth.uid()));
+create policy "product_events_admin_read" on public.product_events for select to authenticated using (private.has_org_role(organization_id,array['owner','admin']));
 
 create index if not exists organization_members_user_idx on public.organization_members(user_id,organization_id);
 create index if not exists comments_case_created_idx on public.collaboration_comments(challenge_id,created_at desc);
@@ -197,3 +216,7 @@ create index if not exists comments_author_idx on public.collaboration_comments(
 create index if not exists audit_actor_idx on public.audit_logs(actor_member_id);
 create index if not exists audit_challenge_idx on public.audit_logs(challenge_id);
 create index if not exists workspace_updated_by_idx on public.workspace_snapshots(updated_by);
+create unique index if not exists invitations_pending_email_idx on public.organization_invitations(organization_id,lower(email)) where status='pending';
+create index if not exists product_events_org_created_idx on public.product_events(organization_id,created_at desc);
+create index if not exists product_profiles_updated_by_idx on public.organization_product_profiles(updated_by);
+create index if not exists product_events_user_idx on public.product_events(user_id);
