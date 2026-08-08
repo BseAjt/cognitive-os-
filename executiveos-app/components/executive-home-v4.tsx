@@ -5,6 +5,7 @@ import { ExecutiveRuntimePanel } from "@/components/executive-runtime-panel";
 import { ExecutiveWorkspace } from "@/components/executive-workspace";
 import { ContextIngestionPanel } from "@/components/context-ingestion-panel";
 import { IntegrationFabricPanel } from "@/components/integration-fabric-panel";
+import { InvestorDemoDashboard } from "@/components/investor-demo-dashboard";
 import { buildCognitiveRecall } from "@/lib/cognitive-recall";
 import { buildCaseJourney, resolveEventDestination } from "@/lib/outcome-navigation";
 import { runUnifiedRuntime } from "@/lib/unified-runtime";
@@ -113,6 +114,7 @@ function DossiersHome({ onOpen }: { onOpen: (id: string) => void }) {
   }
 
   return <section>
+    <InvestorDemoDashboard onOpenCase={onOpen} />
     <div className="flex flex-col justify-between gap-5 md:flex-row md:items-end">
       <div><div className="text-[10px] font-black uppercase tracking-[.2em] text-[#7c92b2]">ExecutiveOS · Dossier First</div><h1 className="mt-3 text-4xl font-semibold tracking-[-.04em] md:text-5xl">Mes dossiers</h1><p className="mt-3 max-w-3xl text-lg leading-8 text-[#91a2bd]">Chaque sujet important vit ici, de la première question jusqu’au résultat et à l’apprentissage.</p></div>
       <button onClick={() => setCreating(true)} className="rounded-xl bg-[#7c5cff] px-5 py-3 text-sm font-bold">+ Nouveau dossier</button>
@@ -256,7 +258,7 @@ function HistoryPanel({ caseId, onNavigate }: { caseId: string; onNavigate: (sec
 function SettingsPanel() {
   const store = useExecutiveStore();
   const active = store.cases.find((item) => item.id === store.activeCaseId) ?? store.cases[0];
-  return <section><div className="mb-6"><div className="text-[10px] font-black uppercase tracking-[.2em] text-[#7c92b2]">Paramètres</div><h1 className="mt-3 text-4xl font-semibold">ExecutiveOS</h1><p className="mt-3 text-lg text-[#91a2bd]">Diagnostic et actions de maintenance de la démonstration.</p></div><div className="grid gap-5 lg:grid-cols-2"><Panel title="État"><Item title="Dossiers" text={`${store.cases.length} dossier(s) cognitifs`} meta="READY"/><Item title="Exécution" text={`${store.actions.length} action(s) · ${store.agents.length} agents`} meta="READY"/></Panel><Panel title="Maintenance"><button onClick={() => store.resetRuntimeActions()} className="block w-full rounded-xl border border-white/[.08] bg-white/[.03] px-4 py-3 text-left text-sm">Réinitialiser les actions de démonstration</button><button onClick={() => active && store.clearConversationHistory(active.id)} className="mt-2 block w-full rounded-xl border border-white/[.08] bg-white/[.03] px-4 py-3 text-left text-sm">Effacer la conversation du dossier actif</button></Panel></div></section>;
+  return <section><div className="mb-6"><div className="text-[10px] font-black uppercase tracking-[.2em] text-[#7c92b2]">Paramètres</div><h1 className="mt-3 text-4xl font-semibold">ExecutiveOS</h1><p className="mt-3 text-lg text-[#91a2bd]">Diagnostic et actions de maintenance de la démonstration.</p></div><div className="grid gap-5 lg:grid-cols-2"><Panel title="État"><Item title="Dossiers" text={`${store.cases.length} dossier(s) cognitifs`} meta="READY"/><Item title="Exécution" text={`${store.actions.length} action(s) · ${store.agents.length} agents`} meta="READY"/></Panel><Panel title="Modes de données"><button onClick={store.loadInvestorDemo} className="block w-full rounded-xl border border-white/[.08] bg-white/[.03] px-4 py-3 text-left text-sm">Restaurer la démo investisseur</button><button onClick={() => { if (window.confirm("Créer un espace vierge ? Les données locales actuelles seront remplacées.")) store.createBlankWorkspace(); }} className="mt-2 block w-full rounded-xl border border-white/[.08] bg-white/[.03] px-4 py-3 text-left text-sm">Créer un espace vierge</button><button onClick={() => store.resetRuntimeActions()} className="mt-2 block w-full rounded-xl border border-white/[.08] bg-white/[.03] px-4 py-3 text-left text-sm">Réinitialiser les actions</button><button onClick={() => active && store.clearConversationHistory(active.id)} className="mt-2 block w-full rounded-xl border border-white/[.08] bg-white/[.03] px-4 py-3 text-left text-sm">Effacer la conversation du dossier actif</button></Panel></div></section>;
 }
 
 function stateLabel(state: CognitiveCase["state"]) { return { explore: "Exploration", decide: "Décision", execute: "Exécution", learn: "Apprentissage" }[state]; }

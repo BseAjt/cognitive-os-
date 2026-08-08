@@ -122,6 +122,14 @@ export interface IntegrationFabricSlice {
   syncIntegration:(connectionId:string,signals:ExternalSignalRecord[],startedAt?:string)=>IntegrationSyncRunRecord;
 }
 
+export type DemoMode = "investor" | "blank" | "workspace";
+export interface InvestorDemoSlice {
+  demoMode: DemoMode;
+  demoVersion: string;
+  loadInvestorDemo: () => void;
+  createBlankWorkspace: () => void;
+}
+
 export interface RuntimeSlice {
   agents: AgentContract[];
   agentRuns: AgentRunRecord[];
@@ -141,4 +149,4 @@ export interface ExecutiveCommands {
   applyCriticalSignal: () => void;
 }
 
-export type ExecutiveState = CaseSlice & ConversationSlice & DossierObjectSlice & DecisionSlice & ActionSlice & EventSlice & LearningSlice & ReflectionSlice & CognitiveProfileSlice & MemorySlice & KnowledgeSlice & KnowledgeGraphSlice & ContextIngestionSlice & ExecutiveCycleSlice & DecisionActionPlanSlice & DecisionWatchSlice & IntegrationFabricSlice & KernelSlice & RuntimeSlice & ExecutiveCommands;
+export type ExecutiveState = CaseSlice & ConversationSlice & DossierObjectSlice & DecisionSlice & ActionSlice & EventSlice & LearningSlice & ReflectionSlice & CognitiveProfileSlice & MemorySlice & KnowledgeSlice & KnowledgeGraphSlice & ContextIngestionSlice & ExecutiveCycleSlice & DecisionActionPlanSlice & DecisionWatchSlice & IntegrationFabricSlice & InvestorDemoSlice & KernelSlice & RuntimeSlice & ExecutiveCommands;
