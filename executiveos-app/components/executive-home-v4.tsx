@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { ExecutiveRuntimePanel } from "@/components/executive-runtime-panel";
 import { ExecutiveWorkspace } from "@/components/executive-workspace";
 import { ContextIngestionPanel } from "@/components/context-ingestion-panel";
@@ -9,6 +9,7 @@ import { InvestorDemoDashboard } from "@/components/investor-demo-dashboard";
 import { CollaborationPanel } from "@/components/collaboration-panel";
 import { ProductControlCenter } from "@/components/product-control-center";
 import { buildCognitiveRecall } from "@/lib/cognitive-recall";
+import { buildExecutiveCaseBrief } from "@/lib/executive-brief";
 import { buildCaseJourney, resolveEventDestination } from "@/lib/outcome-navigation";
 import { runUnifiedRuntime } from "@/lib/unified-runtime";
 import { useExecutiveStore } from "@/store/executive-store";
@@ -30,6 +31,7 @@ export function ExecutiveHomeV4() {
   const store = useExecutiveStore();
   const [shell, setShell] = useState<ShellView>("dossiers");
   const [prompt, setPrompt] = useState("");
+  const [search, setSearch] = useState("");
   const activeCase = store.cases.find((item) => item.id === store.activeCaseId) ?? store.cases[0];
 
   function openCase(id: string) {
@@ -62,7 +64,24 @@ export function ExecutiveHomeV4() {
     store.applyRuntimeCycle({ caseId: activeCase.id, userText: clean, result });
     setPrompt("");
     setShell("case");
-    requestAnimationFrame(() => document.getElementById("analysis")?.scrollIntoView({ behavior: "smooth", block: "start" }));
+    requestAnimationFrame(() => window.dispatchEvent(new CustomEvent("executiveos:open-analysis")));
+  }
+
+  const searchResults = useMemo(() => {
+    const query = search.trim().toLocaleLowerCase("fr");
+    if (query.length < 2) return [];
+    const results: Array<{ id: string; caseId: string; kind: string; title: string; detail: string }> = [];
+    for (const item of store.cases) if (`${item.title} ${item.objective} ${item.context}`.toLocaleLowerCase("fr").includes(query)) results.push({ id: `case:${item.id}`, caseId: item.id, kind: "Dossier", title: item.title, detail: item.objective });
+    for (const item of store.decisions) if (`${item.outcome} ${item.rationale}`.toLocaleLowerCase("fr").includes(query)) results.push({ id: `decision:${item.id}`, caseId: item.caseId, kind: "Décision", title: item.outcome, detail: item.rationale });
+    for (const item of store.actions) if (`${item.title} ${item.owner} ${item.result ?? ""}`.toLocaleLowerCase("fr").includes(query)) results.push({ id: `action:${item.id}`, caseId: item.caseId, kind: "Action", title: item.title, detail: `${item.owner} · ${item.progress}%` });
+    for (const item of store.memories) if (item.content.toLocaleLowerCase("fr").includes(query)) results.push({ id: `memory:${item.id}`, caseId: item.caseId, kind: "Mémoire", title: item.content, detail: `${item.confidence}% de confiance` });
+    for (const item of store.contextSources) if (`${item.title} ${item.rawContent}`.toLocaleLowerCase("fr").includes(query)) results.push({ id: `source:${item.id}`, caseId: item.caseId, kind: "Source", title: item.title, detail: item.type });
+    return results.slice(0, 8);
+  }, [search, store.cases, store.decisions, store.actions, store.memories, store.contextSources]);
+
+  function openSearchResult(caseId: string) {
+    openCase(caseId);
+    setSearch("");
   }
 
   return <div className="min-h-screen bg-[#07111f] text-white md:grid md:grid-cols-[238px_minmax(0,1fr)]">
@@ -86,7 +105,9 @@ export function ExecutiveHomeV4() {
     <div className="min-w-0">
       <header className="sticky top-0 z-30 border-b border-white/[.07] bg-[#07111f]/90 px-4 py-3 backdrop-blur-2xl md:px-7">
         <div className="mx-auto flex max-w-[1540px] items-center gap-3">
-          <div className="flex min-w-0 flex-1 items-center gap-3 rounded-2xl border border-white/[.08] bg-[#0d192b]/90 px-4 py-3"><span className="text-[#bfb2ff]">✦</span><input value={prompt} onChange={(e) => setPrompt(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter") submit(); }} placeholder={activeCase ? `Demander à ORION pour “${activeCase.title}”…` : "Crée d’abord un dossier"} className="min-w-0 flex-1 bg-transparent text-sm outline-none placeholder:text-[#65758f]"/><button onClick={submit} className="rounded-lg bg-[#7c5cff] px-3 py-1.5 text-xs font-bold">ORION</button></div>
+          <div className="relative flex min-w-0 flex-1 items-center gap-3 rounded-2xl border border-white/[.08] bg-[#0d192b]/90 px-4 py-3"><span className="text-[#bfb2ff]">⌕</span><input aria-label="Rechercher dans ExecutiveOS" value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Rechercher un dossier, une décision, une action…" className="min-w-0 flex-1 bg-transparent text-sm outline-none placeholder:text-[#65758f]"/>{search && <button aria-label="Effacer la recherche" onClick={() => setSearch("")} className="text-xs text-[#65758f]">Effacer</button>}
+          {search.trim().length >= 2 && <div className="absolute left-0 right-0 top-[calc(100%+10px)] z-50 overflow-hidden rounded-2xl border border-white/[.08] bg-[#fffefa] p-2 shadow-2xl">{searchResults.length ? searchResults.map((result) => <button key={result.id} onClick={() => openSearchResult(result.caseId)} className="flex w-full items-start gap-3 rounded-xl p-3 text-left hover:bg-black/[.04]"><span className="mt-0.5 rounded-full bg-[#0071e3]/10 px-2 py-1 text-[9px] font-bold uppercase text-[#0066cc]">{result.kind}</span><span className="min-w-0"><strong className="block truncate text-sm">{result.title}</strong><span className="mt-1 block truncate text-xs text-[#6e6e73]">{result.detail}</span></span></button>) : <div className="p-4 text-sm text-[#6e6e73]">Aucun résultat. Essaie un autre mot-clé.</div>}</div>}</div>
+          <div className="hidden min-w-0 flex-[1.25] items-center gap-3 rounded-2xl border border-white/[.08] bg-[#0d192b]/90 px-4 py-3 lg:flex"><span className="text-[#bfb2ff]">✦</span><input value={prompt} onChange={(e) => setPrompt(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter") submit(); }} placeholder={activeCase ? `Demander à ORION pour “${activeCase.title}”…` : "Crée d’abord un dossier"} className="min-w-0 flex-1 bg-transparent text-sm outline-none placeholder:text-[#65758f]"/><button onClick={submit} disabled={!prompt.trim()} className="rounded-lg bg-[#7c5cff] px-3 py-1.5 text-xs font-bold disabled:cursor-not-allowed disabled:opacity-40">ORION</button></div>
           <div className="grid size-11 place-items-center rounded-2xl bg-gradient-to-br from-[#d7cfff] to-[#8b73ef] text-xs font-black text-[#1b1239]">SH</div>
         </div>
       </header>
@@ -152,9 +173,17 @@ function DossierCard({ item, onOpen }: { item: CognitiveCase; onOpen: () => void
 function CaseWorkspace({ cognitiveCase, onBack }: { cognitiveCase: CognitiveCase; onBack: () => void }) {
   const store = useExecutiveStore();
   const [editing, setEditing] = useState(false);
+  const [activeSection, setActiveSection] = useState<WorkspaceSection>("overview");
   const [title, setTitle] = useState(cognitiveCase.title);
   const [objective, setObjective] = useState(cognitiveCase.objective);
   const journey = useMemo(() => buildCaseJourney({ cognitiveCase, decisions: store.decisions, actions: store.actions, learningEvents: store.learningEvents, reflections: store.reflections }), [cognitiveCase, store.decisions, store.actions, store.learningEvents, store.reflections]);
+  const brief = useMemo(() => buildExecutiveCaseBrief({ cognitiveCase, decisions: store.decisions, actions: store.actions, caseObjects: store.caseObjects, learningEvents: store.learningEvents, reflections: store.reflections, contextSources: store.contextSources, contextEvidence: store.contextEvidence, executiveCycles: store.executiveCycles, decisionActionPlans: store.decisionActionPlans, decisionWatches: store.decisionWatches }), [cognitiveCase, store.decisions, store.actions, store.caseObjects, store.learningEvents, store.reflections, store.contextSources, store.contextEvidence, store.executiveCycles, store.decisionActionPlans, store.decisionWatches]);
+
+  useEffect(() => {
+    function openAnalysis() { setActiveSection("analysis"); }
+    window.addEventListener("executiveos:open-analysis", openAnalysis);
+    return () => window.removeEventListener("executiveos:open-analysis", openAnalysis);
+  }, []);
 
   function save() {
     store.applyCasePatch(cognitiveCase.id, { title: title.trim() || cognitiveCase.title, objective: objective.trim() || cognitiveCase.objective });
@@ -162,57 +191,60 @@ function CaseWorkspace({ cognitiveCase, onBack }: { cognitiveCase: CognitiveCase
   }
 
   function goTo(section: WorkspaceSection) {
-    document.getElementById(section)?.scrollIntoView({ behavior: "smooth", block: "start" });
+    setActiveSection(section);
+    requestAnimationFrame(() => document.getElementById("workspace-content")?.scrollIntoView({ behavior: "smooth", block: "start" }));
   }
 
   return <section>
-    <button onClick={onBack} className="mb-4 text-sm text-[#8393ad] hover:text-white">← Mes dossiers</button>
-    <div className="rounded-[28px] border border-white/[.08] bg-[#0d192b]/88 p-5 md:p-7">
+    <div className="mb-4 flex items-center justify-between gap-3"><button onClick={onBack} className="text-sm text-[#8393ad] hover:text-white">← Mes dossiers</button><div className="flex items-center gap-2 text-xs text-[#6e6e73]"><span className={`size-2 rounded-full ${brief.health === "critical" ? "bg-[#d70015]" : brief.health === "watch" ? "bg-[#a05a00]" : "bg-[#248a3d]"}`}/>{brief.health === "critical" ? "Attention requise" : brief.health === "watch" ? "Sous surveillance" : "Dossier stable"}</div></div>
+    <div className="overflow-hidden rounded-[30px] border border-white/[.08] bg-[#0d192b]/88">
+      <div className="p-5 md:p-7">
       <div className="flex flex-col justify-between gap-5 md:flex-row md:items-start">
         <div className="min-w-0 flex-1">{editing ? <div className="space-y-3"><input value={title} onChange={(e) => setTitle(e.target.value)} className="w-full rounded-xl border border-white/[.08] bg-[#091422] px-4 py-3 text-2xl font-semibold outline-none"/><textarea value={objective} onChange={(e) => setObjective(e.target.value)} className="min-h-24 w-full rounded-xl border border-white/[.08] bg-[#091422] px-4 py-3 text-sm leading-6 outline-none"/><div className="flex gap-2"><button onClick={save} className="rounded-lg bg-[#7c5cff] px-4 py-2 text-xs font-bold">Enregistrer</button><button onClick={() => setEditing(false)} className="rounded-lg border border-white/[.08] px-4 py-2 text-xs">Annuler</button></div></div> : <><div className="text-[10px] font-black uppercase tracking-[.18em] text-[#9d83ff]">Dossier cognitif · {stateLabel(cognitiveCase.state)}</div><h1 className="mt-3 text-3xl font-semibold tracking-[-.035em] md:text-4xl">{cognitiveCase.title}</h1><p className="mt-3 max-w-4xl text-base leading-7 text-[#91a2bd]">{cognitiveCase.objective}</p></>}</div>
         {!editing && <button onClick={() => setEditing(true)} className="rounded-xl border border-white/[.08] bg-white/[.03] px-4 py-2 text-xs font-semibold">Modifier le dossier</button>}
       </div>
-      <div className="mt-6 flex gap-2 overflow-x-auto pb-1">{WORKSPACE_SECTIONS.map((item) => <button key={item.id} onClick={() => goTo(item.id)} className="whitespace-nowrap rounded-xl bg-white/[.04] px-4 py-2 text-xs font-semibold text-[#91a2bd] transition hover:bg-[#7c5cff] hover:text-white">{item.label}</button>)}</div>
+      </div>
+      <div className="grid gap-px border-y border-white/[.08] bg-black/[.06] sm:grid-cols-3 xl:grid-cols-6">{WORKSPACE_SECTIONS.map((item, index) => <button key={item.id} aria-pressed={activeSection === item.id} onClick={() => goTo(item.id)} className={`px-4 py-3 text-left text-xs font-semibold transition ${activeSection === item.id ? "bg-[#0071e3] text-white" : "bg-[#fffefa]/75 text-[#6e6e73] hover:bg-white"}`}><span className="mr-2 opacity-60">0{index + 1}</span>{item.label}</button>)}</div>
     </div>
 
-    <div className="mt-6 space-y-8">
-      <WorkspaceBlock id="overview" eyebrow="01 · Vue d’ensemble" title="Reprendre exactement là où le dossier s’est arrêté" description="La synthèse opérationnelle du dossier, sa dernière décision, la prochaine action et le dernier apprentissage.">
-        <CaseOverview journey={journey} onNavigate={goTo} />
-        <div className="h-5"/>
-        <CollaborationPanel caseId={cognitiveCase.id}/>
-      </WorkspaceBlock>
-
-      <WorkspaceBlock id="context" eyebrow="02 · Sources & contexte" title="Transformer les informations réelles en contexte exploitable" description="Notes, pages web et documents sont rattachés au dossier avec leur provenance, leurs preuves et une synthèse sourcée.">
-        <IntegrationFabricPanel caseId={cognitiveCase.id}/>
-        <div className="h-5"/>
-        <ContextIngestionPanel caseId={cognitiveCase.id}/>
-      </WorkspaceBlock>
-
-      <WorkspaceBlock id="analysis" eyebrow="03 · Analyse & décision" title="Construire le raisonnement et arbitrer" description="ORION, le reasoning runtime et le canvas décisionnel travaillent ici dans le contexte du même dossier.">
-        <ExecutiveWorkspace />
-      </WorkspaceBlock>
-
-      <WorkspaceBlock id="execution" eyebrow="04 · Exécution" title="Transformer la décision en résultats" description="Les actions du dossier sont affectées, exécutées et produisent des livrables consultables sans quitter le workspace.">
-        <ExecutiveRuntimePanel mode="act" />
-      </WorkspaceBlock>
-
-      <WorkspaceBlock id="learning" eyebrow="05 · Apprentissage" title="Capitaliser ce que l’exécution a appris" description="Mémoire durable, learning events, réflexions et calibration restent rattachés au même dossier.">
-        <LearningPanel caseId={cognitiveCase.id} onNavigate={goTo} />
-      </WorkspaceBlock>
-
-      <WorkspaceBlock id="history" eyebrow="06 · Historique" title="Rejouer la trajectoire du dossier" description="Les événements deviennent une timeline navigable vers les objets qu’ils ont créés ou modifiés.">
-        <HistoryPanel caseId={cognitiveCase.id} onNavigate={goTo} />
-      </WorkspaceBlock>
+    <div id="workspace-content" className="scroll-mt-28 pt-6">
+      {activeSection === "overview" && <CommandSurface brief={brief} journey={journey} onNavigate={goTo} caseId={cognitiveCase.id}/>}
+      {activeSection === "context" && <WorkspaceView eyebrow="Contexte vivant" title="Les preuves derrière le raisonnement" description="Connecte une source ou ajoute une information : le brief et les recommandations se mettent à jour dans le même dossier."><IntegrationFabricPanel caseId={cognitiveCase.id}/><div className="h-5"/><ContextIngestionPanel caseId={cognitiveCase.id}/></WorkspaceView>}
+      {activeSection === "analysis" && <WorkspaceView eyebrow="Salle de décision" title="Raisonner, comparer et arbitrer" description="ORION convoque les capacités utiles dans le contexte exact du dossier."><ExecutiveWorkspace /></WorkspaceView>}
+      {activeSection === "execution" && <WorkspaceView eyebrow="Mise en mouvement" title="De la décision au résultat observable" description="Pilote les responsabilités, les blocages et les livrables sans perdre le fil du raisonnement."><ExecutiveRuntimePanel mode="act" /></WorkspaceView>}
+      {activeSection === "learning" && <WorkspaceView eyebrow="Mémoire active" title="Ce que ce dossier t’a réellement appris" description="Les résultats, révisions et signaux deviennent une intelligence réutilisable."><LearningPanel caseId={cognitiveCase.id} onNavigate={goTo} /></WorkspaceView>}
+      {activeSection === "history" && <WorkspaceView eyebrow="Trajectoire cognitive" title="Rejouer chaque évolution importante" description="Chaque événement ramène vers l’objet et l’étape de travail correspondants."><HistoryPanel caseId={cognitiveCase.id} onNavigate={goTo} /></WorkspaceView>}
     </div>
   </section>;
 }
 
-function WorkspaceBlock({ id, eyebrow, title, description, children }: { id: WorkspaceSection; eyebrow: string; title: string; description: string; children: React.ReactNode }) {
-  return <section id={id} className="scroll-mt-28">
+function WorkspaceView({ eyebrow, title, description, children }: { eyebrow: string; title: string; description: string; children: React.ReactNode }) {
+  return <section>
     <div className="mb-4"><div className="text-[10px] font-black uppercase tracking-[.18em] text-[#9d83ff]">{eyebrow}</div><h2 className="mt-2 text-2xl font-semibold tracking-[-.025em] md:text-3xl">{title}</h2><p className="mt-2 max-w-4xl text-sm leading-6 text-[#8294af]">{description}</p></div>
     {children}
   </section>;
 }
+
+function CommandSurface({ brief, journey, onNavigate, caseId }: { brief: ReturnType<typeof buildExecutiveCaseBrief>; journey: ReturnType<typeof buildCaseJourney>; onNavigate: (section: WorkspaceSection) => void; caseId: string }) {
+  return <div className="grid gap-5 xl:grid-cols-[minmax(0,1.45fr)_minmax(320px,.55fr)]">
+    <div className="space-y-5">
+      <article className="rounded-[28px] border border-[#0071e3]/20 bg-[linear-gradient(145deg,rgba(255,255,255,.98),rgba(232,241,250,.82))] p-6 md:p-8">
+        <div className="flex flex-wrap items-center justify-between gap-3"><div className="text-[10px] font-black uppercase tracking-[.18em] text-[#0066cc]">Brief vivant · maintenant</div><span className="rounded-full bg-white/70 px-3 py-1 text-[10px] font-semibold text-[#6e6e73]">{stateLabel(brief.state)}</span></div>
+        <h2 className="mt-4 max-w-4xl text-2xl font-semibold tracking-[-.03em] md:text-3xl">{brief.executiveSummary}</h2>
+        <p className="mt-4 max-w-4xl text-sm leading-7 text-[#59636f]">{brief.recommendation}</p>
+        <div className="mt-6 flex flex-wrap gap-3"><button onClick={() => onNavigate(brief.blockers.length ? "execution" : journey.latestDecision ? "execution" : "analysis")} className="rounded-full bg-[#0071e3] px-5 py-3 text-sm font-bold text-white">Continuer depuis ici →</button><button onClick={() => onNavigate("analysis")} className="rounded-full border border-black/10 bg-white/70 px-5 py-3 text-sm font-semibold">Demander un arbitrage à ORION</button></div>
+      </article>
+      <div className="grid gap-4 md:grid-cols-3"><SignalCard label="Décision active" value={brief.latestDecision} meta={brief.decisionConfidence ? `${brief.decisionConfidence}% de confiance` : "À formaliser"} onClick={() => onNavigate("analysis")}/><SignalCard label="Prochaine action" value={brief.nextAction} meta={brief.blockers.length ? `${brief.blockers.length} blocage(s)` : "Prête à avancer"} onClick={() => onNavigate("execution")}/><SignalCard label="Dernier apprentissage" value={brief.latestLearning} meta="Mémoire consolidée" onClick={() => onNavigate("learning")}/></div>
+      <CollaborationPanel caseId={caseId}/>
+    </div>
+    <aside className="space-y-5">
+      <Panel title="Centre d’attention">{brief.proactiveAlerts.length ? brief.proactiveAlerts.map((alert) => <button key={alert} onClick={() => onNavigate(alert.startsWith("Blocage") ? "execution" : "analysis")} className="block w-full rounded-2xl border border-[#d70015]/10 bg-[#d70015]/[.035] p-4 text-left text-sm leading-6 hover:border-[#d70015]/30">{alert}<span className="mt-2 block text-[10px] font-bold uppercase text-[#d70015]">Traiter →</span></button>) : <div className="rounded-2xl bg-[#248a3d]/[.06] p-4 text-sm leading-6 text-[#248a3d]">Aucune tension critique. Le dossier peut avancer sur sa prochaine action.</div>}</Panel>
+      <Panel title="Depuis ta dernière visite">{brief.sinceLastSession.length ? brief.sinceLastSession.map((change) => <div key={change} className="flex gap-3 rounded-xl bg-white/60 p-3 text-sm"><span className="text-[#248a3d]">●</span><span>{change}</span></div>) : <p className="text-sm leading-6 text-[#71839e]">Aucun changement majeur. Tu reprends exactement au même point.</p>}<button onClick={() => onNavigate("history")} className="w-full rounded-xl border border-black/10 bg-white/70 px-4 py-3 text-sm font-semibold">Voir la trajectoire complète</button></Panel>
+    </aside>
+  </div>;
+}
+
+function SignalCard({ label, value, meta, onClick }: { label: string; value: string; meta: string; onClick: () => void }) { return <button onClick={onClick} className="rounded-[24px] border border-white/[.08] bg-[#0d192b]/88 p-5 text-left hover:-translate-y-0.5 hover:border-[#0071e3]/30"><span className="text-[10px] font-black uppercase tracking-[.14em] text-[#6e6e73]">{label}</span><strong className="mt-3 line-clamp-3 block text-base leading-6">{value}</strong><span className="mt-4 block text-xs font-semibold text-[#0066cc]">{meta} · Ouvrir →</span></button>; }
 
 function CaseOverview({ journey, onNavigate }: { journey: ReturnType<typeof buildCaseJourney>; onNavigate: (section: WorkspaceSection) => void }) {
   const nextSection: WorkspaceSection = journey.nextAction ? "execution" : "analysis";
