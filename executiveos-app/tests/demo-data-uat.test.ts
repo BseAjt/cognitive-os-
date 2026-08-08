@@ -78,9 +78,10 @@ test("primary navigation no longer exposes engine tabs", () => {
   assert.ok(!home.includes('label: "Explorer"'));
 });
 
-test("B1 renders one continuous dossier workspace instead of exclusive stages", () => {
-  for (const id of ["overview", "analysis", "execution", "learning", "history"]) assert.ok(home.includes(`id=\"${id}\"`) || home.includes(`id={id}`));
-  assert.ok(home.includes("WorkspaceBlock"));
+test("Phase B renders one contextual command surface instead of stacked engines", () => {
+  for (const id of ["overview", "analysis", "execution", "learning", "history"]) assert.ok(home.includes(`activeSection === \"${id}\"`));
+  assert.ok(home.includes("CommandSurface"));
+  assert.ok(home.includes("WorkspaceView"));
   assert.ok(home.includes("scrollIntoView"));
   assert.ok(!home.includes('stage === "overview"'));
   assert.ok(!home.includes('stage === "analysis"'));
@@ -104,7 +105,20 @@ test("users can create and edit dossiers", () => {
 test("global ORION command executes inside the active dossier and stays in unified workspace", () => {
   assert.ok(home.includes("runUnifiedRuntime"));
   assert.ok(home.includes("store.applyRuntimeCycle"));
-  assert.ok(home.includes('document.getElementById("analysis")'));
+  assert.ok(home.includes('executiveos:open-analysis'));
+});
+
+test("Phase B global search spans useful cognitive records", () => {
+  assert.ok(home.includes("Rechercher un dossier, une décision, une action"));
+  for (const collection of ["store.cases", "store.decisions", "store.actions", "store.memories", "store.contextSources"]) assert.ok(home.includes(collection));
+  assert.ok(home.includes("openSearchResult"));
+});
+
+test("Phase B living brief exposes attention and next-best-action surfaces", () => {
+  assert.ok(home.includes("buildExecutiveCaseBrief"));
+  assert.ok(home.includes("Brief vivant · maintenant"));
+  assert.ok(home.includes("Centre d’attention"));
+  assert.ok(home.includes("Depuis ta dernière visite"));
 });
 
 test("execution stays operational inside dossier workspace", () => {
