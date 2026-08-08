@@ -11,8 +11,13 @@ export type DossierObjectType = "question" | "goal" | "hypothesis" | "context" |
 export type DossierObjectStatus = "open" | "active" | "resolved" | "superseded";
 export type ContextSourceType = "note" | "url" | "document" | "message" | "meeting";
 export type ContextSourceStatus = "processing" | "ready" | "failed";
+export type PortfolioStatus = "discovery" | "validated" | "active" | "on_hold" | "completed";
+export type StrategicHorizon = "now" | "next" | "later";
+export type IdeaStatus = "captured" | "evaluating" | "promoted" | "rejected";
 
 export interface CognitiveCase { id:string; title:string; objective:string; workingHypothesis:string; context:string; state:CognitiveCaseState; signals:{ impact:number; urgency:number; confidence:number; cognitiveCost:number; risk:number } }
+export interface ProjectRecord { id:string; title:string; summary:string; theme:string; sponsor:string; owner:string; status:PortfolioStatus; horizon:StrategicHorizon; expectedValue:number; strategicFit:number; confidence:number; risk:number; progress:number; caseIds:string[]; dependencyIds:string[]; createdAt:string; updatedAt:string }
+export interface IdeaRecord { id:string; title:string; problem:string; proposition:string; theme:string; author:string; status:IdeaStatus; horizon:StrategicHorizon; novelty:number; expectedValue:number; feasibility:number; confidence:number; linkedProjectId?:string; promotedCaseId?:string; tags:string[]; createdAt:string; updatedAt:string }
 export interface DecisionRecord { id:string; caseId:string; recommendation:string; outcome:string; rationale:string; confidence:number; createdAt:string }
 export interface AgentContract { id:string; name:string; role:string; specialty:string; capabilities:string[]; status:AgentStatus; version:string }
 export interface AgentContributionRecord { agentId:string; agentName:string; focus:string; content:string; confidence:number }

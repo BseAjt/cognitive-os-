@@ -8,14 +8,18 @@ import type {
   DecisionRecord,
   DecisionWatchRecord,
   ExecutiveCycleRecord,
+  IdeaRecord,
   LearningEventRecord,
+  ProjectRecord,
   ReflectionRecord
 } from "../domain/canonical.ts";
 
-export const INVESTOR_DEMO_VERSION = "2026.08";
+export const INVESTOR_DEMO_VERSION = "2026.08.2";
 
 export interface InvestorDemoDataset {
   cases: CognitiveCase[];
+  projects: ProjectRecord[];
+  ideas: IdeaRecord[];
   activeCaseId: string;
   decisions: DecisionRecord[];
   actions: ActionRecord[];
@@ -40,6 +44,10 @@ export interface ProductEvidenceMetrics {
   traceabilityRate: number;
   estimatedHoursSaved: number;
   executionRate: number;
+  projectsInFlight: number;
+  ideasInPipeline: number;
+  portfolioValue: number;
+  promotedIdeas: number;
 }
 
 const CASES = [
@@ -63,10 +71,38 @@ const SOURCE_TOPICS = [
 
 const at = (day: number, hour = 9) => `2026-07-${String(day).padStart(2, "0")}T${String(hour).padStart(2, "0")}:00:00.000Z`;
 
+const PROJECTS = [
+  ["project-nova", "Nova AI Europe", "Déployer l'offre IA sur les marchés européens prioritaires.", "Croissance", "CEO", "MAYA", "active", "now", 94, 92, 82, 7, 48, ["demo-launch", "demo-pricing", "demo-partner"], []],
+  ["project-platform", "Trustworthy AI Platform", "Industrialiser une plateforme IA explicable, observable et souveraine.", "Produit", "CTO", "TURING", "active", "now", 88, 95, 86, 5, 64, ["demo-platform"], []],
+  ["project-growth", "Revenue Engine 2027", "Construire le dispositif commercial reproductible pour l'Enterprise.", "Go-to-market", "CRO", "ATHENA", "validated", "next", 86, 89, 74, 6, 27, ["demo-hiring"], ["project-nova"]],
+  ["project-copilot", "Executive Copilot", "Transformer les décisions de direction en exécution observable.", "Innovation", "CEO", "ORION", "validated", "next", 91, 98, 71, 7, 18, [], ["project-platform"]],
+  ["project-marketplace", "Agent Marketplace", "Ouvrir un catalogue d'agents spécialisés et gouvernés.", "Écosystème", "CPO", "ADA", "discovery", "later", 79, 84, 58, 8, 8, [], ["project-platform", "project-copilot"]],
+  ["project-academy", "Executive AI Academy", "Accélérer l'adoption par une académie de décision augmentée.", "Adoption", "COO", "SENECA", "discovery", "next", 68, 76, 63, 4, 12, [], ["project-copilot"]],
+  ["project-regulated", "Sovereign Vertical", "Adapter la plateforme aux secteurs défense et services publics.", "Verticalisation", "CEO", "ATHENA", "on_hold", "later", 90, 87, 54, 9, 6, [], ["project-platform"]],
+  ["project-intelligence", "Market Intelligence Network", "Détecter en continu les signaux qui fragilisent la stratégie.", "Intelligence", "CSO", "ORION", "active", "now", 84, 93, 79, 5, 39, [], ["project-nova"]]
+] as const;
+
+const IDEAS = [
+  ["idea-board", "Board Room Mode", "Les comités perdent du temps à reconstruire le contexte.", "Un brief interactif avec décisions, objections et preuves projetées en séance.", "Gouvernance", "MAYA", "promoted", "now", 84, 92, 86, 78, "project-copilot", "demo-launch", ["board", "brief"]],
+  ["idea-simulator", "Decision Simulator", "Les conséquences des options restent implicites.", "Simuler scénarios, hypothèses et seuils avant arbitrage.", "Produit", "TURING", "evaluating", "next", 91, 90, 68, 66, "project-copilot", undefined, ["simulation", "scenario"]],
+  ["idea-mobile", "ExecutiveOS Pocket", "Les signaux décisifs arrivent hors du bureau.", "Capturer une idée vocale et recevoir le point de reprise sur mobile.", "Expérience", "ADA", "evaluating", "next", 72, 78, 82, 71, "project-copilot", undefined, ["mobile", "voice"]],
+  ["idea-benchmark", "Decision Benchmark", "Les dirigeants ne savent pas calibrer leur processus de décision.", "Comparer anonymement vitesse, traçabilité et révisions par secteur.", "Data", "SENECA", "captured", "later", 88, 83, 52, 48, undefined, undefined, ["benchmark", "privacy"]],
+  ["idea-agents", "Specialist Agent Store", "Chaque secteur nécessite des expertises spécifiques.", "Distribuer des agents certifiés avec constitution et périmètre auditable.", "Écosystème", "ADA", "promoted", "later", 93, 88, 61, 59, "project-marketplace", undefined, ["agents", "marketplace"]],
+  ["idea-digital-twin", "Cognitive Twin Calibration", "Le système doit apprendre sans figer les biais de l'utilisateur.", "Mesurer préférences, calibration et évolution du raisonnement avec consentement.", "Cognitive AI", "ORION", "evaluating", "later", 96, 94, 49, 55, "project-platform", undefined, ["twin", "ethics"]],
+  ["idea-red-team", "Autonomous Red Team", "Les décisions consensuelles masquent des risques.", "Déclencher automatiquement une contradiction argumentée avant les gates critiques.", "Risque", "SENECA", "promoted", "now", 85, 87, 89, 83, "project-intelligence", "demo-partner", ["risk", "challenge"]],
+  ["idea-meeting", "Meeting-to-Decision", "Les réunions produisent des comptes rendus sans engagement clair.", "Extraire décisions, propriétaires, échéances et zones de désaccord.", "Productivité", "MAYA", "evaluating", "now", 76, 86, 91, 80, "project-copilot", undefined, ["meeting", "action"]],
+  ["idea-sovereign", "Sovereign Deployment Kit", "Les secteurs régulés ne peuvent pas adopter une architecture standard.", "Packager déploiement souverain, audit, isolation et politiques sectorielles.", "Verticalisation", "TURING", "captured", "later", 74, 93, 57, 51, "project-regulated", undefined, ["sovereignty", "enterprise"]],
+  ["idea-academy", "Decision Practice Lab", "L'adoption nécessite de nouvelles habitudes managériales.", "Faire pratiquer des cas de décision avec feedback de calibration.", "Adoption", "SENECA", "promoted", "next", 69, 72, 88, 77, "project-academy", undefined, ["learning", "adoption"]],
+  ["idea-radar", "Weak Signal Radar", "Les décisions sont réévaluées trop tard.", "Surveiller sources internes et externes selon les hypothèses actives.", "Intelligence", "ATHENA", "promoted", "now", 82, 91, 84, 81, "project-intelligence", "demo-pricing", ["signals", "watch"]],
+  ["idea-outcomes", "Outcome Ledger", "La valeur réelle des décisions est rarement mesurée.", "Relier chaque décision à ses résultats, coûts et apprentissages dans le temps.", "Finance", "ORION", "captured", "next", 79, 89, 73, 64, undefined, undefined, ["outcomes", "roi"]]
+] as const;
+
 export function createInvestorDemoDataset(): InvestorDemoDataset {
   const cases: CognitiveCase[] = CASES.map(([id, title, objective, workingHypothesis, state, impact, urgency, confidence, risk]) => ({
     id, title, objective, workingHypothesis, context: "Données fictives et réalistes préparées pour la démonstration investisseur.", state, signals: { impact, urgency, confidence, cognitiveCost: 6, risk }
   }));
+  const projects: ProjectRecord[] = PROJECTS.map(([id,title,summary,theme,sponsor,owner,status,horizon,expectedValue,strategicFit,confidence,risk,progress,caseIds,dependencyIds]) => ({ id,title,summary,theme,sponsor,owner,status,horizon,expectedValue,strategicFit,confidence,risk,progress,caseIds:[...caseIds],dependencyIds:[...dependencyIds],createdAt:at(1),updatedAt:at(28) }));
+  const ideas: IdeaRecord[] = IDEAS.map(([id,title,problem,proposition,theme,author,status,horizon,novelty,expectedValue,feasibility,confidence,linkedProjectId,promotedCaseId,tags]) => ({ id,title,problem,proposition,theme,author,status,horizon,novelty,expectedValue,feasibility,confidence,linkedProjectId,promotedCaseId,tags:[...tags],createdAt:at(2),updatedAt:at(28) }));
 
   const contextSources: ContextSourceRecord[] = [];
   const contextEvidence: ContextEvidenceRecord[] = [];
@@ -117,10 +153,10 @@ export function createInvestorDemoDataset(): InvestorDemoDataset {
   const learningEvents: LearningEventRecord[] = cases.map((cognitiveCase, index) => ({ id: `demo-learning-${index + 1}`, caseId: cognitiveCase.id, type: "KnowledgeLearned", title: "La réversibilité accélère la décision", detail: "Un gate explicite permet d'avancer sans masquer l'incertitude.", significance: "high", confidence: 88, source: "cognitive_diff", createdAt: at(27 + index) }));
   const reflections: ReflectionRecord[] = cases.map((cognitiveCase, index) => ({ id: `demo-reflection-${index + 1}`, caseId: cognitiveCase.id, summary: "La décision a évolué après confrontation des signaux marché, produit et risque.", whatChanged: ["Le scénario est devenu progressif"], whyItChanged: ["Nouvelle preuve contradictoire"], learned: ["Conserver un checkpoint explicite"], uncertainties: ["Réaction concurrentielle"], decisionsToReconsider: index < 3 ? ["Prix et périmètre du lancement"] : [], confidence: 86, significance: "high", source: "reflection_engine", createdAt: at(28 + index) }));
 
-  return { cases, activeCaseId: cases[0]!.id, decisions, actions, contextSources, contextEvidence, contextSyntheses, executiveCycles, decisionActionPlans, decisionWatches, learningEvents, reflections };
+  return { cases, projects, ideas, activeCaseId: cases[0]!.id, decisions, actions, contextSources, contextEvidence, contextSyntheses, executiveCycles, decisionActionPlans, decisionWatches, learningEvents, reflections };
 }
 
-export function calculateProductEvidence(dataset: Pick<InvestorDemoDataset, "cases" | "contextSources" | "contextEvidence" | "decisions" | "actions" | "executiveCycles" | "decisionWatches">): ProductEvidenceMetrics {
+export function calculateProductEvidence(dataset: Pick<InvestorDemoDataset, "cases" | "projects" | "ideas" | "contextSources" | "contextEvidence" | "decisions" | "actions" | "executiveCycles" | "decisionWatches">): ProductEvidenceMetrics {
   const sourceIds = new Set(dataset.contextSources.map((source) => source.id));
   const traceableEvidence = dataset.contextEvidence.filter((evidence) => sourceIds.has(evidence.sourceId)).length;
   const completedActions = dataset.actions.filter((action) => action.status === "done").length;
@@ -134,7 +170,11 @@ export function calculateProductEvidence(dataset: Pick<InvestorDemoDataset, "cas
     decisionsReopened: dataset.decisionWatches.filter((watch) => watch.status === "reopen").length,
     traceabilityRate: dataset.contextEvidence.length ? Math.round((traceableEvidence / dataset.contextEvidence.length) * 100) : 0,
     estimatedHoursSaved: Math.round(dataset.contextSources.length * 0.75 + dataset.decisions.length * 2 + dataset.decisionWatches.filter((watch) => watch.status === "reopen").length * 3),
-    executionRate: dataset.actions.length ? Math.round((completedActions / dataset.actions.length) * 100) : 0
+    executionRate: dataset.actions.length ? Math.round((completedActions / dataset.actions.length) * 100) : 0,
+    projectsInFlight: dataset.projects.filter((project) => project.status === "active" || project.status === "validated").length,
+    ideasInPipeline: dataset.ideas.filter((idea) => idea.status !== "rejected").length,
+    portfolioValue: dataset.projects.length ? Math.round(dataset.projects.reduce((sum, project) => sum + project.expectedValue, 0) / dataset.projects.length) : 0,
+    promotedIdeas: dataset.ideas.filter((idea) => idea.status === "promoted").length
   };
 }
 
