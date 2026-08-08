@@ -50,3 +50,9 @@ export type DecisionWatchStatus = "stable"|"watch"|"reopen";
 export type DecisionWatchSignalType = "new_evidence"|"contradiction"|"blocked_action"|"checkpoint_due";
 export interface DecisionWatchSignal { id:string; type:DecisionWatchSignalType; severity:"info"|"warning"|"critical"; title:string; detail:string; sourceId?:string; evidenceId?:string; citation?:string }
 export interface DecisionWatchRecord { id:string; caseId:string; planId:string; decisionId:string; status:DecisionWatchStatus; signals:DecisionWatchSignal[]; summary:string; recommendedAction:string; evaluatedAt:string }
+export type IntegrationProvider = "gmail"|"calendar"|"slack"|"notion"|"drive"|"meetings";
+export type IntegrationConnectionStatus = "disconnected"|"connected"|"error";
+export type IntegrationSyncStatus = "idle"|"syncing"|"success"|"partial"|"failed";
+export interface IntegrationConnectionRecord { id:string; provider:IntegrationProvider; label:string; status:IntegrationConnectionStatus; enabled:boolean; scopes:string[]; caseId:string; lastSyncAt?:string; cursor?:string; error?:string; createdAt:string; updatedAt:string }
+export interface ExternalSignalRecord { externalId:string; provider:IntegrationProvider; kind:"email"|"calendar_event"|"message"|"page"|"document"|"meeting"; title:string; content:string; origin:string; occurredAt:string; participants:string[]; tags:string[]; mimeType?:string }
+export interface IntegrationSyncRunRecord { id:string; connectionId:string; caseId:string; status:IntegrationSyncStatus; discovered:number; ingested:number; duplicates:number; failed:number; sourceIds:string[]; startedAt:string; completedAt:string; cursor?:string; errors:string[] }

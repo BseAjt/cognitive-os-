@@ -1,0 +1,23 @@
+"use client";
+
+import { useState } from "react";
+import { demoSignals, PROVIDER_CATALOG } from "@/lib/integration-fabric";
+import { useExecutiveStore } from "@/store/executive-store";
+import type { IntegrationProvider } from "@/domain/canonical";
+
+const providers=Object.keys(PROVIDER_CATALOG) as IntegrationProvider[];
+
+export function IntegrationFabricPanel({caseId}:{caseId:string}) {
+  const store=useExecutiveStore();const [busy,setBusy]=useState<string|null>(null);const [message,setMessage]=useState("");
+  const connections=store.integrationConnections.filter((item)=>item.caseId===caseId);const runs=store.integrationSyncRuns.filter((item)=>item.caseId===caseId).slice(0,6);
+  function connect(provider:IntegrationProvider){setMessage("");const id=store.connectIntegration({provider,caseId});setMessage(`${PROVIDER_CATALOG[provider].label} connecté au dossier.`);return id;}
+  function sync(provider:IntegrationProvider){setBusy(provider);setMessage("");try{const connection=connections.find((item)=>item.provider===provider&&item.status==="connected");const id=connection?.id??connect(provider);const run=store.syncIntegration(id,demoSignals(provider));setMessage(`${run.ingested} signal ingéré · ${run.duplicates} doublon ignoré.`);}catch(error){setMessage(error instanceof Error?error.message:"Synchronisation impossible.");}finally{setBusy(null);}}
+  return <div className="space-y-5">
+    <article className="rounded-[26px] border border-[#42d59d]/25 bg-[linear-gradient(135deg,rgba(66,213,157,.1),rgba(13,25,43,.94))] p-5">
+      <div className="flex flex-wrap items-start justify-between gap-3"><div><div className="text-[10px] font-black uppercase tracking-[.16em] text-[#7ce6bb]">B8 · Integration Fabric</div><h3 className="mt-2 text-xl font-semibold">Faire entrer les signaux du monde réel</h3><p className="mt-1 text-xs leading-5 text-[#8294af]">Consentement explicite · isolation par dossier · déduplication · provenance · journal de synchronisation.</p></div><span className="rounded-full border border-[#42d59d]/20 bg-[#42d59d]/10 px-3 py-1 text-xs text-[#7ce6bb]">{connections.filter((item)=>item.status==="connected").length}/{providers.length} actifs</span></div>
+      <div className="mt-5 grid gap-3 md:grid-cols-2 xl:grid-cols-3">{providers.map((provider)=>{const meta=PROVIDER_CATALOG[provider];const connection=connections.find((item)=>item.provider===provider);const active=connection?.status==="connected";return <div key={provider} className="rounded-2xl border border-white/[.08] bg-[#091422]/80 p-4"><div className="flex items-center justify-between gap-3"><div><strong className="text-sm">{meta.label}</strong><p className="mt-1 text-[10px] text-[#667995]">{meta.scopes.join(" · ")}</p></div><span className={`h-2.5 w-2.5 rounded-full ${active?"bg-[#42d59d]":"bg-[#44526a]"}`}/></div><div className="mt-4 flex gap-2">{active?<><button onClick={()=>sync(provider)} disabled={busy===provider} className="flex-1 rounded-xl bg-[#42b98d] px-3 py-2 text-xs font-bold text-[#071711] disabled:opacity-40">{busy===provider?"Synchronisation…":"Synchroniser"}</button><button onClick={()=>store.disconnectIntegration(connection.id)} className="rounded-xl border border-white/10 px-3 py-2 text-xs text-[#91a2bd]">Couper</button></>:<button onClick={()=>connect(provider)} className="w-full rounded-xl border border-[#42d59d]/25 bg-[#42d59d]/10 px-3 py-2 text-xs font-bold text-[#7ce6bb]">Connecter</button>}</div>{connection?.lastSyncAt&&<p className="mt-2 text-[10px] text-[#667995]">Dernière synchro {new Date(connection.lastSyncAt).toLocaleString("fr-FR")}</p>}</div>;})}</div>
+      {message&&<p role="status" className="mt-4 rounded-xl border border-white/[.08] bg-white/[.025] p-3 text-xs text-[#cbd5e5]">{message}</p>}
+    </article>
+    <article className="rounded-[26px] border border-white/[.08] bg-[#0d192b]/88 p-5"><div className="flex items-center justify-between"><h3 className="text-sm font-semibold">Journal de synchronisation</h3><span className="text-[10px] uppercase tracking-[.12em] text-[#9d83ff]">Traçabilité B8</span></div><div className="mt-4 space-y-2">{runs.length?runs.map((run)=><div key={run.id} className="grid gap-2 rounded-xl border border-white/[.06] bg-white/[.02] p-3 text-xs md:grid-cols-[1fr_auto_auto]"><span className="text-[#cbd5e5]">{connections.find((item)=>item.id===run.connectionId)?.label??"Connecteur"} · {run.status}</span><span className="text-[#7ce6bb]">{run.ingested} ingéré(s)</span><span className="text-[#71839e]">{run.duplicates} doublon(s)</span></div>):<p className="rounded-xl border border-dashed border-white/[.08] p-4 text-center text-xs text-[#71839e]">Aucune synchronisation exécutée pour ce dossier.</p>}</div></article>
+  </div>;
+}

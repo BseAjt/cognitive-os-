@@ -36,6 +36,10 @@ Chaque dossier cognitif peut ingérer des notes, des contenus web copiés et des
 
 Un dossier peut convoquer un cycle exécutif persistant autour d'un mandat précis. ATHENA, TURING et SENECA produisent des contributions sourcées, ORION conserve les divergences et bloque toute recommandation lorsque les preuves du dossier sont insuffisantes.
 
+## Bloc 8 — Integration Fabric
+
+Gmail, calendrier, Slack, Notion, documents et réunions utilisent désormais un contrat d'intégration unique. Chaque connecteur est autorisé pour un dossier précis, normalise les signaux entrants, déduplique les éléments déjà vus, conserve un curseur et un journal de synchronisation, puis alimente automatiquement les sources, preuves, synthèses et Decision Watch du Bloc 7.
+
 ## Cloud setup
 
 1. Create a Supabase project.

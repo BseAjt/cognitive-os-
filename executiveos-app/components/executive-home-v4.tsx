@@ -4,6 +4,7 @@ import { useMemo, useState } from "react";
 import { ExecutiveRuntimePanel } from "@/components/executive-runtime-panel";
 import { ExecutiveWorkspace } from "@/components/executive-workspace";
 import { ContextIngestionPanel } from "@/components/context-ingestion-panel";
+import { IntegrationFabricPanel } from "@/components/integration-fabric-panel";
 import { buildCognitiveRecall } from "@/lib/cognitive-recall";
 import { buildCaseJourney, resolveEventDestination } from "@/lib/outcome-navigation";
 import { runUnifiedRuntime } from "@/lib/unified-runtime";
@@ -176,6 +177,8 @@ function CaseWorkspace({ cognitiveCase, onBack }: { cognitiveCase: CognitiveCase
       </WorkspaceBlock>
 
       <WorkspaceBlock id="context" eyebrow="02 · Sources & contexte" title="Transformer les informations réelles en contexte exploitable" description="Notes, pages web et documents sont rattachés au dossier avec leur provenance, leurs preuves et une synthèse sourcée.">
+        <IntegrationFabricPanel caseId={cognitiveCase.id}/>
+        <div className="h-5"/>
         <ContextIngestionPanel caseId={cognitiveCase.id}/>
       </WorkspaceBlock>
 
