@@ -9,6 +9,7 @@ type Status="checking"|"local"|"ready"|"syncing"|"synced"|"conflict"|"error";
 export function CloudSyncStatus(){
   const [status,setStatus]=useState<Status>("checking"); const [revision,setRevision]=useState(0); const [userEmail,setUserEmail]=useState("");
   useEffect(()=>{const client=createClient();if(!client){setStatus("local");return;}client.auth.getUser().then(({data})=>{if(data.user){setUserEmail(data.user.email??"");setStatus("ready");}else setStatus("local");}).catch(()=>setStatus("error"));},[]);
+  useEffect(()=>{const listener=()=>void sync();window.addEventListener("executiveos:sync",listener);return()=>window.removeEventListener("executiveos:sync",listener);});
   async function sync(){
     setStatus("syncing");
     const organizationId=useExecutiveStore.getState().activeOrganizationId;
