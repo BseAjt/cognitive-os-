@@ -12,6 +12,12 @@ export const createCollaborationSlice: StateCreator<ExecutiveState,[],[],Collabo
     { id:"member-thomas", organizationId:"org-executiveos", userId:"user-thomas", displayName:"Thomas Bernard", email:"thomas@executiveos.demo", role:"member", status:"active", joinedAt:"2026-08-03T09:00:00.000Z" }
   ],
   organizationInvitations:[], caseAccess:[], collaborationComments:[], auditLogs:[],
+  activateCloudOrganization:({organization,member}) => set((state)=>({
+    organizations:[organization,...state.organizations.filter((item)=>item.id!==organization.id)],
+    activeOrganizationId:organization.id,
+    activeMemberId:member.id,
+    organizationMembers:[member,...state.organizationMembers.filter((item)=>item.id!==member.id)]
+  })),
   inviteMember:(email,role) => {
     const actor=get().organizationMembers.find((item)=>item.id===get().activeMemberId);
     if(!can(actor,"manage_members")) throw new Error("Permission insuffisante");
