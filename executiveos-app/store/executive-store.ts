@@ -159,7 +159,7 @@ export const useExecutiveStore = create<ExecutiveState>()(
     }),
     {
       name: "executiveos-v2",
-      version: 26,
+      version: 27,
       migrate: migratePersistedState
     }
   )
