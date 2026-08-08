@@ -19,13 +19,21 @@ test("opens the active cognitive dossier", async ({ page, isMobile }) => {
   test.skip(isMobile, "The active dossier shortcut is intentionally hidden on mobile.");
   await page.getByText("Reprendre →").click();
   await expect(page.getByText("← Mes dossiers")).toBeVisible();
-  await expect(page.getByText("Là où tu en étais").first()).toBeVisible();
-  await expect(page.getByText("01 · Vue d’ensemble")).toBeVisible();
-  await expect(page.getByText("02 · Sources & contexte")).toBeVisible();
-  await expect(page.getByText("03 · Analyse & décision")).toBeVisible();
-  await expect(page.getByText("04 · Exécution")).toBeVisible();
-  await expect(page.getByText("05 · Apprentissage")).toBeVisible();
-  await expect(page.getByText("06 · Historique")).toBeVisible();
+  await expect(page.getByText("Brief vivant · maintenant")).toBeVisible();
+  await expect(page.getByText("Centre d’attention")).toBeVisible();
+  await expect(page.getByRole("button", { name: /01 Vue d’ensemble/ })).toBeVisible();
+  await expect(page.getByRole("button", { name: /02 Sources & contexte/ })).toBeVisible();
+  await expect(page.getByRole("button", { name: /03 Analyse & décision/ })).toBeVisible();
+  await page.getByRole("button", { name: /03 Analyse & décision/ }).click();
+  await expect(page.getByRole("heading", { name: "Raisonner, comparer et arbitrer" })).toBeVisible();
+});
+
+test("searches across the cognitive workspace and opens a result", async ({ page }) => {
+  const search = page.getByLabel("Rechercher dans ExecutiveOS");
+  await search.fill("restructuration");
+  await expect(page.getByText("Dossier").first()).toBeVisible();
+  await page.getByRole("button").filter({ hasText: "Restructuration" }).first().click();
+  await expect(page.getByText("Brief vivant · maintenant")).toBeVisible();
 });
 
 test("creates a new cognitive dossier", async ({ page }) => {
