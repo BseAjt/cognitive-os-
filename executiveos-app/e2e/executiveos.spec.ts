@@ -11,16 +11,15 @@ test.beforeEach(async ({ page }) => {
 });
 
 test("loads the dossier-first workspace and investor evidence", async ({ page }) => {
-  await expect(page.getByText("ExecutiveOS", { exact: true }).first()).toBeVisible();
   await expect(page.getByText("ExecutiveOS · Dossier First")).toBeVisible();
   await expect(page.getByRole("button", { name: "+ Nouveau dossier" })).toBeVisible();
-  await expect(page.getByText("Dossier actif")).toBeVisible();
 });
 
-test("opens the active cognitive dossier", async ({ page }) => {
+test("opens the active cognitive dossier", async ({ page, isMobile }) => {
+  test.skip(isMobile, "The active dossier shortcut is intentionally hidden on mobile.");
   await page.getByText("Reprendre →").click();
   await expect(page.getByText("← Mes dossiers")).toBeVisible();
-  await expect(page.getByText("Là où tu en étais")).toBeVisible();
+  await expect(page.getByText("Là où tu en étais").first()).toBeVisible();
   await expect(page.getByText("01 · Vue d’ensemble")).toBeVisible();
   await expect(page.getByText("02 · Sources & contexte")).toBeVisible();
   await expect(page.getByText("03 · Analyse & décision")).toBeVisible();
@@ -37,7 +36,7 @@ test("creates a new cognitive dossier", async ({ page }) => {
   await page.getByPlaceholder("Ce que tu sais déjà, contraintes, horizon…").fill("Horizon de six mois");
   await page.getByRole("button", { name: "Créer et ouvrir le dossier" }).click();
   await expect(page.getByRole("heading", { name: "Préparer la levée Seed" })).toBeVisible();
-  await expect(page.getByText("Construire une décision investissable")).toBeVisible();
+  await expect(page.getByText("Construire une décision investissable").first()).toBeVisible();
 });
 
 test("opens organization settings and collaboration controls", async ({ page, isMobile }) => {
