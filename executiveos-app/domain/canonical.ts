@@ -9,6 +9,8 @@ export type MemoryKind = "goal" | "hypothesis" | "risk" | "decision" | "action" 
 export type LearningEventType = "BeliefAdded" | "BeliefReinforced" | "BeliefInvalidated" | "ConfidenceChanged" | "DecisionReversed" | "RiskDetected" | "RiskResolved" | "ContradictionDetected" | "KnowledgeLearned";
 export type DossierObjectType = "question" | "goal" | "hypothesis" | "context" | "risk" | "decision" | "action";
 export type DossierObjectStatus = "open" | "active" | "resolved" | "superseded";
+export type ContextSourceType = "note" | "url" | "document" | "message" | "meeting";
+export type ContextSourceStatus = "processing" | "ready" | "failed";
 
 export interface CognitiveCase { id:string; title:string; objective:string; workingHypothesis:string; context:string; state:CognitiveCaseState; signals:{ impact:number; urgency:number; confidence:number; cognitiveCost:number; risk:number } }
 export interface DecisionRecord { id:string; caseId:string; recommendation:string; outcome:string; rationale:string; confidence:number; createdAt:string }
@@ -33,3 +35,6 @@ export interface KnowledgeEntity { id:string; organizationId:string; caseId?:str
 export interface KnowledgeRelation { id:string; organizationId:string; caseId?:string; sourceId:string; sourceType:KnowledgeEntityType; targetId:string; targetType:KnowledgeEntityType; relationType:KnowledgeRelationType; confidence:number; provenance:string; validFrom:string; validTo?:string }
 export interface ExecutiveBriefing { systemHealth:number; openDecisions:number; criticalRisks:number; invalidatedHypotheses:number; dueCommitments:number; newKnowledge:number; recommendation:string }
 export interface KnowledgeSnapshot { entities:KnowledgeEntity[]; relations:KnowledgeRelation[]; briefing:ExecutiveBriefing }
+export interface ContextSourceRecord { id:string; caseId:string; type:ContextSourceType; title:string; origin:string; mimeType?:string; status:ContextSourceStatus; rawContent:string; summary:string; wordCount:number; createdAt:string; processedAt?:string; error?:string }
+export interface ContextEvidenceRecord { id:string; caseId:string; sourceId:string; claim:string; excerpt:string; confidence:number; position:number; createdAt:string }
+export interface CaseContextSynthesis { caseId:string; summary:string; keyFacts:string[]; openQuestions:string[]; sourceIds:string[]; generatedAt:string }

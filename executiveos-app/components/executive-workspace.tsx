@@ -55,7 +55,9 @@ export function ExecutiveWorkspace() {
       agents: store.agents,
       memories: store.memories.filter((memory) => memory.caseId === active.id),
       knowledgeRecords: store.knowledgeRecords.filter((record) => record.caseId === active.id),
-      recallSummary: recall.summary
+      recallSummary: store.contextSyntheses.find((item) => item.caseId === active.id)?.summary
+        ? `${recall.summary}\n\nCONTEXTE SOURCÉ\n${store.contextSyntheses.find((item) => item.caseId === active.id)?.summary}`
+        : recall.summary
     });
     store.applyRuntimeCycle({ caseId: active.id, userText: clean, result });
 

@@ -3,6 +3,7 @@
 import { useMemo, useState } from "react";
 import { ExecutiveRuntimePanel } from "@/components/executive-runtime-panel";
 import { ExecutiveWorkspace } from "@/components/executive-workspace";
+import { ContextIngestionPanel } from "@/components/context-ingestion-panel";
 import { buildCognitiveRecall } from "@/lib/cognitive-recall";
 import { buildCaseJourney, resolveEventDestination } from "@/lib/outcome-navigation";
 import { runUnifiedRuntime } from "@/lib/unified-runtime";
@@ -10,10 +11,11 @@ import { useExecutiveStore } from "@/store/executive-store";
 import type { CognitiveCase, CognitiveEventRecord } from "@/domain/canonical";
 
 type ShellView = "dossiers" | "case" | "settings";
-type WorkspaceSection = "overview" | "analysis" | "execution" | "learning" | "history";
+type WorkspaceSection = "overview" | "context" | "analysis" | "execution" | "learning" | "history";
 
 const WORKSPACE_SECTIONS: Array<{ id: WorkspaceSection; label: string }> = [
   { id: "overview", label: "Vue d’ensemble" },
+  { id: "context", label: "Sources & contexte" },
   { id: "analysis", label: "Analyse & décision" },
   { id: "execution", label: "Exécution" },
   { id: "learning", label: "Apprentissage" },
@@ -44,13 +46,14 @@ export function ExecutiveHomeV4() {
       knowledgeRelations: store.knowledgeRelations,
       agentRuns: store.agentRuns
     });
+    const sourceContext = store.contextSyntheses.find((item) => item.caseId === activeCase.id)?.summary;
     const result = runUnifiedRuntime({
       message: clean,
       cognitiveCase: activeCase,
       agents: store.agents,
       memories: store.memories.filter((memory) => memory.caseId === activeCase.id),
       knowledgeRecords: store.knowledgeRecords.filter((record) => record.caseId === activeCase.id),
-      recallSummary: recall.summary
+      recallSummary: sourceContext ? `${recall.summary}\n\nCONTEXTE SOURCÉ\n${sourceContext}` : recall.summary
     });
     store.applyRuntimeCycle({ caseId: activeCase.id, userText: clean, result });
     setPrompt("");
@@ -172,19 +175,23 @@ function CaseWorkspace({ cognitiveCase, onBack }: { cognitiveCase: CognitiveCase
         <CaseOverview journey={journey} onNavigate={goTo} />
       </WorkspaceBlock>
 
-      <WorkspaceBlock id="analysis" eyebrow="02 · Analyse & décision" title="Construire le raisonnement et arbitrer" description="ORION, le reasoning runtime et le canvas décisionnel travaillent ici dans le contexte du même dossier.">
+      <WorkspaceBlock id="context" eyebrow="02 · Sources & contexte" title="Transformer les informations réelles en contexte exploitable" description="Notes, pages web et documents sont rattachés au dossier avec leur provenance, leurs preuves et une synthèse sourcée.">
+        <ContextIngestionPanel caseId={cognitiveCase.id}/>
+      </WorkspaceBlock>
+
+      <WorkspaceBlock id="analysis" eyebrow="03 · Analyse & décision" title="Construire le raisonnement et arbitrer" description="ORION, le reasoning runtime et le canvas décisionnel travaillent ici dans le contexte du même dossier.">
         <ExecutiveWorkspace />
       </WorkspaceBlock>
 
-      <WorkspaceBlock id="execution" eyebrow="03 · Exécution" title="Transformer la décision en résultats" description="Les actions du dossier sont affectées, exécutées et produisent des livrables consultables sans quitter le workspace.">
+      <WorkspaceBlock id="execution" eyebrow="04 · Exécution" title="Transformer la décision en résultats" description="Les actions du dossier sont affectées, exécutées et produisent des livrables consultables sans quitter le workspace.">
         <ExecutiveRuntimePanel mode="act" />
       </WorkspaceBlock>
 
-      <WorkspaceBlock id="learning" eyebrow="04 · Apprentissage" title="Capitaliser ce que l’exécution a appris" description="Mémoire durable, learning events, réflexions et calibration restent rattachés au même dossier.">
+      <WorkspaceBlock id="learning" eyebrow="05 · Apprentissage" title="Capitaliser ce que l’exécution a appris" description="Mémoire durable, learning events, réflexions et calibration restent rattachés au même dossier.">
         <LearningPanel caseId={cognitiveCase.id} onNavigate={goTo} />
       </WorkspaceBlock>
 
-      <WorkspaceBlock id="history" eyebrow="05 · Historique" title="Rejouer la trajectoire du dossier" description="Les événements deviennent une timeline navigable vers les objets qu’ils ont créés ou modifiés.">
+      <WorkspaceBlock id="history" eyebrow="06 · Historique" title="Rejouer la trajectoire du dossier" description="Les événements deviennent une timeline navigable vers les objets qu’ils ont créés ou modifiés.">
         <HistoryPanel caseId={cognitiveCase.id} onNavigate={goTo} />
       </WorkspaceBlock>
     </div>
