@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { HistoryControls } from "@/components/history-controls";
+import { CloudSyncStatus } from "@/components/cloud-sync-status";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -19,6 +20,7 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
   return (
     <html lang="fr">
       <body>
+        <CloudSyncStatus />
         {children}
         <HistoryControls />
       </body>
