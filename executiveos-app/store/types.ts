@@ -1,4 +1,4 @@
-import type { ActionRecord, AgentContract, AgentRunRecord, CaseContextSynthesis, CognitiveCase, CognitiveEventRecord, CognitiveProfileRecord, ContextEvidenceRecord, ContextSourceRecord, DecisionActionPlanRecord, DecisionRecord, DecisionWatchRecord, DossierObjectRecord, ExecutiveCycleRecord, ExternalSignalRecord, IdeaRecord, IntegrationConnectionRecord, IntegrationProvider, IntegrationSyncRunRecord, KnowledgeEntity, KnowledgeRecord, KnowledgeRelation, LearningEventRecord, MemoryRecord, ProjectRecord, ReflectionRecord } from "../domain/canonical.ts";
+import type { ActionRecord, AgentContract, AgentRunRecord, AuditLogRecord, CaseAccessRecord, CaseContextSynthesis, CognitiveCase, CognitiveEventRecord, CognitiveProfileRecord, CollaborationCommentRecord, CollaborationTargetType, ContextEvidenceRecord, ContextSourceRecord, DecisionActionPlanRecord, DecisionRecord, DecisionWatchRecord, DossierObjectRecord, ExecutiveCycleRecord, ExternalSignalRecord, IdeaRecord, IntegrationConnectionRecord, IntegrationProvider, IntegrationSyncRunRecord, KnowledgeEntity, KnowledgeRecord, KnowledgeRelation, LearningEventRecord, MemoryRecord, OrganizationInvitationRecord, OrganizationMemberRecord, OrganizationRecord, ProjectRecord, ReflectionRecord } from "../domain/canonical.ts";
 import type { DecisionToActionResult } from "../lib/decision-to-action.ts";
 import type { KernelEvent, KernelTransaction } from "../lib/executive-kernel.ts";
 import type { UnifiedRuntimeResult } from "../lib/unified-runtime.ts";
@@ -132,6 +132,15 @@ export interface InvestorDemoSlice {
   createBlankWorkspace: () => void;
 }
 
+export interface CollaborationSlice {
+  organizations:OrganizationRecord[]; activeOrganizationId:string; activeMemberId:string;
+  organizationMembers:OrganizationMemberRecord[]; organizationInvitations:OrganizationInvitationRecord[];
+  caseAccess:CaseAccessRecord[]; collaborationComments:CollaborationCommentRecord[]; auditLogs:AuditLogRecord[];
+  inviteMember:(email:string,role:"admin"|"member"|"viewer")=>string;
+  addComment:(input:{caseId:string;targetType:CollaborationTargetType;targetId:string;body:string})=>string;
+  resolveComment:(commentId:string)=>void;
+}
+
 export interface RuntimeSlice {
   agents: AgentContract[];
   agentRuns: AgentRunRecord[];
@@ -151,4 +160,4 @@ export interface ExecutiveCommands {
   applyCriticalSignal: () => void;
 }
 
-export type ExecutiveState = CaseSlice & ConversationSlice & DossierObjectSlice & DecisionSlice & ActionSlice & EventSlice & LearningSlice & ReflectionSlice & CognitiveProfileSlice & MemorySlice & KnowledgeSlice & KnowledgeGraphSlice & ContextIngestionSlice & ExecutiveCycleSlice & DecisionActionPlanSlice & DecisionWatchSlice & IntegrationFabricSlice & InvestorDemoSlice & KernelSlice & RuntimeSlice & ExecutiveCommands;
+export type ExecutiveState = CaseSlice & ConversationSlice & DossierObjectSlice & DecisionSlice & ActionSlice & EventSlice & LearningSlice & ReflectionSlice & CognitiveProfileSlice & MemorySlice & KnowledgeSlice & KnowledgeGraphSlice & ContextIngestionSlice & ExecutiveCycleSlice & DecisionActionPlanSlice & DecisionWatchSlice & IntegrationFabricSlice & InvestorDemoSlice & CollaborationSlice & KernelSlice & RuntimeSlice & ExecutiveCommands;
