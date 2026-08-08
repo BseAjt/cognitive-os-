@@ -1,4 +1,5 @@
-import type { ActionRecord, AgentContract, AgentRunRecord, CaseContextSynthesis, CognitiveCase, CognitiveEventRecord, CognitiveProfileRecord, ContextEvidenceRecord, ContextSourceRecord, DecisionRecord, DossierObjectRecord, KnowledgeEntity, KnowledgeRecord, KnowledgeRelation, LearningEventRecord, MemoryRecord, ReflectionRecord } from "../domain/canonical.ts";
+import type { ActionRecord, AgentContract, AgentRunRecord, CaseContextSynthesis, CognitiveCase, CognitiveEventRecord, CognitiveProfileRecord, ContextEvidenceRecord, ContextSourceRecord, DecisionActionPlanRecord, DecisionRecord, DecisionWatchRecord, DossierObjectRecord, ExecutiveCycleRecord, KnowledgeEntity, KnowledgeRecord, KnowledgeRelation, LearningEventRecord, MemoryRecord, ReflectionRecord } from "../domain/canonical.ts";
+import type { DecisionToActionResult } from "../lib/decision-to-action.ts";
 import type { KernelEvent, KernelTransaction } from "../lib/executive-kernel.ts";
 import type { UnifiedRuntimeResult } from "../lib/unified-runtime.ts";
 
@@ -103,6 +104,17 @@ export interface KernelSlice {
   recordKernelExecution: (transaction: KernelTransaction, events: KernelEvent[]) => void;
 }
 
+export interface ExecutiveCycleSlice {
+  executiveCycles: ExecutiveCycleRecord[];
+  prependExecutiveCycle: (record: ExecutiveCycleRecord) => void;
+}
+
+export interface DecisionActionPlanSlice {
+  decisionActionPlans: DecisionActionPlanRecord[];
+  activateDecisionActionPlan: (result: DecisionToActionResult) => void;
+}
+export interface DecisionWatchSlice { decisionWatches:DecisionWatchRecord[]; evaluateDecisionPlan:(planId:string,evaluatedAt?:string)=>void }
+
 export interface RuntimeSlice {
   agents: AgentContract[];
   agentRuns: AgentRunRecord[];
@@ -122,4 +134,4 @@ export interface ExecutiveCommands {
   applyCriticalSignal: () => void;
 }
 
-export type ExecutiveState = CaseSlice & ConversationSlice & DossierObjectSlice & DecisionSlice & ActionSlice & EventSlice & LearningSlice & ReflectionSlice & CognitiveProfileSlice & MemorySlice & KnowledgeSlice & KnowledgeGraphSlice & ContextIngestionSlice & KernelSlice & RuntimeSlice & ExecutiveCommands;
+export type ExecutiveState = CaseSlice & ConversationSlice & DossierObjectSlice & DecisionSlice & ActionSlice & EventSlice & LearningSlice & ReflectionSlice & CognitiveProfileSlice & MemorySlice & KnowledgeSlice & KnowledgeGraphSlice & ContextIngestionSlice & ExecutiveCycleSlice & DecisionActionPlanSlice & DecisionWatchSlice & KernelSlice & RuntimeSlice & ExecutiveCommands;

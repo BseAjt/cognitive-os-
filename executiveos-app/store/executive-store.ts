@@ -7,6 +7,9 @@ import { createExecutiveCommands } from "./commands";
 import { createKernelSlice } from "./kernel-slice";
 import { createRuntimeSlice } from "./runtime-slice";
 import { createContextIngestionSlice } from "./context-ingestion-slice";
+import { createExecutiveCycleSlice } from "./executive-cycle-slice";
+import { createDecisionActionPlanSlice } from "./decision-action-plan-slice";
+import { createDecisionWatchSlice } from "./decision-watch-slice";
 import { defaultExecutiveAgents } from "../lib/agent-runtime";
 import type { KernelEvent, KernelTransaction } from "../lib/executive-kernel";
 import {
@@ -25,7 +28,7 @@ import {
   initialReflections,
   initialRuntimeActions
 } from "./seed";
-import type { ActionRecord, AgentContract, AgentRunRecord, CaseContextSynthesis, CognitiveCase, CognitiveProfileRecord, ContextEvidenceRecord, ContextSourceRecord, DecisionRecord, DossierObjectRecord, KnowledgeEntity, KnowledgeRecord, KnowledgeRelation, LearningEventRecord, MemoryRecord, ReflectionRecord } from "../domain/canonical";
+import type { ActionRecord, AgentContract, AgentRunRecord, CaseContextSynthesis, CognitiveCase, CognitiveProfileRecord, ContextEvidenceRecord, ContextSourceRecord, DecisionActionPlanRecord, DecisionRecord, DecisionWatchRecord, DossierObjectRecord, ExecutiveCycleRecord, KnowledgeEntity, KnowledgeRecord, KnowledgeRelation, LearningEventRecord, MemoryRecord, ReflectionRecord } from "../domain/canonical";
 import type { ConversationMessage, ExecutiveState, ReasoningRevision } from "./types";
 
 // Legacy migration checkpoint retained for architecture regression tests: version: 16
@@ -36,7 +39,7 @@ type PersistedDecision = {id:string;caseId?:string;challengeId?:string;recommend
 type PersistedAction = {id:string;caseId?:string;challengeId?:string;title:string;owner:string;progress:number;status:ActionRecord["status"];requiredCapability?:string;assignedAgentId?:string|null;blockedReason?:string;dueAt?:string|null;result?:string};
 type PersistedLegacyChallenge = {id:string;title:string;goal:string;hypothesis:string;impact:number;urgency:number;confidence:number;cognitiveCost:number;risk:number;context:string;state:CognitiveCase["state"]};
 type PersistedLegacyRevision = Omit<ReasoningRevision,"caseId"> & {caseId?:string;challengeId?:string};
-type PersistedExecutiveState = { cases?:CognitiveCase[]; challenges?:PersistedLegacyChallenge[]; activeCaseId?:string; activeChallengeId?:string; messages?:PersistedMessage[]; caseObjects?:DossierObjectRecord[]; decisions?:PersistedDecision[]; actions?:PersistedAction[]; events?:ExecutiveState["events"]; agents?:AgentContract[]; agentRuns?:AgentRunRecord[]; learningEvents?:LearningEventRecord[]; reflections?:ReflectionRecord[]; cognitiveProfiles?:CognitiveProfileRecord[]; reasoningRevisions?:PersistedLegacyRevision[]; memories?:MemoryRecord[]; knowledgeRecords?:KnowledgeRecord[]; knowledgeEntities?:KnowledgeEntity[]; knowledgeRelations?:KnowledgeRelation[]; kernelTransactions?:KernelTransaction[]; kernelEvents?:KernelEvent[]; contextSources?:ContextSourceRecord[]; contextEvidence?:ContextEvidenceRecord[]; contextSyntheses?:CaseContextSynthesis[] };
+type PersistedExecutiveState = { cases?:CognitiveCase[]; challenges?:PersistedLegacyChallenge[]; activeCaseId?:string; activeChallengeId?:string; messages?:PersistedMessage[]; caseObjects?:DossierObjectRecord[]; decisions?:PersistedDecision[]; actions?:PersistedAction[]; events?:ExecutiveState["events"]; agents?:AgentContract[]; agentRuns?:AgentRunRecord[]; learningEvents?:LearningEventRecord[]; reflections?:ReflectionRecord[]; cognitiveProfiles?:CognitiveProfileRecord[]; reasoningRevisions?:PersistedLegacyRevision[]; memories?:MemoryRecord[]; knowledgeRecords?:KnowledgeRecord[]; knowledgeEntities?:KnowledgeEntity[]; knowledgeRelations?:KnowledgeRelation[]; kernelTransactions?:KernelTransaction[]; kernelEvents?:KernelEvent[]; contextSources?:ContextSourceRecord[]; contextEvidence?:ContextEvidenceRecord[]; contextSyntheses?:CaseContextSynthesis[]; executiveCycles?:ExecutiveCycleRecord[]; decisionActionPlans?:DecisionActionPlanRecord[]; decisionWatches?:DecisionWatchRecord[] };
 
 function mergeSeedById<T extends { id: string }>(current:T[]|undefined, seed:T[]):T[]{
   const map = new Map<string,T>();
@@ -57,7 +60,10 @@ function deriveCaseObjects(decisions:DecisionRecord[], actions:ActionRecord[], m
 
 function migratePersistedState(persistedState:unknown, version:number):ExecutiveState{
   const state=(persistedState??{}) as PersistedExecutiveState;
-  if(version>=18) return state as unknown as ExecutiveState;
+  if(version>=21) return state as unknown as ExecutiveState;
+  if(version>=20) return { ...state, decisionWatches:state.decisionWatches??[] } as unknown as ExecutiveState;
+  if(version>=19) return { ...state, decisionActionPlans:state.decisionActionPlans??[] } as unknown as ExecutiveState;
+  if(version>=18) return { ...state, executiveCycles:state.executiveCycles??[] } as unknown as ExecutiveState;
   if(version>=17) return { ...state, contextSources:state.contextSources??[], contextEvidence:state.contextEvidence??[], contextSyntheses:state.contextSyntheses??[] } as unknown as ExecutiveState;
   if(version>=16) return { ...state, kernelTransactions: state.kernelTransactions ?? [], kernelEvents: state.kernelEvents ?? [] } as unknown as ExecutiveState;
 
@@ -108,7 +114,10 @@ function migratePersistedState(persistedState:unknown, version:number):Executive
     kernelEvents:[],
     contextSources:[],
     contextEvidence:[],
-    contextSyntheses:[]
+    contextSyntheses:[],
+    executiveCycles:[],
+    decisionActionPlans:[],
+    decisionWatches:[]
   } as unknown as ExecutiveState;
 }
 
@@ -128,13 +137,16 @@ export const useExecutiveStore = create<ExecutiveState>()(
       ...createKnowledgeSlice(...args),
       ...createKnowledgeGraphSlice(...args),
       ...createContextIngestionSlice(...args),
+      ...createExecutiveCycleSlice(...args),
+      ...createDecisionActionPlanSlice(...args),
+      ...createDecisionWatchSlice(...args),
       ...createKernelSlice(...args),
       ...createRuntimeSlice(...args),
       ...createExecutiveCommands(...args)
     }),
     {
       name: "executiveos-v2",
-      version: 18,
+      version: 21,
       migrate: migratePersistedState
     }
   )

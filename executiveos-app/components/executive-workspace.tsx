@@ -3,6 +3,8 @@
 import { useMemo, useState } from "react";
 import { DecisionCanvas } from "@/components/decision-canvas";
 import { DecisionWorkbench } from "@/components/decision-workbench";
+import { OrionExecutiveCyclePanel } from "@/components/orion-executive-cycle-panel";
+import { DecisionWatchPanel } from "@/components/decision-watch-panel";
 import { ReasoningGraph } from "@/components/reasoning-graph";
 import { buildCognitiveRecall } from "@/lib/cognitive-recall";
 import type { CognitiveExtraction } from "@/lib/conversation-runtime";
@@ -32,7 +34,7 @@ export function ExecutiveWorkspace() {
   const decisions = store.decisions.filter((decision) => decision.caseId === active.id);
   const actions = store.actions.filter((action) => action.caseId === active.id);
   const caseObjects = store.caseObjects.filter((item) => item.caseId === active.id);
-  const brief = buildExecutiveCaseBrief({ cognitiveCase: active, decisions: store.decisions, actions: store.actions, caseObjects: store.caseObjects, learningEvents: store.learningEvents, reflections: store.reflections });
+  const brief = buildExecutiveCaseBrief({ cognitiveCase: active, decisions: store.decisions, actions: store.actions, caseObjects: store.caseObjects, learningEvents: store.learningEvents, reflections: store.reflections, contextSources:store.contextSources, contextEvidence:store.contextEvidence, executiveCycles:store.executiveCycles, decisionActionPlans:store.decisionActionPlans, decisionWatches:store.decisionWatches });
   const recall = buildCognitiveRecall({
     cognitiveCase: active,
     decisions: store.decisions,
@@ -73,6 +75,8 @@ export function ExecutiveWorkspace() {
 
   return (
     <div className="space-y-6 text-white">
+      <OrionExecutiveCyclePanel caseId={active.id}/>
+      <DecisionWatchPanel caseId={active.id}/>
       <article className={`executive-card p-5 ${brief.health === "critical" ? "border-red-400/30" : brief.health === "watch" ? "border-amber-300/25" : ""}`}>
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div><div className="text-xs font-black tracking-[.14em] text-[#8d7ce4]">EXECUTIVE BRIEF</div><p className="mt-1 text-xs text-[#71839e]">La situation du dossier en un regard, recalculée depuis les objets réels.</p></div>
@@ -84,6 +88,7 @@ export function ExecutiveWorkspace() {
           <BriefCard label="Prochaine action" value={brief.nextAction}/>
           <BriefCard label="Dernier apprentissage" value={brief.latestLearning}/>
         </div>
+        <div className="mt-3 rounded-2xl border border-white/10 bg-white/[.025] p-4"><div className="flex flex-wrap items-center justify-between gap-2"><span className="text-[10px] font-black uppercase tracking-[.12em] text-[#42d59d]">B7.6 · Synthèse exécutive sourcée</span><span className="text-[10px] uppercase text-[#71839e]">Watch {brief.watchStatus}</span></div><p className="mt-2 text-sm leading-6 text-[#d6dfed]">{brief.executiveSummary}</p>{brief.citedEvidence.length>0&&<div className="mt-3 grid gap-2 md:grid-cols-3">{brief.citedEvidence.map((item)=><div key={`${item.citation}:${item.claim}`} className="rounded-xl border border-white/[.07] bg-[#091422] p-3"><span className="rounded bg-[#7c5cff]/20 px-2 py-1 text-[10px] font-black text-[#c8c0ff]">{item.citation}</span><p className="mt-2 text-xs leading-5 text-[#a9b7ca]">{item.claim}</p><span className="mt-1 block text-[10px] text-[#667995]">{item.sourceTitle}</span></div>)}</div>}</div>
         <div className="mt-3 grid gap-3 lg:grid-cols-3">
           <BriefList label="Blocages" values={brief.blockers} empty="Aucun blocage actif"/>
           <BriefList label="Risques critiques" values={brief.criticalRisks} empty="Aucun risque critique identifié"/>
