@@ -136,6 +136,7 @@ export interface CollaborationSlice {
   organizations:OrganizationRecord[]; activeOrganizationId:string; activeMemberId:string;
   organizationMembers:OrganizationMemberRecord[]; organizationInvitations:OrganizationInvitationRecord[];
   caseAccess:CaseAccessRecord[]; collaborationComments:CollaborationCommentRecord[]; auditLogs:AuditLogRecord[];
+  activateCloudOrganization:(input:{organization:OrganizationRecord;member:OrganizationMemberRecord})=>void;
   inviteMember:(email:string,role:"admin"|"member"|"viewer")=>string;
   addComment:(input:{caseId:string;targetType:CollaborationTargetType;targetId:string;body:string})=>string;
   resolveComment:(commentId:string)=>void;
