@@ -19,7 +19,7 @@
 }
 
 * { box-sizing: border-box; }
-html, body { min-height: 100%; }
+html, body { min-height: 100%; max-width: 100%; overflow-x: hidden; }
 body {
   margin: 0;
   color: var(--text);
@@ -82,8 +82,12 @@ header[class*="sticky"] { background: rgba(245,243,238,.78) !important; border-c
 article, [class*="rounded-[26px]"], [class*="rounded-[28px]"] { box-shadow: 0 1px 1px rgba(0,0,0,.018), 0 12px 34px rgba(36,32,24,.04); }
 input, textarea, select { color: var(--text); caret-color: var(--accent); }
 
-@media (max-width: 767px) {
+@media (max-width: 1023px) {
   body { background-attachment: fixed; }
+  button, input, textarea, select { min-width: 0; }
+}
+
+@media (max-width: 767px) {
   .executive-card { border-radius: 20px; }
 }
 

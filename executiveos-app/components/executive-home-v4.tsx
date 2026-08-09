@@ -84,8 +84,8 @@ export function ExecutiveHomeV4() {
     setSearch("");
   }
 
-  return <div className="min-h-screen bg-[#07111f] text-white md:grid md:grid-cols-[238px_minmax(0,1fr)]">
-    <aside className="sticky top-0 hidden h-screen flex-col border-r border-white/[.07] bg-[#091321] px-4 py-5 md:flex">
+  return <div className="min-h-screen overflow-x-hidden bg-[#07111f] text-white lg:grid lg:grid-cols-[238px_minmax(0,1fr)]">
+    <aside className="sticky top-0 hidden h-screen flex-col border-r border-white/[.07] bg-[#091321] px-4 py-5 lg:flex">
       <button onClick={() => setShell("dossiers")} className="mb-8 flex items-center gap-3 px-2 text-left">
         <span className="grid size-10 place-items-center rounded-[14px] bg-gradient-to-br from-[#9b82ff] to-[#5b39e7] text-sm font-black">EO</span>
         <span><strong className="block text-[15px]">ExecutiveOS</strong><span className="text-[10px] uppercase tracking-[.12em] text-[#6f819e]">Cognitive OS</span></span>
@@ -108,7 +108,7 @@ export function ExecutiveHomeV4() {
           <div className="relative flex min-w-0 flex-1 items-center gap-3 rounded-2xl border border-white/[.08] bg-[#0d192b]/90 px-4 py-3"><span className="text-[#bfb2ff]">⌕</span><input aria-label="Rechercher dans ExecutiveOS" value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Rechercher un dossier, une décision, une action…" className="min-w-0 flex-1 bg-transparent text-sm outline-none placeholder:text-[#65758f]"/>{search && <button aria-label="Effacer la recherche" onClick={() => setSearch("")} className="text-xs text-[#65758f]">Effacer</button>}
           {search.trim().length >= 2 && <div className="absolute left-0 right-0 top-[calc(100%+10px)] z-50 overflow-hidden rounded-2xl border border-white/[.08] bg-[#fffefa] p-2 shadow-2xl">{searchResults.length ? searchResults.map((result) => <button key={result.id} onClick={() => openSearchResult(result.caseId)} className="flex w-full items-start gap-3 rounded-xl p-3 text-left hover:bg-black/[.04]"><span className="mt-0.5 rounded-full bg-[#0071e3]/10 px-2 py-1 text-[9px] font-bold uppercase text-[#0066cc]">{result.kind}</span><span className="min-w-0"><strong className="block truncate text-sm">{result.title}</strong><span className="mt-1 block truncate text-xs text-[#6e6e73]">{result.detail}</span></span></button>) : <div className="p-4 text-sm text-[#6e6e73]">Aucun résultat. Essaie un autre mot-clé.</div>}</div>}</div>
           <div className="hidden min-w-0 flex-[1.25] items-center gap-3 rounded-2xl border border-white/[.08] bg-[#0d192b]/90 px-4 py-3 lg:flex"><span className="text-[#bfb2ff]">✦</span><input value={prompt} onChange={(e) => setPrompt(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter") submit(); }} placeholder={activeCase ? `Demander à ORION pour “${activeCase.title}”…` : "Crée d’abord un dossier"} className="min-w-0 flex-1 bg-transparent text-sm outline-none placeholder:text-[#65758f]"/><button onClick={submit} disabled={!prompt.trim()} className="rounded-lg bg-[#7c5cff] px-3 py-1.5 text-xs font-bold disabled:cursor-not-allowed disabled:opacity-40">ORION</button></div>
-          <div className="grid size-11 place-items-center rounded-2xl bg-gradient-to-br from-[#d7cfff] to-[#8b73ef] text-xs font-black text-[#1b1239]">SH</div>
+          <div className="flex shrink-0 items-center gap-2 lg:hidden"><button aria-label="Mes dossiers" onClick={() => setShell("dossiers")} className="grid size-11 place-items-center rounded-2xl border border-white/[.08] bg-white/[.03] text-lg">⌂</button><button aria-label="Paramètres" onClick={() => setShell("settings")} className="grid size-11 place-items-center rounded-2xl border border-white/[.08] bg-white/[.03] text-lg">⚙</button></div><div className="hidden size-11 place-items-center rounded-2xl bg-gradient-to-br from-[#d7cfff] to-[#8b73ef] text-xs font-black text-[#1b1239] sm:grid">SH</div>
         </div>
       </header>
 
