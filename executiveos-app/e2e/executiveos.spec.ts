@@ -118,3 +118,19 @@ test("runs an actionable ORION cycle from the cycles dock", async ({ page }) => 
   await expect(cycles.getByText("Dernière synthèse")).toBeVisible();
   await expect(cycles.getByRole("button", { name: "Transformer en plan d’action" })).toBeVisible();
 });
+
+test("starts and executes an action through ORION instead of only changing its status", async ({ page }) => {
+  await page.getByText("Ouvrir le dossier →").first().click();
+  await page.getByRole("button", { name: /05.*Exécution/ }).click();
+  await expect(page.getByRole("heading", { name: "Transformer les décisions en exécution orchestrée." })).toBeVisible();
+
+  const start = page.getByRole("button", { name: "Démarrer avec ORION" }).first();
+  await start.click();
+  await expect(page.getByRole("status")).toContainText("ORION a produit le cadrage d’exécution");
+  await expect(page.getByTestId("kernel-observability").getByRole("button", { name: /Voir la trace/ }).first()).toBeVisible();
+
+  const execute = page.getByRole("button", { name: "Exécuter" }).first();
+  await execute.click();
+  await expect(page.getByRole("status")).toContainText(/terminée à 100%|bloquée/);
+  await expect(page.getByText(/ORION recommande/).first()).toBeVisible();
+});
