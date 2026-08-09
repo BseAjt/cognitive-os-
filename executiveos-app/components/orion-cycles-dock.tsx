@@ -90,7 +90,7 @@ export function OrionCyclesDock() {
   }
 
   if (!active) return null;
-  if (!open) return <button onClick={() => setOpen(true)} className="fixed bottom-4 left-4 z-40 max-w-[calc(100vw-2rem)] rounded-xl border border-[#42d59d]/35 bg-[#0d2020]/95 px-4 py-3 text-sm font-semibold text-[#9de7cd] shadow-2xl backdrop-blur">↻ Cycles ORION · {cycles.length}</button>;
+  if (!open) return <button onClick={() => setOpen(true)} className="fixed left-4 top-20 z-40 max-w-[calc(100vw-2rem)] rounded-xl border border-[#42d59d]/35 bg-[#0d2020]/95 px-4 py-3 text-sm font-semibold text-[#9de7cd] shadow-2xl backdrop-blur lg:bottom-4 lg:top-auto">↻ Cycles ORION · {cycles.length}</button>;
 
   return <aside role="dialog" aria-modal="true" aria-label="Cycles ORION" className="fixed inset-3 z-50 max-h-[calc(100dvh-1.5rem)] w-auto overflow-auto overscroll-contain rounded-[24px] sm:inset-auto sm:bottom-5 sm:left-5 sm:max-h-[84vh] sm:w-[min(640px,calc(100vw-2rem))] border border-[#42d59d]/30 bg-[#081823]/95 p-4 shadow-2xl backdrop-blur-xl">
     <div className="flex items-start justify-between gap-3">
