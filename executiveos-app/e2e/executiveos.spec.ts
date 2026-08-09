@@ -48,8 +48,7 @@ test("creates a new cognitive dossier", async ({ page }) => {
   await expect(page.getByText("Construire une décision investissable").first()).toBeVisible();
 });
 
-test("opens organization settings and collaboration controls", async ({ page, isMobile }) => {
-  test.skip(isMobile, "The desktop navigation is intentionally hidden on mobile.");
+test("opens organization settings and collaboration controls", async ({ page }) => {
   await page.getByRole("button", { name: "Paramètres" }).click();
   await expect(page.getByRole("heading", { name: "Centre de contrôle" })).toBeVisible();
   await expect(page.getByText("Profil d’organisation", { exact: true })).toBeVisible();
@@ -58,8 +57,7 @@ test("opens organization settings and collaboration controls", async ({ page, is
   await expect(page.getByText("Données & continuité")).toBeVisible();
 });
 
-test("exports the complete workspace from product controls", async ({ page, isMobile }) => {
-  test.skip(isMobile, "The desktop navigation is intentionally hidden on mobile.");
+test("exports the complete workspace from product controls", async ({ page }) => {
   await page.getByRole("button", { name: "Paramètres" }).click();
   await expect(page.getByRole("button", { name: "Exporter tout l’espace en JSON" })).toBeVisible();
   await expect(page.getByRole("button", { name: "Demander une synchronisation cloud" })).toBeVisible();
@@ -72,4 +70,25 @@ test("keeps the dossier-first experience usable on mobile", async ({ page, isMob
   await expect(page.getByLabel("Rechercher dans ExecutiveOS")).toBeVisible();
   await page.getByRole("button", { name: "+ Nouveau dossier" }).click();
   await expect(page.getByPlaceholder("Ex. Dois-je lancer ce produit ?")).toBeVisible();
+  await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
+});
+
+test("keeps cognitive docks contained inside the mobile viewport", async ({ page, isMobile }) => {
+  test.skip(!isMobile, "Mobile-only viewport regression.");
+  await page.getByRole("button", { name: /Mémoire vivante/ }).click();
+  const memory = page.getByRole("dialog", { name: "Mémoire vivante" });
+  await expect(memory).toBeVisible();
+  await expect.poll(() => memory.evaluate((element) => {
+    const box = element.getBoundingClientRect();
+    return box.left >= 0 && box.right <= window.innerWidth && box.top >= 0 && box.bottom <= window.innerHeight;
+  })).toBe(true);
+  await memory.getByRole("button", { name: "Réduire" }).click();
+
+  await page.getByRole("button", { name: /Cycles ORION/ }).click();
+  const cycles = page.getByRole("dialog", { name: "Cycles ORION" });
+  await expect(cycles).toBeVisible();
+  await expect.poll(() => cycles.evaluate((element) => {
+    const box = element.getBoundingClientRect();
+    return box.left >= 0 && box.right <= window.innerWidth && box.top >= 0 && box.bottom <= window.innerHeight;
+  })).toBe(true);
 });
