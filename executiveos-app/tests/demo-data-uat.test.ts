@@ -123,7 +123,8 @@ test("Phase B living brief exposes attention and next-best-action surfaces", () 
 
 test("execution stays operational inside dossier workspace", () => {
   assert.ok(runtime.includes("assignRuntimeAction(action.id)"));
-  assert.ok(runtime.includes('transitionRuntimeAction(action.id, "doing")'));
+  assert.ok(runtime.includes("handleStart(action.id)"));
+  assert.ok(runtime.includes("Démarrer avec ORION"));
   assert.ok(runtime.includes("handleExecute(action.id)"));
   assert.ok(runtime.includes("executionFeedback"));
 });

@@ -74,8 +74,10 @@ test("UAT B4: product contracts persist and expose the complete dossier loop",()
    'learningEvents:',
    'reflections:'
  ]) assert.ok(commands.includes(contract),`missing atomic dossier contract ${contract}`);
- assert.ok(runtimeSlice.includes('type: "RuntimeTaskExecuted"'));
- assert.ok(runtimeSlice.includes('executed.result'));
+ assert.ok(runtimeSlice.includes('phase === "prepare" ? "RuntimeTaskStarted" : "RuntimeTaskExecuted"'));
+ assert.ok(runtimeSlice.includes("runRuntimeActionExecution"));
+ assert.ok(runtimeSlice.includes("kernelTransactions:"));
+ assert.ok(runtimeSlice.includes("agentRuns:"));
  assert.ok(workspace.includes("EXECUTIVE BRIEF"));
  assert.ok(workspace.includes("ORION · CONVERSATION DU DOSSIER"));
  assert.ok(workspace.includes("OBJETS DU DOSSIER"));

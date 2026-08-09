@@ -14,16 +14,38 @@ export function ExecutiveRuntimePanel({ mode }: { mode: "act" | "explore" }) {
   const kernelTransactions = useExecutiveStore((state) => state.kernelTransactions ?? []);
   const kernelEvents = useExecutiveStore((state) => state.kernelEvents ?? []);
   const assignRuntimeAction = useExecutiveStore((state) => state.assignRuntimeAction);
+  const startRuntimeAction = useExecutiveStore((state) => state.startRuntimeAction);
   const executeRuntimeAction = useExecutiveStore((state) => state.executeRuntimeAction);
   const transitionRuntimeAction = useExecutiveStore((state) => state.transitionRuntimeAction);
   const [executingActionId, setExecutingActionId] = useState<string | null>(null);
   const [executionFeedback, setExecutionFeedback] = useState<{ tone: "success" | "warning" | "error"; text: string } | null>(null);
   const [expandedTransactionId, setExpandedTransactionId] = useState<string | null>(null);
 
+  function handleStart(actionId: string) {
+    setExecutingActionId(actionId);
+    setExecutionFeedback(null);
+    try {
+      startRuntimeAction(actionId);
+      const after = useExecutiveStore.getState().actions.find((item) => item.id === actionId);
+      if (!after) throw new Error("L’action a disparu du store après préparation.");
+      setExecutionFeedback(after.status === "blocked"
+        ? { tone: "warning", text: `${after.title} — préparation bloquée. ${after.blockedReason ?? "Consultez la trace Kernel."}` }
+        : { tone: "success", text: `${after.title} — ORION a produit le cadrage d’exécution et enregistré sa trace.` });
+    } catch (error) {
+      setExecutionFeedback({ tone: "error", text: error instanceof Error ? error.message : "Erreur inattendue pendant la préparation." });
+    } finally {
+      setExecutingActionId(null);
+    }
+  }
+
   const graph = useMemo(() => buildRuntimeGraph({ cases, decisions, actions, agents, events }), [cases, decisions, actions, agents, events]);
   const activeKernelTransactions = useMemo(
     () => kernelTransactions.filter((transaction) => transaction.caseId === activeCaseId).slice(0, 8),
     [kernelTransactions, activeCaseId]
+  );
+  const activeActions = useMemo(
+    () => actions.filter((action) => action.caseId === activeCaseId),
+    [actions, activeCaseId]
   );
   const kernelStats = useMemo(() => {
     const completed = activeKernelTransactions.filter((item) => item.status === "completed").length;
@@ -108,7 +130,7 @@ export function ExecutiveRuntimePanel({ mode }: { mode: "act" | "explore" }) {
       <p className="mt-3 max-w-3xl text-lg leading-8 text-[#91a2bd]">Chaque action possède une capacité requise, peut être affectée automatiquement à un agent compatible et suit une machine d’état contrôlée.</p>
     </div>
 
-    {executionFeedback && <div aria-live="polite" className={`mb-5 rounded-2xl border px-4 py-3 text-sm ${executionFeedback.tone === "success" ? "border-[#42d59d]/30 bg-[#42d59d]/10 text-[#9af0cf]" : executionFeedback.tone === "warning" ? "border-[#ffbc57]/30 bg-[#ffbc57]/10 text-[#ffd895]" : "border-[#ff6b7a]/30 bg-[#ff6b7a]/10 text-[#ffb4bd]"}`}>{executionFeedback.text}</div>}
+    {executionFeedback && <div role="status" aria-live="polite" className={`mb-5 rounded-2xl border px-4 py-3 text-sm ${executionFeedback.tone === "success" ? "border-[#42d59d]/30 bg-[#42d59d]/10 text-[#9af0cf]" : executionFeedback.tone === "warning" ? "border-[#ffbc57]/30 bg-[#ffbc57]/10 text-[#ffd895]" : "border-[#ff6b7a]/30 bg-[#ff6b7a]/10 text-[#ffb4bd]"}`}>{executionFeedback.text}</div>}
 
     <article className="mb-5 rounded-[26px] border border-white/[.08] bg-[#0d192b]/88 p-5 md:p-6" data-testid="kernel-observability">
       <div className="flex flex-col justify-between gap-4 md:flex-row md:items-start">
@@ -132,9 +154,9 @@ export function ExecutiveRuntimePanel({ mode }: { mode: "act" | "explore" }) {
 
     <div className="grid gap-5 xl:grid-cols-[1.25fr_.75fr]">
       <article className="rounded-[26px] border border-white/[.08] bg-[#0d192b]/88 p-5 md:p-6">
-        <div className="flex items-center justify-between"><div><div className="text-[10px] font-black uppercase tracking-[.16em] text-[#9d83ff]">Task Engine</div><h2 className="mt-2 text-2xl font-semibold">Actions runtime</h2></div><span className="rounded-full border border-white/[.07] bg-white/[.03] px-3 py-1 text-xs text-[#8294af]">{actions.length} tâche(s)</span></div>
+        <div className="flex items-center justify-between"><div><div className="text-[10px] font-black uppercase tracking-[.16em] text-[#9d83ff]">Task Engine</div><h2 className="mt-2 text-2xl font-semibold">Actions runtime</h2></div><span className="rounded-full border border-white/[.07] bg-white/[.03] px-3 py-1 text-xs text-[#8294af]">{activeActions.length} tâche(s)</span></div>
         <div className="mt-5 space-y-3">
-          {actions.map((action) => <div key={action.id} className="rounded-2xl border border-white/[.07] bg-[#091422]/85 p-4">
+          {activeActions.map((action) => <div key={action.id} className="rounded-2xl border border-white/[.07] bg-[#091422]/85 p-4">
             <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
               <div><strong className="text-base">{action.title}</strong><p className="mt-1 text-xs text-[#71839e]">Capability: {action.requiredCapability ?? "analysis"} · Owner: {action.owner}</p>{action.blockedReason && <p className="mt-2 text-xs text-[#ffbc57]">{action.blockedReason}</p>}{action.result && <p className="mt-2 text-xs text-[#7de5bd]">{action.result}</p>}</div>
               <Status status={action.status}/>
@@ -142,7 +164,7 @@ export function ExecutiveRuntimePanel({ mode }: { mode: "act" | "explore" }) {
             <div className="mt-4 h-1.5 overflow-hidden rounded-full bg-white/[.06]"><div className="h-full bg-gradient-to-r from-[#7657ff] to-[#42d59d] transition-[width] duration-300" style={{width:`${action.progress}%`}}/></div>
             <div className="mt-4 flex flex-wrap gap-2">
               {!action.assignedAgentId && action.status !== "done" && <button onClick={() => assignRuntimeAction(action.id)} className="rounded-lg border border-white/[.08] bg-white/[.03] px-3 py-2 text-xs font-semibold">Affecter</button>}
-              {action.status === "todo" && <button onClick={() => transitionRuntimeAction(action.id, "doing")} className="rounded-lg border border-white/[.08] bg-white/[.03] px-3 py-2 text-xs font-semibold">Démarrer</button>}
+              {action.status === "todo" && <button onClick={() => handleStart(action.id)} disabled={executingActionId === action.id} className="rounded-lg border border-white/[.08] bg-white/[.03] px-3 py-2 text-xs font-semibold disabled:cursor-wait disabled:opacity-60">{executingActionId === action.id ? "Préparation…" : "Démarrer avec ORION"}</button>}
               {(action.status === "todo" || action.status === "doing") && <button onClick={() => handleExecute(action.id)} disabled={executingActionId === action.id} className="rounded-lg bg-[#7c5cff] px-3 py-2 text-xs font-bold disabled:cursor-wait disabled:opacity-60">{executingActionId === action.id ? "Exécution…" : "Exécuter"}</button>}
               {action.status === "blocked" && <button onClick={() => transitionRuntimeAction(action.id, "todo")} className="rounded-lg border border-white/[.08] bg-white/[.03] px-3 py-2 text-xs font-semibold">Réouvrir</button>}
             </div>
