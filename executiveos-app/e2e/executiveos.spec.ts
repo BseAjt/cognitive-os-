@@ -10,6 +10,15 @@ test.beforeEach(async ({ page }) => {
   await openCleanWorkspace(page);
 });
 
+test("exposes the C1.1 ORION AI runtime readiness contract", async ({ request }) => {
+  const response = await request.get("/api/orion/generate");
+  expect(response.ok()).toBeTruthy();
+  await expect(response.json()).resolves.toEqual(expect.objectContaining({
+    runtime: "ai_gateway",
+    configured: expect.any(Boolean)
+  }));
+});
+
 test("loads the dossier-first workspace and investor evidence", async ({ page }) => {
   await expect(page.getByText("ExecutiveOS · Dossier First")).toBeVisible();
   await expect(page.getByRole("button", { name: "+ Nouveau dossier" })).toBeVisible();
