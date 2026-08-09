@@ -1,10 +1,12 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { buildDecisionToAction } from "@/lib/decision-to-action";
 import { projectCognitiveEvents } from "@/lib/cognitive-events";
 import { buildCognitiveReplay } from "@/lib/cognitive-replay";
 import { buildDecisionDiffs } from "@/lib/decision-diff";
 import { groupCognitiveEventsIntoOrionCycles, orionCycleProgress } from "@/lib/orion-cycles";
+import { runOrionExecutiveCycle } from "@/lib/orion-executive-cycle";
 import { buildTemporalCognitiveSnapshot, diffTemporalCognitiveSnapshots, temporalCursorPoints } from "@/lib/temporal-navigation";
 import { useExecutiveStore } from "@/store/executive-store";
 
@@ -14,6 +16,8 @@ export function OrionCyclesDock() {
   const [cursorIndex, setCursorIndex] = useState<number | null>(null);
   const [replayCycleId, setReplayCycleId] = useState<string | null>(null);
   const [replayFrameIndex, setReplayFrameIndex] = useState(0);
+  const [objective, setObjective] = useState("");
+  const [commandState, setCommandState] = useState("");
   const active = store.cases.find((item) => item.id === store.activeCaseId) ?? store.cases[0];
 
   const projection = useMemo(() => {
@@ -47,6 +51,43 @@ export function OrionCyclesDock() {
   const replay = active && replayCycle ? buildCognitiveReplay(active.id,replayCycle,events) : null;
   const replaySafeIndex = replay?.frames.length ? Math.min(replayFrameIndex,replay.frames.length-1) : 0;
   const replayFrame = replay?.frames[replaySafeIndex] ?? null;
+  const executiveCycles = active ? store.executiveCycles.filter((cycle) => cycle.caseId === active.id) : [];
+  const latestExecutiveCycle = executiveCycles[0];
+  const activePlan = latestExecutiveCycle
+    ? store.decisionActionPlans.find((plan) => plan.executiveCycleId === latestExecutiveCycle.id)
+    : undefined;
+
+  useEffect(() => {
+    setObjective(active?.objective ?? "");
+    setCommandState("");
+  }, [active?.id, active?.objective]);
+
+  function runExecutiveCycle() {
+    if (!active) return;
+    try {
+      const cycle = runOrionExecutiveCycle({
+        objective,
+        cognitiveCase: active,
+        agents: store.agents,
+        sources: store.contextSources,
+        evidence: store.contextEvidence
+      });
+      store.prependExecutiveCycle(cycle);
+      setCommandState(cycle.status === "completed" ? "Cycle exécutif enregistré." : "Cycle enregistré : des preuves restent à compléter.");
+    } catch (value) {
+      setCommandState(value instanceof Error ? value.message : "Cycle ORION impossible.");
+    }
+  }
+
+  function activateLatestPlan() {
+    if (!active || !latestExecutiveCycle) return;
+    try {
+      store.activateDecisionActionPlan(buildDecisionToAction({ cognitiveCase: active, cycle: latestExecutiveCycle }));
+      setCommandState("Plan activé : les actions sont maintenant disponibles dans le dossier.");
+    } catch (value) {
+      setCommandState(value instanceof Error ? value.message : "Plan d’exécution impossible.");
+    }
+  }
 
   if (!active) return null;
   if (!open) return <button onClick={() => setOpen(true)} className="fixed bottom-4 left-4 z-40 max-w-[calc(100vw-2rem)] rounded-xl border border-[#42d59d]/35 bg-[#0d2020]/95 px-4 py-3 text-sm font-semibold text-[#9de7cd] shadow-2xl backdrop-blur">↻ Cycles ORION · {cycles.length}</button>;
@@ -56,6 +97,22 @@ export function OrionCyclesDock() {
       <div><div className="text-[10px] font-black uppercase tracking-[.16em] text-[#75d6b5]">B6.2 · TIMELINE COGNITIVE</div><strong className="mt-1 block text-sm">Cycles ORION · {active.title}</strong><p className="mt-1 text-[11px] text-[#71839e]">{cycles.length} cycle(s) · {diffs.length} révision(s) · {points.length} point(s) temporel(s).</p></div>
       <button onClick={() => setOpen(false)} className="rounded-lg border border-white/10 px-2 py-1 text-xs text-[#91a2bd]">Réduire</button>
     </div>
+
+    <section className="mt-4 rounded-2xl border border-[#42d59d]/30 bg-[#42d59d]/[.06] p-4">
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div><div className="text-[10px] font-black uppercase tracking-[.14em] text-[#75d6b5]">Commander ORION</div><strong className="mt-1 block text-sm">Faire avancer ce dossier maintenant</strong><p className="mt-1 text-[11px] leading-5 text-[#91a2bd]">Définissez l’arbitrage : ORION convoque les perspectives, produit une recommandation et peut la transformer en plan.</p></div>
+        <span className="rounded-full border border-white/10 px-2.5 py-1 text-[10px] text-[#9de7cd]">{executiveCycles.length} cycle(s) exécutif(s)</span>
+      </div>
+      <label htmlFor="orion-cycle-objective" className="mt-4 block text-[10px] font-bold uppercase tracking-[.12em] text-[#71839e]">Mandat du prochain cycle</label>
+      <textarea id="orion-cycle-objective" value={objective} onChange={(event) => setObjective(event.target.value)} className="mt-2 min-h-20 w-full resize-none rounded-xl border border-white/10 bg-[#07131d] p-3 text-sm leading-6 outline-none focus:border-[#42d59d]/60" placeholder="Ex. Faut-il valider ce scénario et sous quelles conditions ?" />
+      <div className="mt-3 flex flex-col gap-2 sm:flex-row">
+        <button onClick={runExecutiveCycle} disabled={!objective.trim()} className="rounded-xl bg-[#42b98d] px-4 py-3 text-sm font-bold text-[#071711] disabled:cursor-not-allowed disabled:opacity-35">Lancer un cycle ORION</button>
+        {latestExecutiveCycle && !activePlan && <button onClick={activateLatestPlan} disabled={latestExecutiveCycle.status !== "completed"} className="rounded-xl border border-[#f4c76d]/35 bg-[#f4c76d]/10 px-4 py-3 text-sm font-bold text-[#f4c76d] disabled:cursor-not-allowed disabled:opacity-35">Transformer en plan d’action</button>}
+        {activePlan && <span className="rounded-xl border border-[#42d59d]/20 bg-[#42d59d]/10 px-4 py-3 text-sm font-semibold text-[#9de7cd]">Plan actif · {activePlan.actionIds.length} actions</span>}
+      </div>
+      {latestExecutiveCycle && <div className="mt-3 rounded-xl border border-white/[.07] bg-[#07131d]/75 p-3"><div className="flex flex-wrap items-center justify-between gap-2"><strong className="text-xs">Dernière synthèse</strong><span className="text-[10px] uppercase text-[#71839e]">{latestExecutiveCycle.status} · {latestExecutiveCycle.confidence}%</span></div><p className="mt-2 text-xs leading-5 text-[#b8c6d8]">{latestExecutiveCycle.synthesis}</p>{latestExecutiveCycle.recommendation && <p className="mt-2 text-xs font-semibold leading-5 text-[#8de4c3]">{latestExecutiveCycle.recommendation}</p>}</div>}
+      {commandState && <p role="status" className="mt-3 text-xs leading-5 text-[#9de7cd]">{commandState}</p>}
+    </section>
 
     {replay && replayFrame && <section className="mt-4 rounded-2xl border border-[#f4c76d]/30 bg-[#f4c76d]/[.055] p-4">
       <div className="flex items-start justify-between gap-3"><div><div className="text-[10px] font-black uppercase tracking-[.14em] text-[#f4c76d]">B6.2.5 · Cognitive Replay</div><strong className="mt-1 block text-sm leading-5">{replay.title}</strong><p className="mt-1 text-[10px] text-[#8f8369]">{replay.summary}</p></div><button onClick={()=>{setReplayCycleId(null);setReplayFrameIndex(0);}} className="rounded-lg border border-white/10 px-2 py-1 text-[10px] text-[#b6a98f]">Fermer replay</button></div>

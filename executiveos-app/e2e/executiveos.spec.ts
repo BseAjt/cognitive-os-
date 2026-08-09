@@ -92,3 +92,13 @@ test("keeps cognitive docks contained inside the mobile viewport", async ({ page
     return box.left >= 0 && box.right <= window.innerWidth && box.top >= 0 && box.bottom <= window.innerHeight;
   })).toBe(true);
 });
+
+test("runs an actionable ORION cycle from the cycles dock", async ({ page }) => {
+  await page.getByRole("button", { name: /Cycles ORION/ }).click();
+  const cycles = page.getByRole("dialog", { name: "Cycles ORION" });
+  await cycles.getByLabel("Mandat du prochain cycle").fill("Arbitrer le prochain investissement prioritaire");
+  await cycles.getByRole("button", { name: "Lancer un cycle ORION" }).click();
+  await expect(cycles.getByRole("status")).toContainText(/Cycle/);
+  await expect(cycles.getByText("Dernière synthèse")).toBeVisible();
+  await expect(cycles.getByRole("button", { name: "Transformer en plan d’action" })).toBeVisible();
+});
