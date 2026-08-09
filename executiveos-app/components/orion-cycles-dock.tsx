@@ -49,9 +49,9 @@ export function OrionCyclesDock() {
   const replayFrame = replay?.frames[replaySafeIndex] ?? null;
 
   if (!active) return null;
-  if (!open) return <button onClick={() => setOpen(true)} className="fixed bottom-5 left-5 z-40 rounded-xl border border-[#42d59d]/35 bg-[#0d2020]/95 px-4 py-3 text-sm font-semibold text-[#9de7cd] shadow-2xl backdrop-blur">↻ Cycles ORION · {cycles.length}</button>;
+  if (!open) return <button onClick={() => setOpen(true)} className="fixed bottom-4 left-4 z-40 max-w-[calc(100vw-2rem)] rounded-xl border border-[#42d59d]/35 bg-[#0d2020]/95 px-4 py-3 text-sm font-semibold text-[#9de7cd] shadow-2xl backdrop-blur">↻ Cycles ORION · {cycles.length}</button>;
 
-  return <aside className="fixed bottom-5 left-5 z-40 max-h-[84vh] w-[min(640px,calc(100vw-2rem))] overflow-auto rounded-[24px] border border-[#42d59d]/30 bg-[#081823]/95 p-4 shadow-2xl backdrop-blur-xl">
+  return <aside role="dialog" aria-modal="true" aria-label="Cycles ORION" className="fixed inset-3 z-50 max-h-[calc(100dvh-1.5rem)] w-auto overflow-auto overscroll-contain rounded-[24px] sm:inset-auto sm:bottom-5 sm:left-5 sm:max-h-[84vh] sm:w-[min(640px,calc(100vw-2rem))] border border-[#42d59d]/30 bg-[#081823]/95 p-4 shadow-2xl backdrop-blur-xl">
     <div className="flex items-start justify-between gap-3">
       <div><div className="text-[10px] font-black uppercase tracking-[.16em] text-[#75d6b5]">B6.2 · TIMELINE COGNITIVE</div><strong className="mt-1 block text-sm">Cycles ORION · {active.title}</strong><p className="mt-1 text-[11px] text-[#71839e]">{cycles.length} cycle(s) · {diffs.length} révision(s) · {points.length} point(s) temporel(s).</p></div>
       <button onClick={() => setOpen(false)} className="rounded-lg border border-white/10 px-2 py-1 text-xs text-[#91a2bd]">Réduire</button>
