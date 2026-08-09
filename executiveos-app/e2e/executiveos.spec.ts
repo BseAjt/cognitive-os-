@@ -23,9 +23,25 @@ test("opens the active cognitive dossier", async ({ page, isMobile }) => {
   await expect(page.getByText("Centre d’attention")).toBeVisible();
   await expect(page.getByRole("button", { name: /01.*Vue d’ensemble/ })).toBeVisible();
   await expect(page.getByRole("button", { name: /02.*Sources & contexte/ })).toBeVisible();
-  await expect(page.getByRole("button", { name: /03.*Analyse & décision/ })).toBeVisible();
-  await page.getByRole("button", { name: /03.*Analyse & décision/ }).click();
+  await expect(page.getByRole("button", { name: /03.*Strategy Studio/ })).toBeVisible();
+  await expect(page.getByRole("button", { name: /04.*Analyse & décision/ })).toBeVisible();
+  await page.getByRole("button", { name: /04.*Analyse & décision/ }).click();
   await expect(page.getByRole("heading", { name: "Raisonner, comparer et arbitrer" })).toBeVisible();
+});
+
+test("runs a strategic study and turns it into execution", async ({ page }) => {
+  await page.getByText("Ouvrir le dossier →").first().click();
+  await page.getByRole("button", { name: /03.*Strategy Studio/ }).click();
+  const studio = page.getByRole("region", { name: "Strategy Studio" });
+  await expect(studio.getByRole("heading", { name: "De l’intuition au dossier investissable" })).toBeVisible();
+  await expect(studio.getByRole("button", { name: /TAM · SAM · SOM/ })).toBeVisible();
+  await studio.getByRole("button", { name: "Lancer avec ORION" }).click();
+  await expect(studio.getByText("Synthèse ORION")).toBeVisible();
+  await expect(studio.getByText("1/10")).toBeVisible();
+  await studio.getByRole("button", { name: "Transformer en décision" }).click();
+  await expect(studio.getByRole("status")).toContainText("décision traçable");
+  await studio.getByRole("button", { name: "Créer le plan d’action" }).click();
+  await expect(studio.getByRole("status")).toContainText("3 actions");
 });
 
 test("searches across the cognitive workspace and opens a result", async ({ page }) => {

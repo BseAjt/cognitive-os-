@@ -8,6 +8,7 @@ import { IntegrationFabricPanel } from "@/components/integration-fabric-panel";
 import { InvestorDemoDashboard } from "@/components/investor-demo-dashboard";
 import { CollaborationPanel } from "@/components/collaboration-panel";
 import { ProductControlCenter } from "@/components/product-control-center";
+import { StrategyStudio } from "@/components/strategy-studio";
 import { buildCognitiveRecall } from "@/lib/cognitive-recall";
 import { buildExecutiveCaseBrief } from "@/lib/executive-brief";
 import { buildCaseJourney, resolveEventDestination } from "@/lib/outcome-navigation";
@@ -16,11 +17,12 @@ import { useExecutiveStore } from "@/store/executive-store";
 import type { CognitiveCase, CognitiveEventRecord } from "@/domain/canonical";
 
 type ShellView = "dossiers" | "case" | "settings";
-type WorkspaceSection = "overview" | "context" | "analysis" | "execution" | "learning" | "history";
+type WorkspaceSection = "overview" | "context" | "strategy" | "analysis" | "execution" | "learning" | "history";
 
 const WORKSPACE_SECTIONS: Array<{ id: WorkspaceSection; label: string }> = [
   { id: "overview", label: "Vue d’ensemble" },
   { id: "context", label: "Sources & contexte" },
+  { id: "strategy", label: "Strategy Studio" },
   { id: "analysis", label: "Analyse & décision" },
   { id: "execution", label: "Exécution" },
   { id: "learning", label: "Apprentissage" },
@@ -204,12 +206,13 @@ function CaseWorkspace({ cognitiveCase, onBack }: { cognitiveCase: CognitiveCase
         {!editing && <button onClick={() => setEditing(true)} className="rounded-xl border border-white/[.08] bg-white/[.03] px-4 py-2 text-xs font-semibold">Modifier le dossier</button>}
       </div>
       </div>
-      <div className="grid gap-px border-y border-white/[.08] bg-black/[.06] sm:grid-cols-3 xl:grid-cols-6">{WORKSPACE_SECTIONS.map((item, index) => <button key={item.id} aria-pressed={activeSection === item.id} onClick={() => goTo(item.id)} className={`px-4 py-3 text-left text-xs font-semibold transition ${activeSection === item.id ? "bg-[#0071e3] text-white" : "bg-[#fffefa]/75 text-[#6e6e73] hover:bg-white"}`}><span className="mr-2 opacity-60">0{index + 1}</span>{item.label}</button>)}</div>
+      <div className="grid gap-px border-y border-white/[.08] bg-black/[.06] sm:grid-cols-3 xl:grid-cols-7">{WORKSPACE_SECTIONS.map((item, index) => <button key={item.id} aria-pressed={activeSection === item.id} onClick={() => goTo(item.id)} className={`px-4 py-3 text-left text-xs font-semibold transition ${activeSection === item.id ? "bg-[#0071e3] text-white" : "bg-[#fffefa]/75 text-[#6e6e73] hover:bg-white"}`}><span className="mr-2 opacity-60">0{index + 1}</span>{item.label}</button>)}</div>
     </div>
 
     <div id="workspace-content" className="scroll-mt-28 pt-6">
       {activeSection === "overview" && <CommandSurface brief={brief} journey={journey} onNavigate={goTo} caseId={cognitiveCase.id}/>}
       {activeSection === "context" && <WorkspaceView eyebrow="Contexte vivant" title="Les preuves derrière le raisonnement" description="Connecte une source ou ajoute une information : le brief et les recommandations se mettent à jour dans le même dossier."><IntegrationFabricPanel caseId={cognitiveCase.id}/><div className="h-5"/><ContextIngestionPanel caseId={cognitiveCase.id}/></WorkspaceView>}
+      {activeSection === "strategy" && <StrategyStudio cognitiveCase={cognitiveCase}/>}
       {activeSection === "analysis" && <WorkspaceView eyebrow="Salle de décision" title="Raisonner, comparer et arbitrer" description="ORION convoque les capacités utiles dans le contexte exact du dossier."><ExecutiveWorkspace /></WorkspaceView>}
       {activeSection === "execution" && <WorkspaceView eyebrow="Mise en mouvement" title="De la décision au résultat observable" description="Pilote les responsabilités, les blocages et les livrables sans perdre le fil du raisonnement."><ExecutiveRuntimePanel mode="act" /></WorkspaceView>}
       {activeSection === "learning" && <WorkspaceView eyebrow="Mémoire active" title="Ce que ce dossier t’a réellement appris" description="Les résultats, révisions et signaux deviennent une intelligence réutilisable."><LearningPanel caseId={cognitiveCase.id} onNavigate={goTo} /></WorkspaceView>}
