@@ -11,7 +11,7 @@ import { useExecutiveStore } from "@/store/executive-store";
 
 export function LiveMemoryDock() {
   const store = useExecutiveStore();
-  const [open, setOpen] = useState(true);
+  const [open, setOpen] = useState(false);
   const [showGraph, setShowGraph] = useState(false);
   const active = store.cases.find((item) => item.id === store.activeCaseId) ?? store.cases[0];
 
@@ -53,10 +53,10 @@ export function LiveMemoryDock() {
   if (!active || !intelligence) return null;
 
   if (!open) {
-    return <button onClick={() => setOpen(true)} className="fixed bottom-20 right-5 z-40 rounded-xl border border-[#7c5cff]/40 bg-[#17152e]/95 px-4 py-3 text-sm font-semibold text-[#c9c0ff] shadow-2xl backdrop-blur">✦ Mémoire vivante</button>;
+    return <button onClick={() => setOpen(true)} className="fixed bottom-20 right-4 z-40 max-w-[calc(100vw-2rem)] rounded-xl border border-[#7c5cff]/40 bg-[#17152e]/95 px-4 py-3 text-sm font-semibold text-[#c9c0ff] shadow-2xl backdrop-blur">✦ Mémoire vivante</button>;
   }
 
-  return <aside className="fixed bottom-20 right-5 z-40 max-h-[75vh] w-[min(440px,calc(100vw-2rem))] overflow-auto rounded-[24px] border border-[#7c5cff]/35 bg-[#0b1526]/95 p-4 shadow-2xl backdrop-blur-xl">
+  return <aside role="dialog" aria-modal="true" aria-label="Mémoire vivante" className="fixed inset-3 z-50 max-h-[calc(100dvh-1.5rem)] w-auto overflow-auto overscroll-contain rounded-[24px] sm:inset-auto sm:bottom-20 sm:right-5 sm:max-h-[75vh] sm:w-[min(440px,calc(100vw-2rem))] border border-[#7c5cff]/35 bg-[#0b1526]/95 p-4 shadow-2xl backdrop-blur-xl">
     <div className="flex items-start justify-between gap-3">
       <div><div className="text-[10px] font-black uppercase tracking-[.16em] text-[#a995ff]">ORION · MÉMOIRE VIVANTE</div><strong className="mt-1 block text-sm">{active.title}</strong><p className="mt-1 text-[11px] text-[#71839e]">{intelligence.knowledge.length} connaissance(s) consolidée(s) · {intelligence.links.length} dossier(s) connexe(s)</p></div>
       <button onClick={() => setOpen(false)} className="rounded-lg border border-white/10 px-2 py-1 text-xs text-[#91a2bd]">Réduire</button>
