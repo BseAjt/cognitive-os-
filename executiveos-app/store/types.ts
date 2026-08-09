@@ -148,6 +148,7 @@ export interface RuntimeSlice {
   reasoningRevisions: ReasoningRevision[];
   addReasoningRevision: (revision: Omit<ReasoningRevision, "id" | "version" | "createdAt">) => void;
   assignRuntimeAction: (actionId: string) => void;
+  startRuntimeAction: (actionId: string) => void;
   transitionRuntimeAction: (actionId: string, status: ActionRecord["status"]) => void;
   executeRuntimeAction: (actionId: string) => void;
   resetRuntimeActions: () => void;
