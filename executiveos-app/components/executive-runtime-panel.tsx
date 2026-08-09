@@ -130,7 +130,7 @@ export function ExecutiveRuntimePanel({ mode }: { mode: "act" | "explore" }) {
       <p className="mt-3 max-w-3xl text-lg leading-8 text-[#91a2bd]">Chaque action possède une capacité requise, peut être affectée automatiquement à un agent compatible et suit une machine d’état contrôlée.</p>
     </div>
 
-    {executionFeedback && <div aria-live="polite" className={`mb-5 rounded-2xl border px-4 py-3 text-sm ${executionFeedback.tone === "success" ? "border-[#42d59d]/30 bg-[#42d59d]/10 text-[#9af0cf]" : executionFeedback.tone === "warning" ? "border-[#ffbc57]/30 bg-[#ffbc57]/10 text-[#ffd895]" : "border-[#ff6b7a]/30 bg-[#ff6b7a]/10 text-[#ffb4bd]"}`}>{executionFeedback.text}</div>}
+    {executionFeedback && <div role="status" aria-live="polite" className={`mb-5 rounded-2xl border px-4 py-3 text-sm ${executionFeedback.tone === "success" ? "border-[#42d59d]/30 bg-[#42d59d]/10 text-[#9af0cf]" : executionFeedback.tone === "warning" ? "border-[#ffbc57]/30 bg-[#ffbc57]/10 text-[#ffd895]" : "border-[#ff6b7a]/30 bg-[#ff6b7a]/10 text-[#ffb4bd]"}`}>{executionFeedback.text}</div>}
 
     <article className="mb-5 rounded-[26px] border border-white/[.08] bg-[#0d192b]/88 p-5 md:p-6" data-testid="kernel-observability">
       <div className="flex flex-col justify-between gap-4 md:flex-row md:items-start">
