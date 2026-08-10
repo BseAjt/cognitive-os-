@@ -2,7 +2,7 @@ import { gateway, Output, ToolLoopAgent } from "ai";
 import { z } from "zod";
 import type { CognitiveCase, ContextEvidenceRecord, ContextSourceRecord } from "../domain/canonical.ts";
 
-export const DEFAULT_ORION_MODEL = "openai/gpt-5.6-sol";
+export const DEFAULT_ORION_MODEL = "openai/gpt-5-mini";
 
 const contributionSchema = z.object({
   agentId: z.enum(["athena", "turing", "seneca"]),
