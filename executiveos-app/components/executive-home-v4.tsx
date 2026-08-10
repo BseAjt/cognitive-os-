@@ -114,7 +114,7 @@ export function ExecutiveHomeV4() {
         </div>
       </header>
 
-      <main className="mx-auto max-w-[1540px] p-4 md:p-7 xl:p-9">
+      <main className="mx-auto max-w-[1540px] p-4 pb-24 md:p-7 xl:p-9">
         {shell === "dossiers" && <DossiersHome onOpen={openCase} />}
         {shell === "case" && activeCase && <CaseWorkspace cognitiveCase={activeCase} onBack={() => setShell("dossiers")} />}
         {shell === "settings" && <ProductControlCenter />}
