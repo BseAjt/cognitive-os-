@@ -136,22 +136,26 @@ function DossiersHome({ onOpen }: { onOpen: (id: string) => void }) {
     if (!cleanTitle || !cleanObjective) return;
     const id = store.createCase({ title: cleanTitle, objective: cleanObjective, context: context.trim() });
     setTitle(""); setObjective(""); setContext(""); setCreating(false); onOpen(id);
+    requestAnimationFrame(() => window.dispatchEvent(new CustomEvent("executiveos:sync")));
   }
 
   return <section>
-    <InvestorDemoDashboard onOpenCase={onOpen} />
     <div className="flex flex-col justify-between gap-5 md:flex-row md:items-end">
       <div><div className="text-[10px] font-black uppercase tracking-[.2em] text-[#7c92b2]">ExecutiveOS · Dossier First</div><h1 className="mt-3 text-4xl font-semibold tracking-[-.04em] md:text-5xl">Mes dossiers</h1><p className="mt-3 max-w-3xl text-lg leading-8 text-[#91a2bd]">Chaque sujet important vit ici, de la première question jusqu’au résultat et à l’apprentissage.</p></div>
-      <button onClick={() => setCreating(true)} className="rounded-xl bg-[#7c5cff] px-5 py-3 text-sm font-bold">+ Nouveau dossier</button>
+      <button onClick={() => setCreating(true)} className="min-h-12 rounded-xl bg-[#7c5cff] px-5 py-3 text-sm font-bold shadow-lg shadow-[#7c5cff]/20">+ Nouveau dossier</button>
     </div>
 
-    {creating && <div className="mt-6 rounded-[28px] border border-[#7c5cff]/30 bg-[#0d192b]/95 p-5 md:p-6">
-      <div className="flex items-center justify-between"><div><div className="text-[10px] font-black uppercase tracking-[.16em] text-[#b7a9ff]">Nouveau dossier cognitif</div><h2 className="mt-2 text-2xl font-semibold">Quel sujet veux-tu faire avancer ?</h2></div><button onClick={() => setCreating(false)} className="text-sm text-[#8393ad]">Fermer</button></div>
-      <div className="mt-5 grid gap-4 md:grid-cols-2"><Field label="Titre" value={title} onChange={setTitle} placeholder="Ex. Dois-je lancer ce produit ?"/><Field label="Objectif" value={objective} onChange={setObjective} placeholder="Ex. Décider si le lancement crée assez de valeur."/><div className="md:col-span-2"><Field label="Contexte initial" value={context} onChange={setContext} placeholder="Ce que tu sais déjà, contraintes, horizon…"/></div></div>
-      <button onClick={create} className="mt-5 rounded-xl bg-[#7c5cff] px-5 py-3 text-sm font-bold">Créer et ouvrir le dossier</button>
+    {creating && <div role="dialog" aria-modal="true" aria-labelledby="new-case-title" className="fixed inset-0 z-[70] flex items-end bg-black/60 p-0 backdrop-blur-sm sm:items-center sm:justify-center sm:p-6">
+      <form onSubmit={(event) => { event.preventDefault(); create(); }} className="max-h-[92dvh] w-full overflow-y-auto rounded-t-[28px] border border-[#7c5cff]/30 bg-[#0d192b] p-5 shadow-2xl sm:max-w-2xl sm:rounded-[28px] sm:p-6">
+        <div className="flex items-start justify-between gap-4"><div><div className="text-[10px] font-black uppercase tracking-[.16em] text-[#b7a9ff]">Nouveau dossier cognitif</div><h2 id="new-case-title" className="mt-2 text-2xl font-semibold">Quel sujet veux-tu faire avancer ?</h2></div><button type="button" aria-label="Fermer la création" onClick={() => setCreating(false)} className="grid size-11 shrink-0 place-items-center rounded-full border border-white/10 text-xl text-[#aab7ca]">×</button></div>
+        <div className="mt-5 grid gap-4 md:grid-cols-2"><Field label="Titre" value={title} onChange={setTitle} placeholder="Ex. Dois-je lancer ce produit ?"/><Field label="Objectif" value={objective} onChange={setObjective} placeholder="Ex. Décider si le lancement crée assez de valeur."/><div className="md:col-span-2"><Field label="Contexte initial" value={context} onChange={setContext} placeholder="Ce que tu sais déjà, contraintes, horizon…"/></div></div>
+        <button type="submit" disabled={!title.trim() || !objective.trim()} className="mt-5 min-h-12 w-full rounded-xl bg-[#7c5cff] px-5 py-3 text-sm font-bold disabled:cursor-not-allowed disabled:opacity-40">Créer et ouvrir le dossier</button>
+      </form>
     </div>}
 
     <div className="mt-7 grid gap-4 lg:grid-cols-2 xl:grid-cols-3">{store.cases.map((item) => <DossierCard key={item.id} item={item} onOpen={() => onOpen(item.id)} />)}</div>
+    <div className="mt-8"><InvestorDemoDashboard onOpenCase={onOpen} /></div>
+    <button aria-label="Créer un dossier" onClick={() => setCreating(true)} className="fixed bottom-[calc(1rem+env(safe-area-inset-bottom))] right-4 z-40 grid size-14 place-items-center rounded-full bg-[#7c5cff] text-3xl font-light shadow-2xl shadow-black/40 lg:hidden">+</button>
   </section>;
 }
 
@@ -295,7 +299,7 @@ function HistoryPanel({ caseId, onNavigate }: { caseId: string; onNavigate: (sec
 }
 
 function stateLabel(state: CognitiveCase["state"]) { return { explore: "Exploration", decide: "Décision", execute: "Exécution", learn: "Apprentissage" }[state]; }
-function Field({ label, value, onChange, placeholder }: { label: string; value: string; onChange: (value: string) => void; placeholder: string }) { return <label className="block"><span className="mb-2 block text-[10px] font-black uppercase tracking-[.14em] text-[#71839e]">{label}</span><input value={value} onChange={(e) => onChange(e.target.value)} placeholder={placeholder} className="w-full rounded-xl border border-white/[.08] bg-[#091422] px-4 py-3 text-sm outline-none placeholder:text-[#52647f]"/></label>; }
+function Field({ label, value, onChange, placeholder }: { label: string; value: string; onChange: (value: string) => void; placeholder: string }) { return <label className="block"><span className="mb-2 block text-[10px] font-black uppercase tracking-[.14em] text-[#71839e]">{label}</span><input value={value} onChange={(e) => onChange(e.target.value)} placeholder={placeholder} className="w-full rounded-xl border border-white/[.08] bg-[#091422] px-4 py-3 text-base outline-none placeholder:text-[#52647f]"/></label>; }
 function Outcome({ eyebrow, title, text, onClick }: { eyebrow: string; title: string; text: string; onClick: () => void }) { return <button onClick={onClick} className="rounded-2xl border border-white/[.08] bg-[#0d192b]/88 p-4 text-left hover:border-[#7c5cff]/40"><span className="text-[10px] uppercase tracking-[.14em] text-[#7c92b2]">{eyebrow}</span><strong className="mt-2 block text-sm">{title}</strong><p className="mt-2 text-xs leading-5 text-[#8294af]">{text}</p></button>; }
 function Panel({ title, children }: { title: string; children: React.ReactNode }) { return <article className="rounded-[26px] border border-white/[.08] bg-[#0d192b]/88 p-5 md:p-6"><div className="text-[10px] font-black uppercase tracking-[.16em] text-[#9d83ff]">{title}</div><div className="mt-4 space-y-3">{children}</div></article>; }
 function Item({ title, text, meta }: { title: string; text: string; meta: string }) { return <div className="rounded-2xl border border-white/[.07] bg-white/[.025] p-4"><div className="flex justify-between gap-3"><strong className="text-sm">{title}</strong><span className="text-[10px] uppercase text-[#667995]">{meta}</span></div><p className="mt-2 text-sm leading-6 text-[#91a2bd]">{text}</p></div>; }
