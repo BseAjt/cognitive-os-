@@ -14,6 +14,29 @@ const contributionSchema = z.object({
 
 const specialistOutputSchema = contributionSchema.omit({ agentId: true });
 
+const objectionOutputSchema = z.object({
+  objection: z.string().min(20).max(1_500),
+  citations: z.array(z.string().min(1).max(30)).max(8)
+});
+
+const responseOutputSchema = z.object({
+  response: z.string().min(20).max(1_500),
+  resolution: z.enum(["resolved", "partial", "unresolved"]),
+  unresolvedPoint: z.string().min(10).max(750).nullable(),
+  citations: z.array(z.string().min(1).max(30)).max(8)
+});
+
+const debateExchangeSchema = z.object({
+  criticId: z.enum(["athena", "turing", "seneca"]),
+  targetId: z.enum(["athena", "turing", "seneca"]),
+  objection: objectionOutputSchema.shape.objection,
+  objectionCitations: objectionOutputSchema.shape.citations,
+  response: responseOutputSchema.shape.response,
+  responseCitations: responseOutputSchema.shape.citations,
+  resolution: responseOutputSchema.shape.resolution,
+  unresolvedPoint: responseOutputSchema.shape.unresolvedPoint
+}).refine((exchange) => exchange.criticId !== exchange.targetId, { message: "Un agent ne peut pas se contredire lui-même." });
+
 export type OrionSpecialistId = z.infer<typeof contributionSchema>["agentId"];
 export type OrionSpecialistOutput = z.infer<typeof specialistOutputSchema>;
 
@@ -21,12 +44,13 @@ export const orionGenerationSchema = z.object({
   synthesis: z.string().min(30).max(4_000),
   recommendation: z.string().min(20).max(2_000).nullable(),
   contributions: z.array(contributionSchema).min(1).max(3),
+  debates: z.array(debateExchangeSchema).min(3).max(3),
   assumptions: z.array(z.string().min(5).max(500)).max(12),
   missingEvidence: z.array(z.string().min(5).max(500)).max(12),
   confidence: z.number().int().min(0).max(100)
 });
 
-const synthesisOutputSchema = orionGenerationSchema.omit({ contributions: true });
+const synthesisOutputSchema = orionGenerationSchema.omit({ contributions: true, debates: true });
 
 export type OrionGeneratedCycle = z.infer<typeof orionGenerationSchema>;
 
@@ -51,7 +75,9 @@ export interface OrionGenerationRunner {
 
 export interface OrionSpecialistRunner {
   analyze(agentId: OrionSpecialistId, input: OrionAIGenerationInput): Promise<OrionSpecialistOutput>;
-  synthesize(input: OrionAIGenerationInput, contributions: OrionGeneratedCycle["contributions"]): Promise<Omit<OrionGeneratedCycle, "contributions">>;
+  challenge(agentId: OrionSpecialistId, input: OrionAIGenerationInput, target: OrionGeneratedCycle["contributions"][number]): Promise<z.infer<typeof objectionOutputSchema>>;
+  respond(agentId: OrionSpecialistId, input: OrionAIGenerationInput, objection: { criticId: OrionSpecialistId; objection: string; citations: string[] }): Promise<z.infer<typeof responseOutputSchema>>;
+  synthesize(input: OrionAIGenerationInput, contributions: OrionGeneratedCycle["contributions"], debates: OrionGeneratedCycle["debates"]): Promise<Omit<OrionGeneratedCycle, "contributions" | "debates">>;
 }
 
 export class OrionAIRuntimeUnavailableError extends Error {
@@ -91,9 +117,26 @@ export function createOrionGenerationRunner(
       const contributions = await Promise.all(
         (["athena", "turing", "seneca"] as const).map(async (agentId) => ({ agentId, ...await runner.analyze(agentId, input) }))
       );
-      return { ...await runner.synthesize(input, contributions), contributions };
+      const targets: Record<OrionSpecialistId, OrionSpecialistId> = { athena: "turing", turing: "seneca", seneca: "athena" };
+      const objections = await Promise.all(contributions.map(async ({ agentId }) => {
+        const targetId = targets[agentId];
+        const target = contributions.find((item) => item.agentId === targetId)!;
+        return { criticId: agentId, targetId, ...await runner.challenge(agentId, input, target) };
+      }));
+      const debates = await Promise.all(objections.map(async (objection) => ({
+        criticId: objection.criticId,
+        targetId: objection.targetId,
+        objection: objection.objection,
+        objectionCitations: objection.citations,
+        ...mapDebateResponse(await runner.respond(objection.targetId, input, objection))
+      })));
+      return { ...await runner.synthesize(input, contributions, debates), contributions, debates };
     }
   };
+}
+
+function mapDebateResponse(response: z.infer<typeof responseOutputSchema>) {
+  return { response: response.response, responseCitations: response.citations, resolution: response.resolution, unresolvedPoint: response.unresolvedPoint };
 }
 
 const SPECIALIST_INSTRUCTIONS: Record<OrionSpecialistId, string[]> = {
@@ -131,11 +174,36 @@ export function createOrionSpecialistRunner(model = process.env.ORION_AI_MODEL ?
     seneca: createSpecialist("seneca")
   };
 
+  const createCritic = (agentId: OrionSpecialistId) => new ToolLoopAgent({
+    model,
+    instructions: [
+      ...SPECIALIST_INSTRUCTIONS[agentId],
+      "Tu dois maintenant tester la solidité de la position d'un autre spécialiste.",
+      "Formule une objection précise qui pourrait modifier la décision, sans caricaturer sa position.",
+      "Tu cites uniquement les identifiants de preuve réellement fournis."
+    ].join(" "),
+    output: Output.object({ schema: objectionOutputSchema })
+  });
+  const critics = { athena: createCritic("athena"), turing: createCritic("turing"), seneca: createCritic("seneca") };
+
+  const createRespondent = (agentId: OrionSpecialistId) => new ToolLoopAgent({
+    model,
+    instructions: [
+      ...SPECIALIST_INSTRUCTIONS[agentId],
+      "Réponds directement à l'objection reçue : accepte-la, réfute-la avec preuve, ou reconnais ce qui reste non résolu.",
+      "N'efface jamais un désaccord réel. Un point non prouvé reste partiel ou non résolu.",
+      "Tu cites uniquement les identifiants de preuve réellement fournis."
+    ].join(" "),
+    output: Output.object({ schema: responseOutputSchema })
+  });
+  const respondents = { athena: createRespondent("athena"), turing: createRespondent("turing"), seneca: createRespondent("seneca") };
+
   const orchestrator = new ToolLoopAgent({
     model,
     instructions: [
       "Tu es ORION, orchestrateur exécutif d'ExecutiveOS.",
       "Tu synthétises des contributions spécialisées déjà produites sans les remplacer ni masquer leurs désaccords.",
+      "Tu distingues les objections résolues, partielles et non résolues, et toute objection non résolue limite la recommandation.",
       "Tu produis une synthèse décisionnelle concise, contradictoire et exploitable en français.",
       "Tu n'inventes jamais de preuve : cite uniquement les identifiants fournis.",
       "Une recommandation doit rester nulle lorsque les preuves sont insuffisantes.",
@@ -149,9 +217,17 @@ export function createOrionSpecialistRunner(model = process.env.ORION_AI_MODEL ?
       const { output } = await specialists[agentId].generate({ prompt: buildOrionPrompt(input) });
       return output;
     },
-    async synthesize(input, contributions) {
+    async challenge(agentId, input, target) {
+      const { output } = await critics[agentId].generate({ prompt: JSON.stringify({ context: JSON.parse(buildOrionPrompt(input)), targetContribution: target }) });
+      return output;
+    },
+    async respond(agentId, input, objection) {
+      const { output } = await respondents[agentId].generate({ prompt: JSON.stringify({ context: JSON.parse(buildOrionPrompt(input)), objection }) });
+      return output;
+    },
+    async synthesize(input, contributions, debates) {
       const { output } = await orchestrator.generate({
-        prompt: JSON.stringify({ context: JSON.parse(buildOrionPrompt(input)), specialistContributions: contributions })
+        prompt: JSON.stringify({ context: JSON.parse(buildOrionPrompt(input)), specialistContributions: contributions, contradictoryDebate: debates })
       });
       return output;
     }
@@ -193,6 +269,10 @@ function validateOrionCitations(output: OrionGeneratedCycle, input: OrionAIGener
   );
   for (const contribution of output.contributions) {
     const invalid = contribution.citations.find((citation) => !allowed.has(citation));
+    if (invalid) throw new Error(`Citation ORION invalide : ${invalid}`);
+  }
+  for (const debate of output.debates) {
+    const invalid = [...debate.objectionCitations, ...debate.responseCitations].find((citation) => !allowed.has(citation));
     if (invalid) throw new Error(`Citation ORION invalide : ${invalid}`);
   }
 }
