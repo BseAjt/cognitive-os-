@@ -9,6 +9,7 @@ import { InvestorDemoDashboard } from "@/components/investor-demo-dashboard";
 import { CollaborationPanel } from "@/components/collaboration-panel";
 import { ProductControlCenter } from "@/components/product-control-center";
 import { StrategyStudio } from "@/components/strategy-studio";
+import { ExecutiveGuide, InfoTip } from "@/components/executive-guide";
 import { buildCognitiveRecall } from "@/lib/cognitive-recall";
 import { buildExecutiveCaseBrief } from "@/lib/executive-brief";
 import { buildCaseJourney, resolveEventDestination } from "@/lib/outcome-navigation";
@@ -19,14 +20,15 @@ import type { CognitiveCase, CognitiveEventRecord } from "@/domain/canonical";
 type ShellView = "dossiers" | "case" | "settings";
 type WorkspaceSection = "overview" | "context" | "strategy" | "analysis" | "execution" | "learning" | "history";
 
-const WORKSPACE_SECTIONS: Array<{ id: WorkspaceSection; label: string }> = [
-  { id: "overview", label: "Vue d’ensemble" },
-  { id: "context", label: "Sources & contexte" },
-  { id: "strategy", label: "Strategy Studio" },
-  { id: "analysis", label: "Analyse & décision" },
-  { id: "execution", label: "Exécution" },
-  { id: "learning", label: "Apprentissage" },
-  { id: "history", label: "Historique" }
+const WORKSPACE_SECTIONS: Array<{ id: WorkspaceSection; label: string; help: string }> = [
+  { id: "overview", label: "Aujourd’hui", help: "Le résumé utile pour savoir où concentrer ton attention maintenant." },
+  { id: "analysis", label: "Arbitrer", help: "Échanger avec ORION, comparer les options et formaliser une décision." },
+  { id: "execution", label: "Exécuter", help: "Transformer la décision en responsabilités, échéances et résultats." },
+  { id: "learning", label: "Apprendre", help: "Capitaliser ce qui a fonctionné et réutiliser les enseignements." }
+];
+
+const ADVANCED_SECTIONS: Array<{ id: WorkspaceSection; label: string }> = [
+  { id: "context", label: "Sources & contexte" }, { id: "strategy", label: "Strategy Studio" }, { id: "history", label: "Historique" }
 ];
 
 export function ExecutiveHomeV4() {
@@ -87,6 +89,7 @@ export function ExecutiveHomeV4() {
   }
 
   return <div className="min-h-screen overflow-x-hidden bg-[#07111f] text-white lg:grid lg:grid-cols-[238px_minmax(0,1fr)]">
+    <ExecutiveGuide />
     <aside className="sticky top-0 hidden h-screen flex-col border-r border-white/[.07] bg-[#091321] px-4 py-5 lg:flex">
       <button onClick={() => setShell("dossiers")} className="mb-8 flex items-center gap-3 px-2 text-left">
         <span className="grid size-10 place-items-center rounded-[14px] bg-gradient-to-br from-[#9b82ff] to-[#5b39e7] text-sm font-black">EO</span>
@@ -94,6 +97,7 @@ export function ExecutiveHomeV4() {
       </button>
       <nav className="space-y-1">
         <button onClick={() => setShell("dossiers")} className={`w-full rounded-xl px-3 py-2.5 text-left text-sm ${shell === "dossiers" ? "bg-white/[.08] text-white" : "text-[#8393ad] hover:bg-white/[.04]"}`}>Mes dossiers</button>
+        <button onClick={() => window.dispatchEvent(new CustomEvent("executiveos:show-guide"))} className="w-full rounded-xl px-3 py-2.5 text-left text-sm text-[#8393ad] hover:bg-white/[.04]">Guide de démarrage</button>
         <button onClick={() => setShell("settings")} className={`w-full rounded-xl px-3 py-2.5 text-left text-sm ${shell === "settings" ? "bg-white/[.08] text-white" : "text-[#8393ad] hover:bg-white/[.04]"}`}>Paramètres</button>
       </nav>
       {activeCase && <button onClick={() => setShell("case")} className="mt-6 rounded-2xl border border-white/[.07] bg-white/[.025] p-3.5 text-left">
@@ -110,7 +114,7 @@ export function ExecutiveHomeV4() {
           <div className="relative flex min-w-0 flex-1 items-center gap-3 rounded-2xl border border-white/[.08] bg-[#0d192b]/90 px-4 py-3"><span className="text-[#bfb2ff]">⌕</span><input aria-label="Rechercher dans ExecutiveOS" value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Rechercher un dossier, une décision, une action…" className="min-w-0 flex-1 bg-transparent text-sm outline-none placeholder:text-[#65758f]"/>{search && <button aria-label="Effacer la recherche" onClick={() => setSearch("")} className="text-xs text-[#65758f]">Effacer</button>}
           {search.trim().length >= 2 && <div className="absolute left-0 right-0 top-[calc(100%+10px)] z-50 overflow-hidden rounded-2xl border border-white/[.08] bg-[#fffefa] p-2 shadow-2xl">{searchResults.length ? searchResults.map((result) => <button key={result.id} onClick={() => openSearchResult(result.caseId)} className="flex w-full items-start gap-3 rounded-xl p-3 text-left hover:bg-black/[.04]"><span className="mt-0.5 rounded-full bg-[#0071e3]/10 px-2 py-1 text-[9px] font-bold uppercase text-[#0066cc]">{result.kind}</span><span className="min-w-0"><strong className="block truncate text-sm">{result.title}</strong><span className="mt-1 block truncate text-xs text-[#6e6e73]">{result.detail}</span></span></button>) : <div className="p-4 text-sm text-[#6e6e73]">Aucun résultat. Essaie un autre mot-clé.</div>}</div>}</div>
           <div className="hidden min-w-0 flex-[1.25] items-center gap-3 rounded-2xl border border-white/[.08] bg-[#0d192b]/90 px-4 py-3 lg:flex"><span className="text-[#bfb2ff]">✦</span><input value={prompt} onChange={(e) => setPrompt(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter") submit(); }} placeholder={activeCase ? `Demander à ORION pour “${activeCase.title}”…` : "Crée d’abord un dossier"} className="min-w-0 flex-1 bg-transparent text-sm outline-none placeholder:text-[#65758f]"/><button onClick={submit} disabled={!prompt.trim()} className="rounded-lg bg-[#7c5cff] px-3 py-1.5 text-xs font-bold disabled:cursor-not-allowed disabled:opacity-40">ORION</button></div>
-          <div className="flex shrink-0 items-center gap-2 lg:hidden"><button aria-label="Mes dossiers" onClick={() => setShell("dossiers")} className="grid size-11 place-items-center rounded-2xl border border-white/[.08] bg-white/[.03] text-lg">⌂</button><button aria-label="Paramètres" onClick={() => setShell("settings")} className="grid size-11 place-items-center rounded-2xl border border-white/[.08] bg-white/[.03] text-lg">⚙</button></div><div className="hidden size-11 place-items-center rounded-2xl bg-gradient-to-br from-[#d7cfff] to-[#8b73ef] text-xs font-black text-[#1b1239] sm:grid">SH</div>
+          <div className="flex shrink-0 items-center gap-2 lg:hidden"><button aria-label="Ouvrir le guide" onClick={() => window.dispatchEvent(new CustomEvent("executiveos:show-guide"))} className="grid size-11 place-items-center rounded-2xl border border-white/[.08] bg-white/[.03] text-sm font-bold">?</button><button aria-label="Mes dossiers" onClick={() => setShell("dossiers")} className="grid size-11 place-items-center rounded-2xl border border-white/[.08] bg-white/[.03] text-lg">⌂</button></div><div className="hidden size-11 place-items-center rounded-2xl bg-gradient-to-br from-[#d7cfff] to-[#8b73ef] text-xs font-black text-[#1b1239] sm:grid">SH</div>
         </div>
       </header>
 
@@ -154,7 +158,7 @@ function DossiersHome({ onOpen }: { onOpen: (id: string) => void }) {
     </div>}
 
     <div className="mt-7 grid gap-4 lg:grid-cols-2 xl:grid-cols-3">{store.cases.map((item) => <DossierCard key={item.id} item={item} onOpen={() => onOpen(item.id)} />)}</div>
-    <div className="mt-8"><InvestorDemoDashboard onOpenCase={onOpen} /></div>
+    <details className="mt-8 rounded-2xl border border-black/10 bg-white/50 p-4"><summary className="cursor-pointer text-sm font-semibold">Voir les données de démonstration</summary><div className="mt-5"><InvestorDemoDashboard onOpenCase={onOpen} /></div></details>
     <button aria-label="Créer un dossier" onClick={() => setCreating(true)} className="fixed bottom-[calc(1rem+env(safe-area-inset-bottom))] right-4 z-40 grid size-14 place-items-center rounded-full bg-[#7c5cff] text-3xl font-light shadow-2xl shadow-black/40 lg:hidden">+</button>
   </section>;
 }
@@ -210,7 +214,7 @@ function CaseWorkspace({ cognitiveCase, onBack }: { cognitiveCase: CognitiveCase
         {!editing && <button onClick={() => setEditing(true)} className="rounded-xl border border-white/[.08] bg-white/[.03] px-4 py-2 text-xs font-semibold">Modifier le dossier</button>}
       </div>
       </div>
-      <div className="grid gap-px border-y border-white/[.08] bg-black/[.06] sm:grid-cols-3 xl:grid-cols-7">{WORKSPACE_SECTIONS.map((item, index) => <button key={item.id} aria-pressed={activeSection === item.id} onClick={() => goTo(item.id)} className={`px-4 py-3 text-left text-xs font-semibold transition ${activeSection === item.id ? "bg-[#0071e3] text-white" : "bg-[#fffefa]/75 text-[#6e6e73] hover:bg-white"}`}><span className="mr-2 opacity-60">0{index + 1}</span>{item.label}</button>)}</div>
+      <div className="flex flex-wrap items-stretch gap-px border-y border-white/[.08] bg-black/[.06]">{WORKSPACE_SECTIONS.map((item, index) => <button key={item.id} aria-pressed={activeSection === item.id} onClick={() => goTo(item.id)} className={`min-w-[46%] flex-1 px-4 py-3 text-left text-xs font-semibold transition sm:min-w-0 ${activeSection === item.id ? "bg-[#0071e3] text-white" : "bg-[#fffefa]/75 text-[#6e6e73] hover:bg-white"}`}><span className="mr-2 opacity-60">{index + 1}</span>{item.label} <InfoTip label={item.help}/></button>)}<details className="relative min-w-full bg-[#fffefa]/75 sm:min-w-0"><summary className="cursor-pointer list-none px-4 py-3 text-xs font-semibold text-[#6e6e73]">Plus ···</summary><div className="absolute right-0 z-30 mt-1 min-w-56 rounded-2xl border border-black/10 bg-[#fffefa] p-2 shadow-xl">{ADVANCED_SECTIONS.map((item) => <button key={item.id} onClick={() => goTo(item.id)} className="block w-full rounded-xl px-3 py-2.5 text-left text-xs font-semibold hover:bg-black/[.04]">{item.label}</button>)}</div></details></div>
     </div>
 
     <div id="workspace-content" className="scroll-mt-28 pt-6">

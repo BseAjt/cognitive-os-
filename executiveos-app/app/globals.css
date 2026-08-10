@@ -50,6 +50,10 @@ button:focus-visible, a:focus-visible, input:focus-visible, textarea:focus-visib
 .executive-ghost { border: 1px solid var(--border-strong); color: #303338; background: rgba(255,255,255,.88); }
 .executive-ghost:hover { border-color: rgba(5,104,201,.4); background: #fff; color: #15171a; }
 
+.info-tip { position: relative; display: inline-grid; width: 17px; height: 17px; margin-left: 5px; place-items: center; border: 1px solid currentColor; border-radius: 999px; font-size: 10px; font-weight: 800; opacity: .7; vertical-align: -2px; }
+.info-tip [role="tooltip"] { position: absolute; z-index: 80; bottom: calc(100% + 9px); left: 50%; width: min(250px, 72vw); padding: 10px 12px; border: 1px solid var(--border); border-radius: 12px; color: var(--text); background: var(--panel-solid); box-shadow: 0 12px 28px rgba(20,23,26,.14); font-size: 12px; font-weight: 500; line-height: 1.45; opacity: 0; pointer-events: none; transform: translate(-50%, 5px); transition: opacity .15s ease, transform .15s ease; }
+.info-tip:hover [role="tooltip"], .info-tip:focus [role="tooltip"], .info-tip:focus-within [role="tooltip"] { opacity: 1; transform: translate(-50%, 0); }
+
 /* ExecutiveOS light material system. These mappings also restyle the legacy
    runtime panels so every cognitive module shares one visual language. */
 [class*="bg-[#07111f]"] { background-color: transparent !important; }
