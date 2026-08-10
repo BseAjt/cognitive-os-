@@ -91,7 +91,10 @@ export function OrionCyclesDock() {
       if (cycle.status === "completed") {
         const outcome = buildDecisionToAction({ cognitiveCase: active, cycle });
         store.activateDecisionActionPlan(outcome);
-        setCommandState(`Décision prise · plan activé · ${outcome.actions.length} actions créées.`);
+        const continuity = cycle.missingEvidence.some((item) => item.includes("mode de continuité"));
+        setCommandState(continuity
+          ? `AI Gateway limité · cycle de continuité persisté · décision prise · plan activé · ${outcome.actions.length} actions créées.`
+          : `Décision prise · plan activé · ${outcome.actions.length} actions créées.`);
       } else setCommandState("Cycle bloqué : ORION indique les preuves à fournir avant décision.");
     } catch (value) {
       if (value instanceof OrionAuthenticationRequiredError) rememberPendingOrionCycle(active.id, requestedObjective);
