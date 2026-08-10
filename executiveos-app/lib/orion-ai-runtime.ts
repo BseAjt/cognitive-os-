@@ -37,6 +37,23 @@ const debateExchangeSchema = z.object({
   unresolvedPoint: responseOutputSchema.shape.unresolvedPoint
 }).refine((exchange) => exchange.criticId !== exchange.targetId, { message: "Un agent ne peut pas se contredire lui-même." });
 
+const decisionRationaleSchema = z.object({
+  claim: z.string().min(20).max(1_000),
+  citations: z.array(z.string().min(1).max(30)).max(8),
+  agentIds: z.array(z.enum(["athena", "turing", "seneca"])).min(1).max(3)
+});
+
+const decisionMemoSchema = z.object({
+  status: z.enum(["recommend", "conditional", "hold"]),
+  rationale: z.array(decisionRationaleSchema).min(1).max(6),
+  conditions: z.array(z.string().min(10).max(750)).max(8),
+  confidenceExplanation: z.string().min(20).max(1_500)
+}).superRefine((memo, context) => {
+  if (memo.status !== "hold" && memo.rationale.some((item) => item.citations.length === 0)) {
+    context.addIssue({ code: "custom", message: "Une décision recommandée ou conditionnelle exige une preuve citée.", path: ["rationale"] });
+  }
+});
+
 export type OrionSpecialistId = z.infer<typeof contributionSchema>["agentId"];
 export type OrionSpecialistOutput = z.infer<typeof specialistOutputSchema>;
 
@@ -47,7 +64,8 @@ export const orionGenerationSchema = z.object({
   debates: z.array(debateExchangeSchema).min(3).max(3),
   assumptions: z.array(z.string().min(5).max(500)).max(12),
   missingEvidence: z.array(z.string().min(5).max(500)).max(12),
-  confidence: z.number().int().min(0).max(100)
+  confidence: z.number().int().min(0).max(100),
+  decisionMemo: decisionMemoSchema
 });
 
 const synthesisOutputSchema = orionGenerationSchema.omit({ contributions: true, debates: true });
@@ -67,6 +85,13 @@ export interface OrionAIGenerationResult {
   model: string;
   generatedAt: string;
   durationMs: number;
+  trace: OrionCycleTrace;
+}
+
+export interface OrionCycleTrace {
+  cycleId: string;
+  stages: Array<{ stage: "analysis" | "challenge" | "response" | "synthesis"; actors: string[]; status: "completed" }>;
+  evidenceManifest: Array<{ citation: string; evidenceId: string; sourceId: string; sourceTitle: string; confidence: number }>;
 }
 
 export interface OrionGenerationRunner {
@@ -206,6 +231,9 @@ export function createOrionSpecialistRunner(model = process.env.ORION_AI_MODEL ?
       "Tu distingues les objections résolues, partielles et non résolues, et toute objection non résolue limite la recommandation.",
       "Tu produis une synthèse décisionnelle concise, contradictoire et exploitable en français.",
       "Tu n'inventes jamais de preuve : cite uniquement les identifiants fournis.",
+      "Chaque motif du mémo décisionnel doit citer au moins une preuve et identifier les agents dont il dérive.",
+      "Le statut est hold si les preuves sont insuffisantes, conditional si des conditions substantielles restent ouvertes, sinon recommend.",
+      "Explique le niveau de confiance à partir de la qualité des preuves, de la convergence et des désaccords non résolus.",
       "Une recommandation doit rester nulle lorsque les preuves sont insuffisantes.",
       "Toute incertitude devient une hypothèse ou une preuve manquante explicite."
     ].join(" "),
@@ -248,13 +276,40 @@ export async function generateOrionCycle(
   const output = orionGenerationSchema.parse(await (options.runner ?? createOrionGenerationRunner(model)).generate({ ...input, objective }));
   validateOrionCitations(output, input);
   const completedAt = now();
+  const cycleId = crypto.randomUUID();
 
   return {
     output,
     runtime: "ai_gateway",
     model,
     generatedAt: completedAt.toISOString(),
-    durationMs: Math.max(0, completedAt.getTime() - startedAt.getTime())
+    durationMs: Math.max(0, completedAt.getTime() - startedAt.getTime()),
+    trace: buildCycleTrace(cycleId, input)
+  };
+}
+
+function buildCycleTrace(cycleId: string, input: OrionAIGenerationInput): OrionCycleTrace {
+  const scopedSources = input.sources.filter((source) => source.caseId === input.cognitiveCase.id && source.status === "ready");
+  const sourcesById = new Map(scopedSources.map((source) => [source.id, source]));
+  const evidenceManifest = input.evidence
+    .filter((item) => item.caseId === input.cognitiveCase.id && sourcesById.has(item.sourceId))
+    .slice(0, 20)
+    .map((item, index) => ({
+      citation: `S${index + 1}`,
+      evidenceId: item.id,
+      sourceId: item.sourceId,
+      sourceTitle: sourcesById.get(item.sourceId)!.title,
+      confidence: item.confidence
+    }));
+  return {
+    cycleId,
+    stages: [
+      { stage: "analysis", actors: ["athena", "turing", "seneca"], status: "completed" },
+      { stage: "challenge", actors: ["athena", "turing", "seneca"], status: "completed" },
+      { stage: "response", actors: ["athena", "turing", "seneca"], status: "completed" },
+      { stage: "synthesis", actors: ["orion"], status: "completed" }
+    ],
+    evidenceManifest
   };
 }
 
@@ -273,6 +328,10 @@ function validateOrionCitations(output: OrionGeneratedCycle, input: OrionAIGener
   }
   for (const debate of output.debates) {
     const invalid = [...debate.objectionCitations, ...debate.responseCitations].find((citation) => !allowed.has(citation));
+    if (invalid) throw new Error(`Citation ORION invalide : ${invalid}`);
+  }
+  for (const rationale of output.decisionMemo.rationale) {
+    const invalid = rationale.citations.find((citation) => !allowed.has(citation));
     if (invalid) throw new Error(`Citation ORION invalide : ${invalid}`);
   }
 }
