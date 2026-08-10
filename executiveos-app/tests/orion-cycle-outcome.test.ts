@@ -2,6 +2,8 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import { consumePendingOrionCycle, OrionAuthenticationRequiredError, rememberPendingOrionCycle, requestOrionExecutiveCycle, toExecutiveCycleRecord } from "../lib/orion-cycle-outcome.ts";
 import { defaultExecutiveAgents } from "../lib/agent-runtime.ts";
+import { generateOrionContinuityCycle } from "../lib/orion-ai-runtime.ts";
+import { buildDecisionToAction } from "../lib/decision-to-action.ts";
 import type { CognitiveCase, ContextEvidenceRecord, ContextSourceRecord } from "../domain/canonical.ts";
 
 const cognitiveCase:CognitiveCase={id:"case-ai",title:"Pilote",objective:"Décider du pilote",workingHypothesis:"Le pilote crée de la valeur",context:"Arbitrage",state:"decide",signals:{impact:8,urgency:7,confidence:70,cognitiveCost:5,risk:6}};
@@ -34,6 +36,17 @@ test("AI council result becomes an actionable persisted executive cycle",()=>{
   assert.equal(cycle.contributions.length,3);
   assert.equal(cycle.divergences.length,1);
   assert.deepEqual(cycle.sourceIds,[sources[0]!.id]);
+});
+
+test("a rate-limited gateway still yields a decision, plan and three persistable actions",()=>{
+  const fallback=generateOrionContinuityCycle({objective:"Arbitrer le pilote",cognitiveCase,sources,evidence},"rate_limited",{now:()=>new Date("2026-08-10T15:00:00.000Z")});
+  const cycle=toExecutiveCycleRecord({objective:"Arbitrer le pilote",cognitiveCase,sources,evidence},fallback,defaultExecutiveAgents);
+  const activated=buildDecisionToAction({cognitiveCase,cycle,id:"plan-fallback",decisionId:"decision-fallback",actionIds:["action-1","action-2","action-3"],createdAt:fallback.generatedAt});
+  assert.equal(cycle.status,"completed");
+  assert.equal(activated.decision.id,"decision-fallback");
+  assert.equal(activated.plan.executiveCycleId,cycle.id);
+  assert.equal(activated.actions.length,3);
+  assert.ok(cycle.missingEvidence.some((item)=>item.includes("mode de continuité")));
 });
 
 test("a hold memo remains blocked and cannot silently create a decision",()=>{
