@@ -160,22 +160,44 @@ function DossiersHome({ onOpen }: { onOpen: (id: string) => void }) {
     requestAnimationFrame(() => window.dispatchEvent(new CustomEvent("executiveos:sync")));
   }
 
-  return <section>
+  const rankedCases = useMemo(() => [...store.cases].sort((a, b) => {
+    const score = (item: CognitiveCase) => item.signals.urgency * 2 + item.signals.impact + item.signals.risk;
+    return score(b) - score(a);
+  }), [store.cases]);
+  const priority = rankedCases[0];
+  const priorityBrief = priority ? buildExecutiveCaseBrief({ cognitiveCase: priority, decisions: store.decisions, actions: store.actions, caseObjects: store.caseObjects, learningEvents: store.learningEvents, reflections: store.reflections, contextSources: store.contextSources, contextEvidence: store.contextEvidence, executiveCycles: store.executiveCycles, decisionActionPlans: store.decisionActionPlans, decisionWatches: store.decisionWatches }) : null;
+  const pendingDecisions = store.cases.filter((item) => item.state === "decide");
+  const openActions = store.actions.filter((item) => item.status !== "done").sort((a, b) => (a.status === "blocked" ? -1 : 0) - (b.status === "blocked" ? -1 : 0));
+
+  return <section aria-labelledby="ceo-home-title">
     <div className="flex flex-col justify-between gap-5 md:flex-row md:items-end">
-      <div><div className="text-[10px] font-black uppercase tracking-[.2em] text-[#7c92b2]">ExecutiveOS · Dossier First</div><h1 className="mt-3 text-4xl font-semibold tracking-[-.04em] md:text-5xl">Mes dossiers</h1><p className="mt-3 max-w-3xl text-lg leading-8 text-[#91a2bd]">Chaque sujet important vit ici, de la première question jusqu’au résultat et à l’apprentissage.</p></div>
-      <button onClick={() => setCreating(true)} className="min-h-12 rounded-xl bg-[#7c5cff] px-5 py-3 text-sm font-bold shadow-lg shadow-[#7c5cff]/20">+ Nouveau dossier</button>
+      <div><div className="text-[10px] font-black uppercase tracking-[.2em] text-[#0066cc]">ExecutiveOS CEO</div><h1 id="ceo-home-title" className="mt-3 text-4xl font-semibold tracking-[-.04em] md:text-5xl">Bonjour. Voici l’essentiel.</h1><p className="mt-3 max-w-3xl text-lg leading-8 text-[#59636f]">Une priorité, une décision et une action. Le reste peut attendre.</p></div>
+      <button onClick={() => setCreating(true)} className="min-h-12 rounded-xl bg-[#7c5cff] px-5 py-3 text-sm font-bold shadow-lg shadow-[#7c5cff]/20">+ Ajouter un sujet</button>
+    </div>
+
+    {priority && priorityBrief ? <article className="mt-7 overflow-hidden rounded-[30px] border border-[#0071e3]/20 bg-[linear-gradient(145deg,rgba(255,255,255,.98),rgba(232,241,250,.9))] p-6 md:p-8">
+      <div className="flex flex-wrap items-center justify-between gap-3"><span className="text-[10px] font-black uppercase tracking-[.18em] text-[#0066cc]">ORION · À traiter aujourd’hui</span><span className="rounded-full bg-[#c50014]/[.07] px-3 py-1 text-xs font-semibold text-[#a00012]">Priorité élevée</span></div>
+      <h2 className="mt-4 max-w-4xl text-2xl font-semibold tracking-[-.03em] md:text-3xl">{priority.title}</h2>
+      <p className="mt-3 max-w-4xl text-base leading-7 text-[#59636f]">{priorityBrief.recommendation}</p>
+      <div className="mt-5 rounded-2xl border border-black/[.07] bg-white/70 p-4"><span className="text-[10px] font-bold uppercase tracking-[.14em] text-[#6e6e73]">Pourquoi maintenant</span><p className="mt-2 text-sm leading-6 text-[#303338]">Impact {priority.signals.impact}/10, urgence {priority.signals.urgency}/10. {priorityBrief.blockers[0] ?? "Une décision ou une action est prête à faire avancer le sujet."}</p></div>
+      <button onClick={() => onOpen(priority.id)} className="mt-5 min-h-12 rounded-full bg-[#0071e3] px-6 py-3 text-sm font-bold text-white">Traiter cette priorité →</button>
+    </article> : null}
+
+    <div className="mt-5 grid gap-4 lg:grid-cols-2">
+      <AttentionCard eyebrow="Décision à prendre" title={pendingDecisions[0]?.title ?? "Aucune décision urgente"} text={pendingDecisions[0]?.objective ?? "ORION ne détecte aucun arbitrage qui exige ton attention maintenant."} action={pendingDecisions[0] ? "Préparer la décision" : "Voir les sujets"} onClick={() => onOpen((pendingDecisions[0] ?? priority)?.id ?? "")} disabled={!priority}/>
+      <AttentionCard eyebrow="Prochaine action" title={openActions[0]?.title ?? "Rien de bloquant"} text={openActions[0] ? `${openActions[0].owner} · ${openActions[0].status === "blocked" ? "Action bloquée à débloquer" : `${openActions[0].progress}% réalisé`}` : "Toutes les actions enregistrées sont terminées."} action={openActions[0] ? "Faire avancer" : "Voir les sujets"} onClick={() => onOpen(openActions[0]?.caseId ?? priority?.id ?? "")} disabled={!priority}/>
     </div>
 
     {creating && <div role="dialog" aria-modal="true" aria-labelledby="new-case-title" className="fixed inset-0 z-[70] flex items-end bg-black/60 p-0 backdrop-blur-sm sm:items-center sm:justify-center sm:p-6">
       <form onSubmit={(event) => { event.preventDefault(); create(); }} className="max-h-[92dvh] w-full overflow-y-auto rounded-t-[28px] border border-[#7c5cff]/30 bg-[#0d192b] p-5 shadow-2xl sm:max-w-2xl sm:rounded-[28px] sm:p-6">
-        <div className="flex items-start justify-between gap-4"><div><div className="text-[10px] font-black uppercase tracking-[.16em] text-[#b7a9ff]">Nouveau dossier cognitif</div><h2 id="new-case-title" className="mt-2 text-2xl font-semibold">Quel sujet veux-tu faire avancer ?</h2></div><button type="button" aria-label="Fermer la création" onClick={() => setCreating(false)} className="grid size-11 shrink-0 place-items-center rounded-full border border-white/10 text-xl text-[#aab7ca]">×</button></div>
+        <div className="flex items-start justify-between gap-4"><div><div className="text-[10px] font-black uppercase tracking-[.16em] text-[#b7a9ff]">Nouveau sujet</div><h2 id="new-case-title" className="mt-2 text-2xl font-semibold">Quel sujet veux-tu faire avancer ?</h2></div><button type="button" aria-label="Fermer la création" onClick={() => setCreating(false)} className="grid size-11 shrink-0 place-items-center rounded-full border border-white/10 text-xl text-[#aab7ca]">×</button></div>
         <div className="mt-5 grid gap-4 md:grid-cols-2"><Field label="Titre" value={title} onChange={setTitle} placeholder="Ex. Dois-je lancer ce produit ?"/><Field label="Objectif" value={objective} onChange={setObjective} placeholder="Ex. Décider si le lancement crée assez de valeur."/><div className="md:col-span-2"><Field label="Contexte initial" value={context} onChange={setContext} placeholder="Ce que tu sais déjà, contraintes, horizon…"/></div></div>
         <button type="submit" disabled={!title.trim() || !objective.trim()} className="mt-5 min-h-12 w-full rounded-xl bg-[#7c5cff] px-5 py-3 text-sm font-bold disabled:cursor-not-allowed disabled:opacity-40">Créer et ouvrir le dossier</button>
       </form>
     </div>}
 
-    <div className="mt-7 grid gap-4 lg:grid-cols-2 xl:grid-cols-3">{store.cases.map((item) => <DossierCard key={item.id} item={item} onOpen={() => onOpen(item.id)} />)}</div>
-    <details className="mt-8 rounded-2xl border border-black/10 bg-white/50 p-4"><summary className="cursor-pointer text-sm font-semibold">Voir les données de démonstration</summary><div className="mt-5"><InvestorDemoDashboard onOpenCase={onOpen} /></div></details>
+    <details className="mt-8 rounded-[24px] border border-black/10 bg-white/55 p-4"><summary className="cursor-pointer text-sm font-semibold">Tous les sujets ({store.cases.length})</summary><div className="mt-5 grid gap-4 lg:grid-cols-2 xl:grid-cols-3">{rankedCases.map((item) => <DossierCard key={item.id} item={item} onOpen={() => onOpen(item.id)} />)}</div></details>
+    <details className="mt-3 rounded-2xl border border-black/10 bg-white/40 p-4"><summary className="cursor-pointer text-sm font-semibold">Données de démonstration et fonctions avancées</summary><div className="mt-5"><InvestorDemoDashboard onOpenCase={onOpen} /></div></details>
     <button aria-label="Créer un dossier" onClick={() => setCreating(true)} className="fixed bottom-[calc(1rem+env(safe-area-inset-bottom))] right-4 z-40 grid size-14 place-items-center rounded-full bg-[#7c5cff] text-3xl font-light shadow-2xl shadow-black/40 lg:hidden">+</button>
   </section>;
 }
@@ -183,15 +205,21 @@ function DossiersHome({ onOpen }: { onOpen: (id: string) => void }) {
 function InvestorHome({ onOpen }: { onOpen: (id: string) => void }) {
   const store = useExecutiveStore();
   const reopened = store.decisionWatches.filter((item) => item.status === "reopen").length;
-  const blocked = store.actions.filter((item) => item.status === "blocked").length;
-  const activeProjects = store.projects.filter((item) => item.status === "active" || item.status === "validated").length;
+  const attentionCase = [...store.cases].sort((a, b) => (b.signals.risk + b.signals.urgency) - (a.signals.risk + a.signals.urgency))[0];
+  const changedWatch = store.decisionWatches.find((item) => item.status === "reopen");
+  const nextDecision = changedWatch ? store.decisions.find((item) => item.id === changedWatch.decisionId) : store.decisions[0];
 
-  return <section>
-    <div className="flex flex-col justify-between gap-5 md:flex-row md:items-end"><div><div className="text-[10px] font-black uppercase tracking-[.2em] text-[#7c92b2]">ExecutiveOS · Investor View</div><h1 className="mt-3 text-4xl font-semibold tracking-[-.04em] md:text-5xl">Mon portefeuille</h1><p className="mt-3 max-w-3xl text-lg leading-8 text-[#91a2bd]">Les participations, signaux et engagements qui méritent une décision — sans le bruit du pilotage quotidien.</p></div><button onClick={() => window.dispatchEvent(new CustomEvent("executiveos:show-investor-guide"))} className="min-h-12 rounded-xl border border-white/[.1] bg-white/[.04] px-5 py-3 text-sm font-bold">Comprendre cette vue</button></div>
-    <div className="mt-7 grid gap-3 sm:grid-cols-2 xl:grid-cols-4"><InvestorSignal label="Initiatives suivies" help="Projets stratégiques actuellement observés dans l’ensemble du portefeuille." value={store.projects.length} detail={`${activeProjects} actives ou validées`} tone="neutral"/><InvestorSignal label="Décisions à rouvrir" help="Décisions dont une hypothèse ou un signal a changé et qui doivent être réexaminées." value={reopened} detail="Hypothèses fragilisées" tone={reopened ? "alert" : "good"}/><InvestorSignal label="Blocages critiques" help="Actions empêchées qui peuvent menacer un engagement, une échéance ou la trajectoire d’une participation." value={blocked} detail="Exécution à débloquer" tone={blocked ? "watch" : "good"}/><InvestorSignal label="Sociétés / dossiers" help="Nombre de trajectoires de sociétés ou de sujets d’investissement documentées." value={store.cases.length} detail="Trajectoires documentées" tone="neutral"/></div>
-    <div className="mt-7 rounded-[30px] bg-[#fffefa] p-4 text-[#1d1d1f] shadow-2xl shadow-black/10 md:p-6"><InvestorDemoDashboard onOpenCase={onOpen}/></div>
-    <p className="mt-4 text-xs leading-5 text-[#71839e]">Vue investisseur distincte : les chiffres de démonstration sont fictifs et identifiés comme tels. Une future connexion aux participations devra respecter les droits de partage définis par chaque dirigeant.</p>
+  return <section aria-labelledby="investor-home-title">
+    <div className="flex flex-col justify-between gap-5 md:flex-row md:items-end"><div><div className="text-[10px] font-black uppercase tracking-[.2em] text-[#0066cc]">ExecutiveOS Investor</div><h1 id="investor-home-title" className="mt-3 text-4xl font-semibold tracking-[-.04em] md:text-5xl">Votre portefeuille. Seulement ce qui a changé.</h1><p className="mt-3 max-w-3xl text-lg leading-8 text-[#59636f]">Une participation à surveiller, un signal à comprendre et un arbitrage à préparer.</p></div><button onClick={() => window.dispatchEvent(new CustomEvent("executiveos:show-investor-guide"))} className="min-h-12 rounded-xl border border-white/[.1] bg-white/[.7] px-5 py-3 text-sm font-bold">Comment ça marche ?</button></div>
+    {attentionCase ? <article className="mt-7 rounded-[30px] border border-[#c50014]/15 bg-[#fffefa] p-6 shadow-xl shadow-black/[.05] md:p-8"><div className="flex flex-wrap items-center justify-between gap-3"><span className="text-[10px] font-black uppercase tracking-[.18em] text-[#a00012]">Participation à surveiller</span><span className="rounded-full bg-[#c50014]/[.07] px-3 py-1 text-xs font-semibold text-[#a00012]">Risque {attentionCase.signals.risk}/10</span></div><h2 className="mt-4 text-2xl font-semibold md:text-3xl">{attentionCase.title}</h2><p className="mt-3 max-w-4xl text-base leading-7 text-[#59636f]">{attentionCase.context}</p><div className="mt-5 rounded-2xl bg-[#f2f0ea] p-4"><span className="text-[10px] font-bold uppercase tracking-[.14em] text-[#6e6e73]">Pourquoi cela compte</span><p className="mt-2 text-sm leading-6">Le niveau d’urgence est de {attentionCase.signals.urgency}/10. ORION recommande de vérifier l’hypothèse avant le prochain arbitrage.</p></div><button onClick={() => onOpen(attentionCase.id)} className="mt-5 min-h-12 rounded-full bg-[#0071e3] px-6 py-3 text-sm font-bold text-white">Examiner la participation →</button></article> : null}
+    <div className="mt-5 grid gap-4 lg:grid-cols-2"><AttentionCard eyebrow="Signal qui a changé" title={reopened ? `${reopened} décision(s) à réexaminer` : "Aucun signal critique nouveau"} text={changedWatch?.signals[0]?.detail ?? changedWatch?.summary ?? "La trajectoire observée reste cohérente avec les hypothèses enregistrées."} action={reopened ? "Voir le changement" : "Consulter le portefeuille"} onClick={() => onOpen(changedWatch?.caseId ?? attentionCase?.id ?? "")} disabled={!attentionCase}/><AttentionCard eyebrow="Prochain comité / arbitrage" title={nextDecision?.outcome ?? "Aucun arbitrage préparé"} text={nextDecision?.rationale ?? "Ajoutez une décision pour préparer le prochain échange avec l’équipe dirigeante."} action="Préparer les questions" onClick={() => onOpen(nextDecision?.caseId ?? attentionCase?.id ?? "")} disabled={!attentionCase}/></div>
+    <details className="mt-8 rounded-[24px] border border-black/10 bg-white/55 p-4"><summary className="cursor-pointer text-sm font-semibold">Vue détaillée du portefeuille</summary><div className="mt-5 rounded-[24px] bg-[#fffefa] p-2 text-[#1d1d1f] md:p-4"><InvestorDemoDashboard onOpenCase={onOpen}/></div></details>
+    <p className="mt-4 text-xs leading-5 text-[#71839e]">Données fictives de démonstration. Les informations réelles ne seront partagées qu’avec l’autorisation de chaque société.</p>
   </section>;
+}
+
+function AttentionCard({ eyebrow, title, text, action, onClick, disabled = false }: { eyebrow: string; title: string; text: string; action: string; onClick: () => void; disabled?: boolean }) {
+  return <article className="rounded-[26px] border border-black/10 bg-[#fffefa] p-5 shadow-lg shadow-black/[.04] md:p-6"><span className="text-[10px] font-black uppercase tracking-[.16em] text-[#0066cc]">{eyebrow}</span><h2 className="mt-3 text-xl font-semibold tracking-[-.02em]">{title}</h2><p className="mt-3 text-sm leading-6 text-[#59636f]">{text}</p><button disabled={disabled} onClick={onClick} className="mt-5 min-h-11 rounded-full border border-black/10 bg-white px-5 py-2.5 text-sm font-semibold text-[#0066cc] disabled:opacity-40">{action} →</button></article>;
 }
 
 function InvestorSignal({ label, help, value, detail, tone }: { label: string; help: string; value: number; detail: string; tone: "neutral" | "good" | "watch" | "alert" }) {

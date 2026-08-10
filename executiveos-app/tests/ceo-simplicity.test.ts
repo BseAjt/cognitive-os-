@@ -40,3 +40,21 @@ test("executive and investor profiles are separate and persistent", () => {
   assert.match(guide, /Guide de l’investisseur/);
   assert.match(guide, /executiveos:investor-guide:v1/);
 });
+
+test("CEO home leads with three plain-language outcomes instead of product modules", () => {
+  assert.match(home, /ExecutiveOS CEO/);
+  assert.match(home, /Voici l’essentiel/);
+  assert.match(home, /À traiter aujourd’hui/);
+  assert.match(home, /Décision à prendre/);
+  assert.match(home, /Prochaine action/);
+  assert.match(home, /Tous les sujets/);
+});
+
+test("investor home leads with portfolio changes and the next decision", () => {
+  assert.match(home, /ExecutiveOS Investor/);
+  assert.match(home, /Seulement ce qui a changé/);
+  assert.match(home, /Participation à surveiller/);
+  assert.match(home, /Signal qui a changé/);
+  assert.match(home, /Prochain comité \/ arbitrage/);
+  assert.match(home, /Vue détaillée du portefeuille/);
+});

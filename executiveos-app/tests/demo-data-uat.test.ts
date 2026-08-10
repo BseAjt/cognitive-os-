@@ -99,7 +99,7 @@ test("users can create and edit dossiers", () => {
   assert.ok(slices.includes("createCase:"));
   assert.ok(home.includes("store.createCase"));
   assert.ok(home.includes("store.applyCasePatch"));
-  assert.ok(home.includes("+ Nouveau dossier"));
+  assert.ok(home.includes("+ Ajouter un sujet"));
 });
 
 test("global ORION command executes inside the active dossier and stays in unified workspace", () => {
