@@ -132,7 +132,7 @@ export function OrionCyclesDock() {
       </div>
       {latestExecutiveCycle && <div className="mt-3 rounded-xl border border-white/[.07] bg-[#07131d]/75 p-3"><div className="flex flex-wrap items-center justify-between gap-2"><strong className="text-xs">Dernière synthèse</strong><span className="text-[10px] uppercase text-[#71839e]">{latestExecutiveCycle.status} · {latestExecutiveCycle.confidence}%</span></div><p className="mt-2 text-xs leading-5 text-[#b8c6d8]">{latestExecutiveCycle.synthesis}</p>{latestExecutiveCycle.recommendation && <p className="mt-2 text-xs font-semibold leading-5 text-[#8de4c3]">{latestExecutiveCycle.recommendation}</p>}</div>}
       {running&&<p role="status" className="mt-3 text-xs leading-5 text-[#9de7cd]">ATHENA, TURING et SENECA analysent, débattent et répondent avant l’arbitrage ORION.</p>}
-      {!running&&commandState && <div role="alert" className="mt-3 flex flex-wrap items-center gap-3 text-xs leading-5 text-[#9de7cd]"><span>{commandState}</span>{commandState.includes("session a expiré")&&<a href="/sign-in?next=/" className="rounded-lg border border-[#9de7cd]/35 px-3 py-1.5 font-bold">Se reconnecter et reprendre</a>}</div>}
+      {!running&&commandState && <div role={commandState.includes("session a expiré") ? "alert" : "status"} className="mt-3 flex flex-wrap items-center gap-3 text-xs leading-5 text-[#9de7cd]"><span>{commandState}</span>{commandState.includes("session a expiré")&&<a href="/sign-in?next=/" className="rounded-lg border border-[#9de7cd]/35 px-3 py-1.5 font-bold">Se reconnecter et reprendre</a>}</div>}
     </section>
 
     {replay && replayFrame && <section className="mt-4 rounded-2xl border border-[#f4c76d]/30 bg-[#f4c76d]/[.055] p-4">
