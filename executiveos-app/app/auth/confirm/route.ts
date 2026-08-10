@@ -14,6 +14,7 @@ const allowedTypes = new Set<EmailOtpType>([
 export async function GET(request: Request) {
   const url = new URL(request.url);
   const tokenHash = url.searchParams.get("token_hash");
+  const code = url.searchParams.get("code");
   const type = url.searchParams.get("type") as EmailOtpType | null;
   const next = url.searchParams.get("next")?.startsWith("/")
     ? url.searchParams.get("next")!
@@ -22,6 +23,12 @@ export async function GET(request: Request) {
 
   if (tokenHash && type && allowedTypes.has(type) && client) {
     const { error } = await client.auth.verifyOtp({ token_hash: tokenHash, type });
+    if (!error) return NextResponse.redirect(new URL(next, url.origin));
+  }
+
+  // Keep older/custom email templates compatible with the PKCE response.
+  if (code && client) {
+    const { error } = await client.auth.exchangeCodeForSession(code);
     if (!error) return NextResponse.redirect(new URL(next, url.origin));
   }
 
