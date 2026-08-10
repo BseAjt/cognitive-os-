@@ -37,7 +37,17 @@ const output: OrionGeneratedCycle = {
   ],
   assumptions: ["Les utilisateurs du pilote sont représentatifs."],
   missingEvidence: ["Mesurer le temps de reprise avant et après ExecutiveOS."],
-  confidence: 79
+  confidence: 79,
+  decisionMemo: {
+    status: "conditional",
+    rationale: [{
+      claim: "Le pilote mesuré constitue l'option la plus réversible pour établir la preuve de valeur.",
+      citations: ["S1"],
+      agentIds: ["athena", "turing", "seneca"]
+    }],
+    conditions: ["Mesurer le délai de reprise et fixer un seuil d'arrêt avant le lancement."],
+    confidenceExplanation: "La preuve existante soutient le pilote, mais la représentativité et le seuil d'arrêt restent à établir."
+  }
 };
 
 test("C1.1 detects AI Gateway and Vercel OIDC configuration", () => {
@@ -65,6 +75,9 @@ test("C1.1 generates a typed and observable ORION result through an injected run
   assert.equal(result.runtime, "ai_gateway");
   assert.equal(result.model, DEFAULT_ORION_MODEL);
   assert.equal(result.durationMs, 1250);
+  assert.deepEqual(result.trace.stages.map((item) => item.stage), ["analysis", "challenge", "response", "synthesis"]);
+  assert.deepEqual(result.trace.evidenceManifest, [{ citation: "S1", evidenceId: "ev-1", sourceId: "src-1", sourceTitle: "Pilote", confidence: 88 }]);
+  assert.match(result.trace.cycleId, /^[0-9a-f-]{36}$/i);
 });
 
 test("C1.1 refuses a silent deterministic fallback when AI is not configured", async () => {
@@ -114,7 +127,8 @@ test("C1.2 runs ATHENA, TURING and SENECA independently before ORION synthesis",
         recommendation: output.recommendation,
         assumptions: output.assumptions,
         missingEvidence: output.missingEvidence,
-        confidence: output.confidence
+        confidence: output.confidence,
+        decisionMemo: output.decisionMemo
       };
     }
   });
@@ -169,4 +183,55 @@ test("C1.3 rejects debate citations that do not exist in the dossier", async () 
     ),
     /Citation ORION invalide : S99/
   );
+});
+
+test("C1.4 produces a sourced decision memo and rejects an unauditable rationale", async () => {
+  const result = await generateOrionCycle(
+    { objective: "Arbitrer", cognitiveCase, sources, evidence },
+    { runner: { generate: async () => output } }
+  );
+  assert.equal(result.output.decisionMemo.status, "conditional");
+  assert.deepEqual(result.output.decisionMemo.rationale[0]?.agentIds, ["athena", "turing", "seneca"]);
+  await assert.rejects(
+    generateOrionCycle(
+      { objective: "Arbitrer", cognitiveCase, sources, evidence },
+      { runner: { generate: async () => ({
+        ...output,
+        decisionMemo: { ...output.decisionMemo, rationale: [{ ...output.decisionMemo.rationale[0]!, citations: [] }] }
+      }) } }
+    ),
+    /exige une preuve citée/i
+  );
+  await assert.rejects(
+    generateOrionCycle(
+      { objective: "Arbitrer", cognitiveCase, sources, evidence },
+      { runner: { generate: async () => ({
+        ...output,
+        decisionMemo: { ...output.decisionMemo, rationale: [{ ...output.decisionMemo.rationale[0]!, citations: ["S42"] }] }
+      }) } }
+    ),
+    /Citation ORION invalide : S42/
+  );
+});
+
+test("C1.4 allows ORION to hold a decision honestly when the dossier has no evidence", async () => {
+  const heldOutput: OrionGeneratedCycle = {
+    ...output,
+    recommendation: null,
+    confidence: 20,
+    contributions: output.contributions.map((item) => ({ ...item, citations: [] })),
+    debates: output.debates.map((item) => ({ ...item, objectionCitations: [], responseCitations: [] })),
+    decisionMemo: {
+      status: "hold",
+      rationale: [{ claim: "Aucune preuve exploitable ne permet encore d'arbitrer le lancement du pilote.", citations: [], agentIds: ["seneca"] }],
+      conditions: ["Ajouter une mesure vérifiée du délai de reprise avant de relancer le cycle."],
+      confidenceExplanation: "La confiance est faible car le dossier ne contient aucune preuve exploitable."
+    }
+  };
+  const result = await generateOrionCycle(
+    { objective: "Arbitrer", cognitiveCase, sources: [], evidence: [] },
+    { runner: { generate: async () => heldOutput } }
+  );
+  assert.equal(result.output.decisionMemo.status, "hold");
+  assert.deepEqual(result.trace.evidenceManifest, []);
 });
