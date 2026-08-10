@@ -15,12 +15,21 @@ test("startup CEO guide is persistent, replayable and mobile accessible", () => 
   assert.match(guide, /executiveos:ceo-guide:v1/);
   assert.match(guide, /executiveos:show-guide/);
   assert.match(guide, /Guide du dirigeant/);
-  assert.match(home, /Ouvrir le guide/);
+  assert.match(home, /Ouvrir l’aide et le glossaire/);
 });
 
 test("primary navigation contains contextual help", () => {
   assert.match(home, /InfoTip/);
   assert.match(guide, /role="tooltip"/);
+});
+
+test("help center documents both profiles and business vocabulary", () => {
+  assert.match(guide, /Aide ExecutiveOS/);
+  assert.match(guide, /Glossaire/);
+  assert.match(guide, /Décision à rouvrir/);
+  assert.match(guide, /Calibration/);
+  assert.match(home, /Aide & glossaire/);
+  assert.match(home, /Ouvrir l’aide et le glossaire/);
 });
 
 test("executive and investor profiles are separate and persistent", () => {
