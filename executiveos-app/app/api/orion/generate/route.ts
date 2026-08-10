@@ -1,7 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import {
   generateOrionCycle,
-  isOrionAIRuntimeConfigured,
+  probeOrionAIRuntime,
   OrionAIRuntimeUnavailableError,
   type OrionAIGenerationInput
 } from "@/lib/orion-ai-runtime";
@@ -12,8 +12,8 @@ export const maxDuration = 60;
 const headers = { "Cache-Control": "private, no-store" };
 const json = (body: unknown, status = 200) => Response.json(body, { status, headers });
 
-export function GET() {
-  return json({ configured: isOrionAIRuntimeConfigured(), runtime: "ai_gateway" });
+export async function GET() {
+  return json({ configured: await probeOrionAIRuntime(), runtime: "ai_gateway" });
 }
 
 export async function POST(request: Request) {
