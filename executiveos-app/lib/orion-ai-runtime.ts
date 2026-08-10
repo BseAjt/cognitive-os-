@@ -1,4 +1,4 @@
-import { Output, ToolLoopAgent } from "ai";
+import { gateway, Output, ToolLoopAgent } from "ai";
 import { z } from "zod";
 import type { CognitiveCase, ContextEvidenceRecord, ContextSourceRecord } from "../domain/canonical.ts";
 
@@ -50,7 +50,23 @@ export class OrionAIRuntimeUnavailableError extends Error {
 }
 
 export function isOrionAIRuntimeConfigured(env: NodeJS.ProcessEnv = process.env): boolean {
-  return Boolean(env.AI_GATEWAY_API_KEY || env.VERCEL_OIDC_TOKEN);
+  // On Vercel, OIDC is delivered in the request context (`x-vercel-oidc-token`)
+  // and is resolved lazily by @vercel/oidc. It is therefore not guaranteed to
+  // exist in process.env even though the Gateway is correctly configured.
+  return Boolean(env.AI_GATEWAY_API_KEY || env.VERCEL_OIDC_TOKEN || env.VERCEL);
+}
+
+export async function probeOrionAIRuntime(
+  options: { env?: NodeJS.ProcessEnv; probe?: () => Promise<unknown> } = {}
+): Promise<boolean> {
+  if (!isOrionAIRuntimeConfigured(options.env)) return false;
+
+  try {
+    await (options.probe ?? (() => gateway.getAvailableModels()))();
+    return true;
+  } catch {
+    return false;
+  }
 }
 
 export function createOrionGenerationRunner(model = process.env.ORION_AI_MODEL ?? DEFAULT_ORION_MODEL): OrionGenerationRunner {
