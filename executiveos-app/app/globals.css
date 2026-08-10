@@ -3,19 +3,19 @@
 
 :root {
   color-scheme: light;
-  --background: #f5f3ee;
-  --panel: rgba(255, 255, 252, .82);
+  --background: #f2f0ea;
+  --panel: rgba(255, 255, 252, .94);
   --panel-solid: #fffefa;
-  --panel-soft: #efede7;
-  --border: rgba(31, 35, 40, .10);
-  --border-strong: rgba(31, 35, 40, .16);
-  --text: #1d1d1f;
-  --muted: #6e6e73;
-  --accent: #0071e3;
-  --accent-soft: rgba(0, 113, 227, .09);
-  --green: #248a3d;
-  --amber: #a05a00;
-  --red: #d70015;
+  --panel-soft: #e9e6df;
+  --border: rgba(24, 28, 33, .17);
+  --border-strong: rgba(24, 28, 33, .28);
+  --text: #15171a;
+  --muted: #55585e;
+  --accent: #0568c9;
+  --accent-soft: rgba(5, 104, 201, .12);
+  --green: #187a32;
+  --amber: #8b4b00;
+  --red: #c50014;
 }
 
 * { box-sizing: border-box; }
@@ -25,7 +25,7 @@ body {
   color: var(--text);
   background:
     radial-gradient(circle at 82% -8%, rgba(255,255,255,.96), transparent 34%),
-    radial-gradient(circle at 12% 8%, rgba(227,223,212,.55), transparent 28%),
+    radial-gradient(circle at 12% 8%, rgba(218,213,201,.7), transparent 28%),
     var(--background);
   font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", Inter, ui-sans-serif, system-ui, sans-serif;
   -webkit-font-smoothing: antialiased;
@@ -41,13 +41,14 @@ button:focus-visible, a:focus-visible, input:focus-visible, textarea:focus-visib
   border: 1px solid var(--border);
   background: var(--panel);
   border-radius: 24px;
-  box-shadow: 0 1px 1px rgba(0,0,0,.02), 0 14px 40px rgba(36,32,24,.045);
+  box-shadow: 0 1px 2px rgba(20,23,26,.06), 0 14px 40px rgba(36,32,24,.07);
   backdrop-filter: blur(24px) saturate(135%);
 }
 .executive-button { border-radius: 980px; padding: 10px 16px; font-weight: 650; cursor: pointer; }
 .executive-primary { border: 0; color: white; background: #0071e3; box-shadow: 0 4px 14px rgba(0,113,227,.18); }
 .executive-primary:hover { background: #0077ed; transform: translateY(-1px); }
-.executive-ghost { border: 1px solid var(--border); color: #424245; background: rgba(255,255,255,.66); }
+.executive-ghost { border: 1px solid var(--border-strong); color: #303338; background: rgba(255,255,255,.88); }
+.executive-ghost:hover { border-color: rgba(5,104,201,.4); background: #fff; color: #15171a; }
 
 /* ExecutiveOS light material system. These mappings also restyle the legacy
    runtime panels so every cognitive module shares one visual language. */
@@ -59,14 +60,14 @@ button:focus-visible, a:focus-visible, input:focus-visible, textarea:focus-visib
 [class*="bg-[#101b2f]"],
 [class*="bg-[#111c30]"],
 [class*="bg-[#16243c]"] { background-color: var(--panel) !important; }
-[class*="bg-white/[.025]"], [class*="bg-white/[.03]"], [class*="bg-white/[.04]"], [class*="bg-white/[.05]"] { background-color: rgba(255,255,255,.56) !important; }
-[class*="bg-white/[.06]"], [class*="bg-white/[.08]"] { background-color: rgba(29,29,31,.055) !important; }
+[class*="bg-white/[.025]"], [class*="bg-white/[.03]"], [class*="bg-white/[.04]"], [class*="bg-white/[.05]"] { background-color: rgba(255,255,255,.86) !important; }
+[class*="bg-white/[.06]"], [class*="bg-white/[.08]"] { background-color: rgba(24,28,33,.075) !important; }
 [class*="border-white/"] { border-color: var(--border) !important; }
 [class*="text-white"] { color: var(--text); }
-[class*="text-[#f4f7fb]"], [class*="text-[#e8edf6]"], [class*="text-[#d6dfed]"] { color: #2c2c2e !important; }
-[class*="text-[#c8c0ff]"], [class*="text-[#c5baff]"], [class*="text-[#bfb2ff]"], [class*="text-[#b7a9ff]"], [class*="text-[#9d83ff]"], [class*="text-[#8d7ce4]"] { color: #0066cc !important; }
+[class*="text-[#f4f7fb]"], [class*="text-[#e8edf6]"], [class*="text-[#d6dfed]"] { color: #202328 !important; }
+[class*="text-[#c8c0ff]"], [class*="text-[#c5baff]"], [class*="text-[#bfb2ff]"], [class*="text-[#b7a9ff]"], [class*="text-[#9d83ff]"], [class*="text-[#8d7ce4]"] { color: #075eae !important; }
 [class*="text-[#a9b7ca]"], [class*="text-[#aab7ca]"], [class*="text-[#a5b4c9]"], [class*="text-[#91a2bd]"], [class*="text-[#8393ad]"], [class*="text-[#8294af]"], [class*="text-[#7c92b2]"], [class*="text-[#71839e]"], [class*="text-[#6f819e]"], [class*="text-[#667995]"], [class*="text-[#65758f]"] { color: var(--muted) !important; }
-[class*="placeholder:text-[#52647f]"]::placeholder, [class*="placeholder:text-[#65758f]"]::placeholder { color: #98989d !important; }
+[class*="placeholder:text-[#52647f]"]::placeholder, [class*="placeholder:text-[#65758f]"]::placeholder { color: #6f737a !important; opacity: 1; }
 [class*="bg-[#7c5cff]"], [class*="bg-[#6b49df]"] { background-color: var(--accent) !important; color: #fff !important; }
 [class*="border-[#7c5cff]"] { border-color: rgba(0,113,227,.28) !important; }
 [class*="bg-[#7c5cff]/10"], [class*="bg-[#7c5cff]/20"] { background-color: var(--accent-soft) !important; }
@@ -74,13 +75,13 @@ button:focus-visible, a:focus-visible, input:focus-visible, textarea:focus-visib
 [class*="to-[#42d59d]"], [class*="to-[#5b39e7]"], [class*="to-[#8b73ef]"] { --tw-gradient-to: #34aadc var(--tw-gradient-to-position) !important; }
 [class*="bg-gradient-to-br"][class*="from-[#9b82ff]"] { color: #fff !important; box-shadow: 0 6px 18px rgba(0,113,227,.2); }
 [class*="bg-[linear-gradient(135deg,rgba(124,92,255,.12),rgba(13,25,43,.94))]"] {
-  background: linear-gradient(145deg, rgba(255,255,255,.94), rgba(234,241,248,.76)) !important;
+  background: linear-gradient(145deg, #fff, rgba(226,237,247,.92)) !important;
 }
 
-aside[class*="border-r"] { background: rgba(247,245,240,.78) !important; border-color: var(--border) !important; backdrop-filter: blur(28px) saturate(145%); }
-header[class*="sticky"] { background: rgba(245,243,238,.78) !important; border-color: var(--border) !important; }
-article, [class*="rounded-[26px]"], [class*="rounded-[28px]"] { box-shadow: 0 1px 1px rgba(0,0,0,.018), 0 12px 34px rgba(36,32,24,.04); }
-input, textarea, select { color: var(--text); caret-color: var(--accent); }
+aside[class*="border-r"] { background: rgba(245,243,237,.94) !important; border-color: var(--border) !important; backdrop-filter: blur(28px) saturate(145%); }
+header[class*="sticky"] { background: rgba(242,240,234,.94) !important; border-color: var(--border) !important; }
+article, [class*="rounded-[26px]"], [class*="rounded-[28px]"] { box-shadow: 0 1px 2px rgba(20,23,26,.055), 0 12px 34px rgba(36,32,24,.065); }
+input, textarea, select { color: var(--text); caret-color: var(--accent); border-color: var(--border-strong) !important; background-color: rgba(255,255,255,.94) !important; }
 
 @media (max-width: 1023px) {
   body { background-attachment: fixed; }
