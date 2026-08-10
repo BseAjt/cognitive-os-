@@ -113,7 +113,15 @@ export function OrionCyclesDock() {
   }
 
   if (!active) return null;
-  if (!open) return <button onClick={() => setOpen(true)} className="fixed left-4 top-20 z-40 max-w-[calc(100vw-2rem)] rounded-xl border border-[#42d59d]/35 bg-[#0d2020]/95 px-4 py-3 text-sm font-semibold text-[#9de7cd] shadow-2xl backdrop-blur lg:bottom-4 lg:top-auto">↻ Cycles ORION · {cycles.length}</button>;
+  if (!open) return <button
+    onClick={() => setOpen(true)}
+    aria-label={`Ouvrir Cycles ORION · ${cycles.length}`}
+    className="group fixed bottom-[calc(1rem+env(safe-area-inset-bottom))] left-4 z-40 flex h-12 items-center gap-2 rounded-full border border-black/[.09] bg-[#fffefa]/95 pl-2 pr-3 text-xs font-semibold text-[#242426] shadow-[0_10px_30px_rgba(35,35,40,.14)] backdrop-blur-xl transition hover:-translate-y-0.5 hover:border-[#0071e3]/30 lg:bottom-4"
+  >
+    <span aria-hidden="true" className="grid size-8 place-items-center rounded-full bg-[#e8f3ff] text-base text-[#0066cc] transition group-hover:bg-[#d8ebff]">↻</span>
+    <span>ORION</span>
+    <span className="grid min-w-5 place-items-center rounded-full bg-[#f0f0ee] px-1.5 py-0.5 text-[10px] tabular-nums text-[#5e5e62]">{cycles.length}</span>
+  </button>;
 
   return <aside role="dialog" aria-modal="true" aria-label="Cycles ORION" className="fixed inset-3 z-50 max-h-[calc(100dvh-1.5rem)] w-auto overflow-auto overscroll-contain rounded-[24px] sm:inset-auto sm:bottom-5 sm:left-5 sm:max-h-[84vh] sm:w-[min(640px,calc(100vw-2rem))] border border-[#42d59d]/30 bg-[#081823]/95 p-4 shadow-2xl backdrop-blur-xl">
     <div className="flex items-start justify-between gap-3">
