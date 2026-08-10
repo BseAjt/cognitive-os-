@@ -12,6 +12,11 @@ const contributionSchema = z.object({
   citations: z.array(z.string().min(1).max(30)).max(8)
 });
 
+const specialistOutputSchema = contributionSchema.omit({ agentId: true });
+
+export type OrionSpecialistId = z.infer<typeof contributionSchema>["agentId"];
+export type OrionSpecialistOutput = z.infer<typeof specialistOutputSchema>;
+
 export const orionGenerationSchema = z.object({
   synthesis: z.string().min(30).max(4_000),
   recommendation: z.string().min(20).max(2_000).nullable(),
@@ -20,6 +25,8 @@ export const orionGenerationSchema = z.object({
   missingEvidence: z.array(z.string().min(5).max(500)).max(12),
   confidence: z.number().int().min(0).max(100)
 });
+
+const synthesisOutputSchema = orionGenerationSchema.omit({ contributions: true });
 
 export type OrionGeneratedCycle = z.infer<typeof orionGenerationSchema>;
 
@@ -40,6 +47,11 @@ export interface OrionAIGenerationResult {
 
 export interface OrionGenerationRunner {
   generate(input: OrionAIGenerationInput): Promise<OrionGeneratedCycle>;
+}
+
+export interface OrionSpecialistRunner {
+  analyze(agentId: OrionSpecialistId, input: OrionAIGenerationInput): Promise<OrionSpecialistOutput>;
+  synthesize(input: OrionAIGenerationInput, contributions: OrionGeneratedCycle["contributions"]): Promise<Omit<OrionGeneratedCycle, "contributions">>;
 }
 
 export class OrionAIRuntimeUnavailableError extends Error {
@@ -69,23 +81,78 @@ export async function probeOrionAIRuntime(
   }
 }
 
-export function createOrionGenerationRunner(model = process.env.ORION_AI_MODEL ?? DEFAULT_ORION_MODEL): OrionGenerationRunner {
-  const agent = new ToolLoopAgent({
+export function createOrionGenerationRunner(
+  model = process.env.ORION_AI_MODEL ?? DEFAULT_ORION_MODEL,
+  specialistRunner: OrionSpecialistRunner = createOrionSpecialistRunner(model)
+): OrionGenerationRunner {
+  const runner = specialistRunner;
+  return {
+    async generate(input) {
+      const contributions = await Promise.all(
+        (["athena", "turing", "seneca"] as const).map(async (agentId) => ({ agentId, ...await runner.analyze(agentId, input) }))
+      );
+      return { ...await runner.synthesize(input, contributions), contributions };
+    }
+  };
+}
+
+const SPECIALIST_INSTRUCTIONS: Record<OrionSpecialistId, string[]> = {
+  athena: [
+    "Tu es ATHENA, Chief Strategy Officer d'ExecutiveOS.",
+    "Évalue l'alignement stratégique, les options, les arbitrages et l'avantage durable.",
+    "Ne traite la technique et les risques que lorsqu'ils modifient la décision stratégique."
+  ],
+  turing: [
+    "Tu es TURING, Chief Technology Officer d'ExecutiveOS.",
+    "Évalue la faisabilité, les dépendances, l'architecture, les critères de sortie et le chemin d'exécution.",
+    "Transforme les inconnues techniques en validations observables."
+  ],
+  seneca: [
+    "Tu es SENECA, Chief Reflection Officer d'ExecutiveOS.",
+    "Cherche les hypothèses fragiles, contradictions, biais, effets de second ordre et conditions de réversibilité.",
+    "Formule un désaccord réel lorsque les preuves ne justifient pas l'engagement."
+  ]
+};
+
+export function createOrionSpecialistRunner(model = process.env.ORION_AI_MODEL ?? DEFAULT_ORION_MODEL): OrionSpecialistRunner {
+  const createSpecialist = (agentId: OrionSpecialistId) => new ToolLoopAgent({
+    model,
+    instructions: [
+      ...SPECIALIST_INSTRUCTIONS[agentId],
+      "Tu réponds en français, de façon concise et exploitable.",
+      "Tu n'inventes aucune preuve et tu cites uniquement les identifiants S1, S2, etc. réellement fournis.",
+      "Une incertitude importante réduit ta confiance et conduit à une position conditionnelle ou challenge."
+    ].join(" "),
+    output: Output.object({ schema: specialistOutputSchema })
+  });
+  const specialists = {
+    athena: createSpecialist("athena"),
+    turing: createSpecialist("turing"),
+    seneca: createSpecialist("seneca")
+  };
+
+  const orchestrator = new ToolLoopAgent({
     model,
     instructions: [
       "Tu es ORION, orchestrateur exécutif d'ExecutiveOS.",
-      "Tu produis une analyse décisionnelle concise, contradictoire et exploitable en français.",
+      "Tu synthétises des contributions spécialisées déjà produites sans les remplacer ni masquer leurs désaccords.",
+      "Tu produis une synthèse décisionnelle concise, contradictoire et exploitable en français.",
       "Tu n'inventes jamais de preuve : cite uniquement les identifiants fournis.",
-      "ATHENA traite la stratégie, TURING la faisabilité et SENECA les risques.",
       "Une recommandation doit rester nulle lorsque les preuves sont insuffisantes.",
       "Toute incertitude devient une hypothèse ou une preuve manquante explicite."
     ].join(" "),
-    output: Output.object({ schema: orionGenerationSchema })
+    output: Output.object({ schema: synthesisOutputSchema })
   });
 
   return {
-    async generate(input) {
-      const { output } = await agent.generate({ prompt: buildOrionPrompt(input) });
+    async analyze(agentId, input) {
+      const { output } = await specialists[agentId].generate({ prompt: buildOrionPrompt(input) });
+      return output;
+    },
+    async synthesize(input, contributions) {
+      const { output } = await orchestrator.generate({
+        prompt: JSON.stringify({ context: JSON.parse(buildOrionPrompt(input)), specialistContributions: contributions })
+      });
       return output;
     }
   };
@@ -103,6 +170,7 @@ export async function generateOrionCycle(
   const startedAt = now();
   const model = options.model ?? process.env.ORION_AI_MODEL ?? DEFAULT_ORION_MODEL;
   const output = orionGenerationSchema.parse(await (options.runner ?? createOrionGenerationRunner(model)).generate({ ...input, objective }));
+  validateOrionCitations(output, input);
   const completedAt = now();
 
   return {
@@ -112,6 +180,21 @@ export async function generateOrionCycle(
     generatedAt: completedAt.toISOString(),
     durationMs: Math.max(0, completedAt.getTime() - startedAt.getTime())
   };
+}
+
+function validateOrionCitations(output: OrionGeneratedCycle, input: OrionAIGenerationInput): void {
+  const scopedSources = input.sources.filter((source) => source.caseId === input.cognitiveCase.id && source.status === "ready");
+  const sourceIds = new Set(scopedSources.map((source) => source.id));
+  const allowed = new Set(
+    input.evidence
+      .filter((item) => item.caseId === input.cognitiveCase.id && sourceIds.has(item.sourceId))
+      .slice(0, 20)
+      .map((_, index) => `S${index + 1}`)
+  );
+  for (const contribution of output.contributions) {
+    const invalid = contribution.citations.find((citation) => !allowed.has(citation));
+    if (invalid) throw new Error(`Citation ORION invalide : ${invalid}`);
+  }
 }
 
 function buildOrionPrompt(input: OrionAIGenerationInput): string {

@@ -3,6 +3,7 @@ import assert from "node:assert/strict";
 import type { CognitiveCase, ContextEvidenceRecord, ContextSourceRecord } from "../domain/canonical.ts";
 import {
   DEFAULT_ORION_MODEL,
+  createOrionGenerationRunner,
   generateOrionCycle,
   isOrionAIRuntimeConfigured,
   OrionAIRuntimeUnavailableError,
@@ -75,5 +76,48 @@ test("C1.1 validates the model output contract", async () => {
       { runner: { generate: async () => ({ ...output, confidence: 140 }) as OrionGeneratedCycle } }
     ),
     /Too big|less than or equal to 100/i
+  );
+});
+
+test("C1.2 runs ATHENA, TURING and SENECA independently before ORION synthesis", async () => {
+  const started: string[] = [];
+  let release!: () => void;
+  const gate = new Promise<void>((resolve) => { release = resolve; });
+  let calls = 0;
+  const runner = createOrionGenerationRunner(DEFAULT_ORION_MODEL, {
+    async analyze(agentId) {
+      started.push(agentId);
+      calls += 1;
+      if (calls === 3) release();
+      await gate;
+      return output.contributions.find((item) => item.agentId === agentId)!;
+    },
+    async synthesize(input, contributions) {
+      assert.equal(input.objective, "Arbitrer le pilote");
+      assert.deepEqual(contributions.map((item) => item.agentId), ["athena", "turing", "seneca"]);
+      return {
+        synthesis: output.synthesis,
+        recommendation: output.recommendation,
+        assumptions: output.assumptions,
+        missingEvidence: output.missingEvidence,
+        confidence: output.confidence
+      };
+    }
+  });
+
+  assert.deepEqual(await runner.generate({ objective: "Arbitrer le pilote", cognitiveCase, sources, evidence }), output);
+  assert.deepEqual(started.sort(), ["athena", "seneca", "turing"]);
+});
+
+test("C1.2 rejects specialist citations that do not exist in the dossier", async () => {
+  await assert.rejects(
+    generateOrionCycle(
+      { objective: "Arbitrer", cognitiveCase, sources, evidence },
+      { runner: { generate: async () => ({
+        ...output,
+        contributions: output.contributions.map((item, index) => index === 0 ? { ...item, citations: ["S99"] } : item)
+      }) } }
+    ),
+    /Citation ORION invalide : S99/
   );
 });
