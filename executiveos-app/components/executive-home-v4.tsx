@@ -9,7 +9,7 @@ import { InvestorDemoDashboard } from "@/components/investor-demo-dashboard";
 import { CollaborationPanel } from "@/components/collaboration-panel";
 import { ProductControlCenter } from "@/components/product-control-center";
 import { StrategyStudio } from "@/components/strategy-studio";
-import { ExecutiveGuide, InfoTip } from "@/components/executive-guide";
+import { ExecutiveGuide, InfoTip, InvestorGuide } from "@/components/executive-guide";
 import { buildCognitiveRecall } from "@/lib/cognitive-recall";
 import { buildExecutiveCaseBrief } from "@/lib/executive-brief";
 import { buildCaseJourney, resolveEventDestination } from "@/lib/outcome-navigation";
@@ -18,6 +18,7 @@ import { useExecutiveStore } from "@/store/executive-store";
 import type { CognitiveCase, CognitiveEventRecord } from "@/domain/canonical";
 
 type ShellView = "dossiers" | "case" | "settings";
+type UserProfile = "executive" | "investor";
 type WorkspaceSection = "overview" | "context" | "strategy" | "analysis" | "execution" | "learning" | "history";
 
 const WORKSPACE_SECTIONS: Array<{ id: WorkspaceSection; label: string; help: string }> = [
@@ -36,7 +37,20 @@ export function ExecutiveHomeV4() {
   const [shell, setShell] = useState<ShellView>("dossiers");
   const [prompt, setPrompt] = useState("");
   const [search, setSearch] = useState("");
+  const [profile, setProfile] = useState<UserProfile>("executive");
   const activeCase = store.cases.find((item) => item.id === store.activeCaseId) ?? store.cases[0];
+
+  useEffect(() => {
+    const saved = window.localStorage.getItem("executiveos:user-profile:v1");
+    if (saved === "investor" || saved === "executive") setProfile(saved);
+  }, []);
+
+  function changeProfile(next: UserProfile) {
+    setProfile(next);
+    setShell("dossiers");
+    window.localStorage.setItem("executiveos:user-profile:v1", next);
+    if (next === "investor" && store.demoMode !== "investor") store.loadInvestorDemo();
+  }
 
   function openCase(id: string) {
     store.setActiveCase(id);
@@ -89,15 +103,16 @@ export function ExecutiveHomeV4() {
   }
 
   return <div className="min-h-screen overflow-x-hidden bg-[#07111f] text-white lg:grid lg:grid-cols-[238px_minmax(0,1fr)]">
-    <ExecutiveGuide />
+    {profile === "executive" ? <ExecutiveGuide /> : <InvestorGuide />}
     <aside className="sticky top-0 hidden h-screen flex-col border-r border-white/[.07] bg-[#091321] px-4 py-5 lg:flex">
       <button onClick={() => setShell("dossiers")} className="mb-8 flex items-center gap-3 px-2 text-left">
         <span className="grid size-10 place-items-center rounded-[14px] bg-gradient-to-br from-[#9b82ff] to-[#5b39e7] text-sm font-black">EO</span>
-        <span><strong className="block text-[15px]">ExecutiveOS</strong><span className="text-[10px] uppercase tracking-[.12em] text-[#6f819e]">Cognitive OS</span></span>
+        <span><strong className="block text-[15px]">ExecutiveOS</strong><span className="text-[10px] uppercase tracking-[.12em] text-[#6f819e]">{profile === "executive" ? "Dirigeant" : "Investisseur"}</span></span>
       </button>
+      <div className="mb-5 grid grid-cols-2 gap-1 rounded-xl border border-white/[.07] bg-black/10 p-1" aria-label="Choisir un profil"><button aria-pressed={profile === "executive"} onClick={() => changeProfile("executive")} className={`rounded-lg px-2 py-2 text-[11px] font-semibold ${profile === "executive" ? "bg-white/10 text-white" : "text-[#71839e]"}`}>Dirigeant</button><button aria-pressed={profile === "investor"} onClick={() => changeProfile("investor")} className={`rounded-lg px-2 py-2 text-[11px] font-semibold ${profile === "investor" ? "bg-white/10 text-white" : "text-[#71839e]"}`}>Investisseur</button></div>
       <nav className="space-y-1">
-        <button onClick={() => setShell("dossiers")} className={`w-full rounded-xl px-3 py-2.5 text-left text-sm ${shell === "dossiers" ? "bg-white/[.08] text-white" : "text-[#8393ad] hover:bg-white/[.04]"}`}>Mes dossiers</button>
-        <button onClick={() => window.dispatchEvent(new CustomEvent("executiveos:show-guide"))} className="w-full rounded-xl px-3 py-2.5 text-left text-sm text-[#8393ad] hover:bg-white/[.04]">Guide de démarrage</button>
+        <button onClick={() => setShell("dossiers")} className={`w-full rounded-xl px-3 py-2.5 text-left text-sm ${shell === "dossiers" ? "bg-white/[.08] text-white" : "text-[#8393ad] hover:bg-white/[.04]"}`}>{profile === "executive" ? "Mes dossiers" : "Mon portefeuille"}</button>
+        <button onClick={() => window.dispatchEvent(new CustomEvent(profile === "executive" ? "executiveos:show-guide" : "executiveos:show-investor-guide"))} className="w-full rounded-xl px-3 py-2.5 text-left text-sm text-[#8393ad] hover:bg-white/[.04]">Guide de démarrage</button>
         <button onClick={() => setShell("settings")} className={`w-full rounded-xl px-3 py-2.5 text-left text-sm ${shell === "settings" ? "bg-white/[.08] text-white" : "text-[#8393ad] hover:bg-white/[.04]"}`}>Paramètres</button>
       </nav>
       {activeCase && <button onClick={() => setShell("case")} className="mt-6 rounded-2xl border border-white/[.07] bg-white/[.025] p-3.5 text-left">
@@ -114,12 +129,12 @@ export function ExecutiveHomeV4() {
           <div className="relative flex min-w-0 flex-1 items-center gap-3 rounded-2xl border border-white/[.08] bg-[#0d192b]/90 px-4 py-3"><span className="text-[#bfb2ff]">⌕</span><input aria-label="Rechercher dans ExecutiveOS" value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Rechercher un dossier, une décision, une action…" className="min-w-0 flex-1 bg-transparent text-sm outline-none placeholder:text-[#65758f]"/>{search && <button aria-label="Effacer la recherche" onClick={() => setSearch("")} className="text-xs text-[#65758f]">Effacer</button>}
           {search.trim().length >= 2 && <div className="absolute left-0 right-0 top-[calc(100%+10px)] z-50 overflow-hidden rounded-2xl border border-white/[.08] bg-[#fffefa] p-2 shadow-2xl">{searchResults.length ? searchResults.map((result) => <button key={result.id} onClick={() => openSearchResult(result.caseId)} className="flex w-full items-start gap-3 rounded-xl p-3 text-left hover:bg-black/[.04]"><span className="mt-0.5 rounded-full bg-[#0071e3]/10 px-2 py-1 text-[9px] font-bold uppercase text-[#0066cc]">{result.kind}</span><span className="min-w-0"><strong className="block truncate text-sm">{result.title}</strong><span className="mt-1 block truncate text-xs text-[#6e6e73]">{result.detail}</span></span></button>) : <div className="p-4 text-sm text-[#6e6e73]">Aucun résultat. Essaie un autre mot-clé.</div>}</div>}</div>
           <div className="hidden min-w-0 flex-[1.25] items-center gap-3 rounded-2xl border border-white/[.08] bg-[#0d192b]/90 px-4 py-3 lg:flex"><span className="text-[#bfb2ff]">✦</span><input value={prompt} onChange={(e) => setPrompt(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter") submit(); }} placeholder={activeCase ? `Demander à ORION pour “${activeCase.title}”…` : "Crée d’abord un dossier"} className="min-w-0 flex-1 bg-transparent text-sm outline-none placeholder:text-[#65758f]"/><button onClick={submit} disabled={!prompt.trim()} className="rounded-lg bg-[#7c5cff] px-3 py-1.5 text-xs font-bold disabled:cursor-not-allowed disabled:opacity-40">ORION</button></div>
-          <div className="flex shrink-0 items-center gap-2 lg:hidden"><button aria-label="Ouvrir le guide" onClick={() => window.dispatchEvent(new CustomEvent("executiveos:show-guide"))} className="grid size-11 place-items-center rounded-2xl border border-white/[.08] bg-white/[.03] text-sm font-bold">?</button><button aria-label="Mes dossiers" onClick={() => setShell("dossiers")} className="grid size-11 place-items-center rounded-2xl border border-white/[.08] bg-white/[.03] text-lg">⌂</button></div><div className="hidden size-11 place-items-center rounded-2xl bg-gradient-to-br from-[#d7cfff] to-[#8b73ef] text-xs font-black text-[#1b1239] sm:grid">SH</div>
+          <div className="flex shrink-0 items-center gap-2 lg:hidden"><button aria-label={`Profil ${profile === "executive" ? "dirigeant" : "investisseur"}. Changer de profil`} onClick={() => changeProfile(profile === "executive" ? "investor" : "executive")} className="min-h-11 rounded-2xl border border-white/[.08] bg-white/[.03] px-3 text-[10px] font-bold">{profile === "executive" ? "CEO" : "INV"}</button><button aria-label="Ouvrir le guide" onClick={() => window.dispatchEvent(new CustomEvent(profile === "executive" ? "executiveos:show-guide" : "executiveos:show-investor-guide"))} className="grid size-11 place-items-center rounded-2xl border border-white/[.08] bg-white/[.03] text-sm font-bold">?</button><button aria-label={profile === "executive" ? "Mes dossiers" : "Mon portefeuille"} onClick={() => setShell("dossiers")} className="grid size-11 place-items-center rounded-2xl border border-white/[.08] bg-white/[.03] text-lg">⌂</button></div><div className="hidden size-11 place-items-center rounded-2xl bg-gradient-to-br from-[#d7cfff] to-[#8b73ef] text-xs font-black text-[#1b1239] sm:grid">SH</div>
         </div>
       </header>
 
       <main className="mx-auto max-w-[1540px] p-4 pb-24 md:p-7 xl:p-9">
-        {shell === "dossiers" && <DossiersHome onOpen={openCase} />}
+        {shell === "dossiers" && (profile === "executive" ? <DossiersHome onOpen={openCase} /> : <InvestorHome onOpen={openCase} />)}
         {shell === "case" && activeCase && <CaseWorkspace cognitiveCase={activeCase} onBack={() => setShell("dossiers")} />}
         {shell === "settings" && <ProductControlCenter />}
       </main>
@@ -161,6 +176,25 @@ function DossiersHome({ onOpen }: { onOpen: (id: string) => void }) {
     <details className="mt-8 rounded-2xl border border-black/10 bg-white/50 p-4"><summary className="cursor-pointer text-sm font-semibold">Voir les données de démonstration</summary><div className="mt-5"><InvestorDemoDashboard onOpenCase={onOpen} /></div></details>
     <button aria-label="Créer un dossier" onClick={() => setCreating(true)} className="fixed bottom-[calc(1rem+env(safe-area-inset-bottom))] right-4 z-40 grid size-14 place-items-center rounded-full bg-[#7c5cff] text-3xl font-light shadow-2xl shadow-black/40 lg:hidden">+</button>
   </section>;
+}
+
+function InvestorHome({ onOpen }: { onOpen: (id: string) => void }) {
+  const store = useExecutiveStore();
+  const reopened = store.decisionWatches.filter((item) => item.status === "reopen").length;
+  const blocked = store.actions.filter((item) => item.status === "blocked").length;
+  const activeProjects = store.projects.filter((item) => item.status === "active" || item.status === "validated").length;
+
+  return <section>
+    <div className="flex flex-col justify-between gap-5 md:flex-row md:items-end"><div><div className="text-[10px] font-black uppercase tracking-[.2em] text-[#7c92b2]">ExecutiveOS · Investor View</div><h1 className="mt-3 text-4xl font-semibold tracking-[-.04em] md:text-5xl">Mon portefeuille</h1><p className="mt-3 max-w-3xl text-lg leading-8 text-[#91a2bd]">Les participations, signaux et engagements qui méritent une décision — sans le bruit du pilotage quotidien.</p></div><button onClick={() => window.dispatchEvent(new CustomEvent("executiveos:show-investor-guide"))} className="min-h-12 rounded-xl border border-white/[.1] bg-white/[.04] px-5 py-3 text-sm font-bold">Comprendre cette vue</button></div>
+    <div className="mt-7 grid gap-3 sm:grid-cols-2 xl:grid-cols-4"><InvestorSignal label="Initiatives suivies" value={store.projects.length} detail={`${activeProjects} actives ou validées`} tone="neutral"/><InvestorSignal label="Décisions à rouvrir" value={reopened} detail="Hypothèses fragilisées" tone={reopened ? "alert" : "good"}/><InvestorSignal label="Blocages critiques" value={blocked} detail="Exécution à débloquer" tone={blocked ? "watch" : "good"}/><InvestorSignal label="Sociétés / dossiers" value={store.cases.length} detail="Trajectoires documentées" tone="neutral"/></div>
+    <div className="mt-7 rounded-[30px] bg-[#fffefa] p-4 text-[#1d1d1f] shadow-2xl shadow-black/10 md:p-6"><InvestorDemoDashboard onOpenCase={onOpen}/></div>
+    <p className="mt-4 text-xs leading-5 text-[#71839e]">Vue investisseur distincte : les chiffres de démonstration sont fictifs et identifiés comme tels. Une future connexion aux participations devra respecter les droits de partage définis par chaque dirigeant.</p>
+  </section>;
+}
+
+function InvestorSignal({ label, value, detail, tone }: { label: string; value: number; detail: string; tone: "neutral" | "good" | "watch" | "alert" }) {
+  const color = tone === "alert" ? "text-[#ff8793]" : tone === "watch" ? "text-[#ffd895]" : tone === "good" ? "text-[#7de5bd]" : "text-[#c8c0ff]";
+  return <article className="rounded-[22px] border border-white/[.08] bg-[#0d192b]/88 p-5"><span className="text-[10px] font-black uppercase tracking-[.14em] text-[#71839e]">{label}</span><strong className={`mt-3 block text-4xl tracking-[-.04em] ${color}`}>{value}</strong><span className="mt-2 block text-xs text-[#91a2bd]">{detail}</span></article>;
 }
 
 function DossierCard({ item, onOpen }: { item: CognitiveCase; onOpen: () => void }) {

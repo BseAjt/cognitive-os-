@@ -22,3 +22,12 @@ test("primary navigation contains contextual help", () => {
   assert.match(home, /InfoTip/);
   assert.match(guide, /role="tooltip"/);
 });
+
+test("executive and investor profiles are separate and persistent", () => {
+  assert.match(home, /type UserProfile = "executive" \| "investor"/);
+  assert.match(home, /executiveos:user-profile:v1/);
+  assert.match(home, /Mon portefeuille/);
+  assert.match(home, /InvestorHome/);
+  assert.match(guide, /Guide de l’investisseur/);
+  assert.match(guide, /executiveos:investor-guide:v1/);
+});
