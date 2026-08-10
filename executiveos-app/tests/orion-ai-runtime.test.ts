@@ -4,6 +4,7 @@ import type { CognitiveCase, ContextEvidenceRecord, ContextSourceRecord } from "
 import {
   DEFAULT_ORION_MODEL,
   createOrionGenerationRunner,
+  generateOrionContinuityCycle,
   generateOrionCycle,
   isOrionAIRuntimeConfigured,
   OrionAIRuntimeUnavailableError,
@@ -101,79 +102,23 @@ test("C1.1 validates the model output contract", async () => {
   );
 });
 
-test("C1.2 runs ATHENA, TURING and SENECA independently before ORION synthesis", async () => {
-  const started: string[] = [];
-  let release!: () => void;
-  const gate = new Promise<void>((resolve) => { release = resolve; });
+test("C1.2 condenses the complete ATHENA, TURING, SENECA and ORION council into one generation", async () => {
   let calls = 0;
-  const runner = createOrionGenerationRunner(DEFAULT_ORION_MODEL, {
-    async analyze(agentId) {
-      started.push(agentId);
-      calls += 1;
-      if (calls === 3) release();
-      await gate;
-      return output.contributions.find((item) => item.agentId === agentId)!;
-    },
-    async challenge(agentId, _input, target) {
-      const debate = output.debates.find((item) => item.criticId === agentId && item.targetId === target.agentId)!;
-      return { objection: debate.objection, citations: debate.objectionCitations };
-    },
-    async respond(agentId, _input, objection) {
-      const debate = output.debates.find((item) => item.targetId === agentId && item.criticId === objection.criticId)!;
-      return { response: debate.response, citations: debate.responseCitations, resolution: debate.resolution, unresolvedPoint: debate.unresolvedPoint };
-    },
-    async synthesize(input, contributions, debates) {
-      assert.equal(input.objective, "Arbitrer le pilote");
-      assert.deepEqual(contributions.map((item) => item.agentId), ["athena", "turing", "seneca"]);
-      assert.deepEqual(debates, output.debates);
-      return {
-        synthesis: output.synthesis,
-        recommendation: output.recommendation,
-        assumptions: output.assumptions,
-        missingEvidence: output.missingEvidence,
-        confidence: output.confidence,
-        decisionMemo: output.decisionMemo
-      };
-    }
-  });
-
-  assert.deepEqual(await runner.generate({ objective: "Arbitrer le pilote", cognitiveCase, sources, evidence }), output);
-  assert.deepEqual(started.sort(), ["athena", "seneca", "turing"]);
+  const runner = createOrionGenerationRunner(DEFAULT_ORION_MODEL, { async generate(input) { calls += 1; assert.equal(input.objective, "Arbitrer le pilote"); return output; } });
+  const generated = await runner.generate({ objective: "Arbitrer le pilote", cognitiveCase, sources, evidence });
+  assert.equal(calls, 1);
+  assert.deepEqual(generated.contributions.map((item) => item.agentId), ["athena", "turing", "seneca"]);
+  assert.deepEqual(generated.debates.map(({ criticId, targetId }) => `${criticId}->${targetId}`), ["athena->turing", "turing->seneca", "seneca->athena"]);
 });
 
-test("C1.3 makes every specialist challenge and answer another specialist before synthesis", async () => {
-  const events: string[] = [];
-  const runner = createOrionGenerationRunner(DEFAULT_ORION_MODEL, {
-    async analyze(agentId) {
-      events.push(`analysis:${agentId}`);
-      return output.contributions.find((item) => item.agentId === agentId)!;
-    },
-    async challenge(agentId, _input, target) {
-      assert.equal(events.filter((event) => event.startsWith("analysis:")).length, 3);
-      events.push(`challenge:${agentId}->${target.agentId}`);
-      const debate = output.debates.find((item) => item.criticId === agentId)!;
-      return { objection: debate.objection, citations: debate.objectionCitations };
-    },
-    async respond(agentId, _input, objection) {
-      assert.equal(events.filter((event) => event.startsWith("challenge:")).length, 3);
-      events.push(`response:${agentId}<-${objection.criticId}`);
-      const debate = output.debates.find((item) => item.targetId === agentId)!;
-      return { response: debate.response, citations: debate.responseCitations, resolution: debate.resolution, unresolvedPoint: debate.unresolvedPoint };
-    },
-    async synthesize(_input, specialistContributions, debates) {
-      assert.equal(specialistContributions.length, 3);
-      assert.equal(events.filter((event) => event.startsWith("response:")).length, 3);
-      assert.deepEqual(debates.map(({ criticId, targetId }) => `${criticId}->${targetId}`), ["athena->turing", "turing->seneca", "seneca->athena"]);
-      events.push("synthesis:orion");
-      const { contributions: omittedContributions, debates: omittedDebates, ...synthesis } = output;
-      assert.equal(omittedContributions.length, 3);
-      assert.equal(omittedDebates.length, 3);
-      return synthesis;
-    }
-  });
-
-  assert.deepEqual(await runner.generate({ objective: "Arbitrer le pilote", cognitiveCase, sources, evidence }), output);
-  assert.equal(events.at(-1), "synthesis:orion");
+test("C1.3 continuity mode produces a complete actionable cycle when the gateway is rate limited", () => {
+  const result = generateOrionContinuityCycle({ objective: "Arbitrer le pilote", cognitiveCase, sources, evidence }, "rate_limited", { now: () => new Date("2026-08-10T15:00:00.000Z") });
+  assert.equal(result.runtime, "continuity_fallback");
+  assert.equal(result.degraded?.reason, "rate_limited");
+  assert.equal(result.output.contributions.length, 3);
+  assert.equal(result.output.debates.length, 3);
+  assert.equal(result.output.decisionMemo.status, "conditional");
+  assert.ok(result.output.recommendation);
 });
 
 test("C1.3 rejects debate citations that do not exist in the dossier", async () => {
