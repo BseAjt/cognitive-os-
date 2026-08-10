@@ -1,6 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import {
   generateOrionCycle,
+  generateOrionContinuityCycle,
   probeOrionAIRuntime,
   OrionAIRuntimeUnavailableError,
   type OrionAIGenerationInput
@@ -32,7 +33,9 @@ export async function POST(request: Request) {
     return json(await generateOrionCycle(input));
   } catch (error) {
     if (error instanceof OrionAIRuntimeUnavailableError) return json({ error: "ai_runtime_not_configured" }, 503);
-    console.error("ORION_AI_GENERATION_FAILED", { caseId: input.cognitiveCase.id, error });
-    return json({ error: "orion_generation_failed" }, 502);
+    const status = typeof error === "object" && error && "statusCode" in error ? Number(error.statusCode) : undefined;
+    const reason = status === 429 ? "rate_limited" : status === 402 ? "budget_exhausted" : status === 503 ? "provider_unavailable" : "generation_failed";
+    console.error("ORION_AI_GENERATION_DEGRADED", { caseId: input.cognitiveCase.id, status, reason, error });
+    return json(generateOrionContinuityCycle(input, reason));
   }
 }
