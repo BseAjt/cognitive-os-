@@ -6,6 +6,7 @@ import {
   generateOrionCycle,
   isOrionAIRuntimeConfigured,
   OrionAIRuntimeUnavailableError,
+  probeOrionAIRuntime,
   type OrionGeneratedCycle
 } from "../lib/orion-ai-runtime.ts";
 
@@ -36,7 +37,16 @@ const output: OrionGeneratedCycle = {
 test("C1.1 detects AI Gateway and Vercel OIDC configuration", () => {
   assert.equal(isOrionAIRuntimeConfigured({ AI_GATEWAY_API_KEY: "key" }), true);
   assert.equal(isOrionAIRuntimeConfigured({ VERCEL_OIDC_TOKEN: "token" }), true);
+  assert.equal(isOrionAIRuntimeConfigured({ VERCEL: "1" }), true);
   assert.equal(isOrionAIRuntimeConfigured({}), false);
+});
+
+test("C1.1 probes request-context OIDC instead of relying on an environment variable", async () => {
+  let probes = 0;
+  assert.equal(await probeOrionAIRuntime({ env: { VERCEL: "1" }, probe: async () => { probes += 1; } }), true);
+  assert.equal(probes, 1);
+  assert.equal(await probeOrionAIRuntime({ env: {}, probe: async () => { throw new Error("must not run"); } }), false);
+  assert.equal(await probeOrionAIRuntime({ env: { VERCEL: "1" }, probe: async () => { throw new Error("unauthorized"); } }), false);
 });
 
 test("C1.1 generates a typed and observable ORION result through an injected runner", async () => {
