@@ -8,6 +8,33 @@ export interface OrionCycleRequest {
   evidence: ContextEvidenceRecord[];
 }
 
+export class OrionAuthenticationRequiredError extends Error {
+  readonly code = "unauthorized";
+
+  constructor() {
+    super("Votre session a expiré. Reconnectez-vous pour reprendre automatiquement ce cycle ORION.");
+    this.name = "OrionAuthenticationRequiredError";
+  }
+}
+
+const PENDING_CYCLE_KEY = "executiveos:pending-orion-cycle";
+
+export function rememberPendingOrionCycle(caseId: string, objective: string, storage: Pick<Storage, "setItem"> = sessionStorage) {
+  storage.setItem(PENDING_CYCLE_KEY, JSON.stringify({ caseId, objective: objective.trim() }));
+}
+
+export function consumePendingOrionCycle(storage: Pick<Storage, "getItem" | "removeItem"> = sessionStorage) {
+  const raw = storage.getItem(PENDING_CYCLE_KEY);
+  storage.removeItem(PENDING_CYCLE_KEY);
+  if (!raw) return null;
+  try {
+    const value = JSON.parse(raw) as { caseId?: unknown; objective?: unknown };
+    return typeof value.caseId === "string" && typeof value.objective === "string" && value.objective.trim()
+      ? { caseId: value.caseId, objective: value.objective.trim() }
+      : null;
+  } catch { return null; }
+}
+
 const MANDATES: Record<OrionSpecialistId, string> = {
   athena: "Cohérence stratégique et arbitrage",
   turing: "Faisabilité, dépendances et exécution",
@@ -23,6 +50,7 @@ export async function requestOrionExecutiveCycle(input: OrionCycleRequest, agent
   const payload = await response.json().catch(() => null) as OrionAIGenerationResult | { error?: string } | null;
   if (!response.ok || !payload || !("output" in payload)) {
     const code = payload && "error" in payload ? payload.error : undefined;
+    if (response.status === 401 || code === "unauthorized") throw new OrionAuthenticationRequiredError();
     throw new Error(code === "ai_runtime_not_configured"
       ? "Le runtime IA ORION n’est pas disponible sur ce déploiement."
       : "Le cycle ORION n’a pas pu être exécuté. Réessayez dans quelques instants.");

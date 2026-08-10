@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { buildDecisionToAction } from "@/lib/decision-to-action";
-import { requestOrionExecutiveCycle } from "@/lib/orion-cycle-outcome";
+import { consumePendingOrionCycle, OrionAuthenticationRequiredError, rememberPendingOrionCycle, requestOrionExecutiveCycle } from "@/lib/orion-cycle-outcome";
 import { projectCognitiveEvents } from "@/lib/cognitive-events";
 import { buildCognitiveReplay } from "@/lib/cognitive-replay";
 import { buildDecisionDiffs } from "@/lib/decision-diff";
@@ -63,12 +63,26 @@ export function OrionCyclesDock() {
     setCommandState("");
   }, [active?.id, active?.objective]);
 
-  async function runExecutiveCycle() {
+  useEffect(() => {
     if (!active || running) return;
+    const pending=consumePendingOrionCycle();
+    if (!pending) return;
+    if (pending.caseId!==active.id) {
+      rememberPendingOrionCycle(pending.caseId,pending.objective);
+      store.setActiveCase(pending.caseId);
+      return;
+    }
+    setObjective(pending.objective);
+    void runExecutiveCycle(pending.objective);
+  }, [active?.id]);
+
+  async function runExecutiveCycle(requestedObjective = objective) {
+    if (!active || running) return;
+    setCommandState("");
     setRunning(true);
     try {
       const cycle = await requestOrionExecutiveCycle({
-        objective,
+        objective: requestedObjective,
         cognitiveCase: active,
         sources: store.contextSources,
         evidence: store.contextEvidence
@@ -80,6 +94,7 @@ export function OrionCyclesDock() {
         setCommandState(`Décision prise · plan activé · ${outcome.actions.length} actions créées.`);
       } else setCommandState("Cycle bloqué : ORION indique les preuves à fournir avant décision.");
     } catch (value) {
+      if (value instanceof OrionAuthenticationRequiredError) rememberPendingOrionCycle(active.id, requestedObjective);
       setCommandState(value instanceof Error ? value.message : "Cycle ORION impossible.");
     } finally { setRunning(false); }
   }
@@ -111,13 +126,13 @@ export function OrionCyclesDock() {
       <label htmlFor="orion-cycle-objective" className="mt-4 block text-[10px] font-bold uppercase tracking-[.12em] text-[#71839e]">Mandat du prochain cycle</label>
       <textarea id="orion-cycle-objective" value={objective} onChange={(event) => setObjective(event.target.value)} className="mt-2 min-h-20 w-full resize-none rounded-xl border border-white/10 bg-[#07131d] p-3 text-sm leading-6 outline-none focus:border-[#42d59d]/60" placeholder="Ex. Faut-il valider ce scénario et sous quelles conditions ?" />
       <div className="mt-3 flex flex-col gap-2 sm:flex-row">
-        <button onClick={runExecutiveCycle} disabled={!objective.trim()||running} className="rounded-xl bg-[#42b98d] px-4 py-3 text-sm font-bold text-[#071711] disabled:cursor-not-allowed disabled:opacity-35">{running?"Conseil en cours…":"Lancer et créer le plan"}</button>
+        <button onClick={()=>void runExecutiveCycle()} disabled={!objective.trim()||running} className="rounded-xl bg-[#42b98d] px-4 py-3 text-sm font-bold text-[#071711] disabled:cursor-not-allowed disabled:opacity-35">{running?"Conseil en cours…":"Lancer et créer le plan"}</button>
         {latestExecutiveCycle && !activePlan && <button onClick={activateLatestPlan} disabled={latestExecutiveCycle.status !== "completed"} className="rounded-xl border border-[#f4c76d]/35 bg-[#f4c76d]/10 px-4 py-3 text-sm font-bold text-[#f4c76d] disabled:cursor-not-allowed disabled:opacity-35">Transformer en plan d’action</button>}
-        {activePlan && <span className="rounded-xl border border-[#42d59d]/20 bg-[#42d59d]/10 px-4 py-3 text-sm font-semibold text-[#9de7cd]">Plan actif · {activePlan.actionIds.length} actions</span>}
+        {activePlan && <span className="rounded-xl border border-[#42d59d]/20 bg-[#42d59d]/10 px-4 py-3 text-sm font-semibold text-[#9de7cd]">Plan historique actif · {activePlan.actionIds.length} actions</span>}
       </div>
       {latestExecutiveCycle && <div className="mt-3 rounded-xl border border-white/[.07] bg-[#07131d]/75 p-3"><div className="flex flex-wrap items-center justify-between gap-2"><strong className="text-xs">Dernière synthèse</strong><span className="text-[10px] uppercase text-[#71839e]">{latestExecutiveCycle.status} · {latestExecutiveCycle.confidence}%</span></div><p className="mt-2 text-xs leading-5 text-[#b8c6d8]">{latestExecutiveCycle.synthesis}</p>{latestExecutiveCycle.recommendation && <p className="mt-2 text-xs font-semibold leading-5 text-[#8de4c3]">{latestExecutiveCycle.recommendation}</p>}</div>}
       {running&&<p role="status" className="mt-3 text-xs leading-5 text-[#9de7cd]">ATHENA, TURING et SENECA analysent, débattent et répondent avant l’arbitrage ORION.</p>}
-      {!running&&commandState && <p role="status" className="mt-3 text-xs leading-5 text-[#9de7cd]">{commandState}</p>}
+      {!running&&commandState && <div role="alert" className="mt-3 flex flex-wrap items-center gap-3 text-xs leading-5 text-[#9de7cd]"><span>{commandState}</span>{commandState.includes("session a expiré")&&<a href="/sign-in?next=/" className="rounded-lg border border-[#9de7cd]/35 px-3 py-1.5 font-bold">Se reconnecter et reprendre</a>}</div>}
     </section>
 
     {replay && replayFrame && <section className="mt-4 rounded-2xl border border-[#f4c76d]/30 bg-[#f4c76d]/[.055] p-4">

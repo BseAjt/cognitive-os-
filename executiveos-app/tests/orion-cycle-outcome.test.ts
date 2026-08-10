@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { toExecutiveCycleRecord } from "../lib/orion-cycle-outcome.ts";
+import { consumePendingOrionCycle, OrionAuthenticationRequiredError, rememberPendingOrionCycle, requestOrionExecutiveCycle, toExecutiveCycleRecord } from "../lib/orion-cycle-outcome.ts";
 import { defaultExecutiveAgents } from "../lib/agent-runtime.ts";
 import type { CognitiveCase, ContextEvidenceRecord, ContextSourceRecord } from "../domain/canonical.ts";
 
@@ -42,4 +42,25 @@ test("a hold memo remains blocked and cannot silently create a decision",()=>{
   assert.equal(cycle.status,"blocked");
   assert.equal(cycle.recommendation,null);
   assert.ok(cycle.missingEvidence.includes("Ajouter un retour client."));
+});
+
+test("an expired session preserves the ORION mandate for one automatic retry",async()=>{
+  const originalFetch=globalThis.fetch;
+  globalThis.fetch=async()=>Response.json({error:"unauthorized"},{status:401});
+  try {
+    await assert.rejects(
+      requestOrionExecutiveCycle({objective:"Reprendre cet arbitrage",cognitiveCase,sources,evidence},defaultExecutiveAgents),
+      OrionAuthenticationRequiredError
+    );
+  } finally { globalThis.fetch=originalFetch; }
+
+  const values=new Map<string,string>();
+  const storage={
+    getItem:(key:string)=>values.get(key)??null,
+    setItem:(key:string,value:string)=>{values.set(key,value);},
+    removeItem:(key:string)=>{values.delete(key);}
+  };
+  rememberPendingOrionCycle(cognitiveCase.id,"  Reprendre cet arbitrage  ",storage);
+  assert.deepEqual(consumePendingOrionCycle(storage),{caseId:cognitiveCase.id,objective:"Reprendre cet arbitrage"});
+  assert.equal(consumePendingOrionCycle(storage),null);
 });
