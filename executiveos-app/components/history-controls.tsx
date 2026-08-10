@@ -28,7 +28,7 @@ export function HistoryControls() {
       onClick={clearHistory}
       disabled={!messageCount}
       title="Effacer l’historique du dossier actif"
-      className="fixed bottom-5 right-5 z-40 rounded-xl border border-[#ff7185]/40 bg-[#2a1420]/95 px-4 py-3 text-sm font-semibold text-[#ffc0ca] shadow-2xl backdrop-blur transition hover:bg-[#3a1725] disabled:cursor-not-allowed disabled:opacity-40"
+      className="fixed bottom-5 right-5 z-40 hidden rounded-xl border border-[#ff7185]/40 bg-[#2a1420]/95 px-4 py-3 text-sm font-semibold text-[#ffc0ca] shadow-2xl backdrop-blur transition hover:bg-[#3a1725] disabled:cursor-not-allowed disabled:opacity-40 lg:block"
     >
       Effacer l’historique
     </button>
