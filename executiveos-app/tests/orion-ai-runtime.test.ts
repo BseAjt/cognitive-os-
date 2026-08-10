@@ -11,6 +11,10 @@ import {
   type OrionGeneratedCycle
 } from "../lib/orion-ai-runtime.ts";
 
+test("ORION defaults to the free-tier compatible GPT-5 Mini gateway model", () => {
+  assert.equal(DEFAULT_ORION_MODEL, "openai/gpt-5-mini");
+});
+
 const cognitiveCase: CognitiveCase = {
   id: "case-c1",
   title: "Lancement ExecutiveOS",
