@@ -7,7 +7,7 @@ import {
 } from "@/lib/orion-ai-runtime";
 
 export const dynamic = "force-dynamic";
-export const maxDuration = 60;
+export const maxDuration = 120;
 
 const headers = { "Cache-Control": "private, no-store" };
 const json = (body: unknown, status = 200) => Response.json(body, { status, headers });
