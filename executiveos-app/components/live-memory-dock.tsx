@@ -53,7 +53,15 @@ export function LiveMemoryDock() {
   if (!active || !intelligence) return null;
 
   if (!open) {
-    return <button onClick={() => setOpen(true)} className="fixed bottom-20 right-4 z-40 max-w-[calc(100vw-2rem)] rounded-xl border border-[#7c5cff]/40 bg-[#17152e]/95 px-4 py-3 text-sm font-semibold text-[#c9c0ff] shadow-2xl backdrop-blur">✦ Mémoire vivante</button>;
+    return <button
+      onClick={() => setOpen(true)}
+      aria-label="Ouvrir Mémoire vivante"
+      className="group fixed bottom-[calc(1rem+env(safe-area-inset-bottom))] right-4 z-40 flex h-12 items-center gap-2 rounded-full border border-black/[.09] bg-[#fffefa]/95 pl-2 pr-3 text-xs font-semibold text-[#242426] shadow-[0_10px_30px_rgba(35,35,40,.14)] backdrop-blur-xl transition hover:-translate-y-0.5 hover:border-[#7c5cff]/30 lg:bottom-4"
+    >
+      <span aria-hidden="true" className="grid size-8 place-items-center rounded-full bg-[#f0ecff] text-base text-[#6748d7] transition group-hover:bg-[#e7e0ff]">✦</span>
+      <span className="hidden sm:inline">Mémoire vivante</span>
+      <span className="sm:hidden">Mémoire</span>
+    </button>;
   }
 
   return <aside role="dialog" aria-modal="true" aria-label="Mémoire vivante" className="fixed inset-3 z-50 max-h-[calc(100dvh-1.5rem)] w-auto overflow-auto overscroll-contain rounded-[24px] sm:inset-auto sm:bottom-20 sm:right-5 sm:max-h-[75vh] sm:w-[min(440px,calc(100vw-2rem))] border border-[#7c5cff]/35 bg-[#0b1526]/95 p-4 shadow-2xl backdrop-blur-xl">
