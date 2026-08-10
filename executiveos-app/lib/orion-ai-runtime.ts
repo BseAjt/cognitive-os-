@@ -12,29 +12,15 @@ const contributionSchema = z.object({
   citations: z.array(z.string().min(1).max(30)).max(8)
 });
 
-const specialistOutputSchema = contributionSchema.omit({ agentId: true });
-
-const objectionOutputSchema = z.object({
-  objection: z.string().min(20).max(1_500),
-  citations: z.array(z.string().min(1).max(30)).max(8)
-});
-
-const responseOutputSchema = z.object({
-  response: z.string().min(20).max(1_500),
-  resolution: z.enum(["resolved", "partial", "unresolved"]),
-  unresolvedPoint: z.string().min(10).max(750).nullable(),
-  citations: z.array(z.string().min(1).max(30)).max(8)
-});
-
 const debateExchangeSchema = z.object({
   criticId: z.enum(["athena", "turing", "seneca"]),
   targetId: z.enum(["athena", "turing", "seneca"]),
-  objection: objectionOutputSchema.shape.objection,
-  objectionCitations: objectionOutputSchema.shape.citations,
-  response: responseOutputSchema.shape.response,
-  responseCitations: responseOutputSchema.shape.citations,
-  resolution: responseOutputSchema.shape.resolution,
-  unresolvedPoint: responseOutputSchema.shape.unresolvedPoint
+  objection: z.string().min(20).max(1_500),
+  objectionCitations: z.array(z.string().min(1).max(30)).max(8),
+  response: z.string().min(20).max(1_500),
+  responseCitations: z.array(z.string().min(1).max(30)).max(8),
+  resolution: z.enum(["resolved", "partial", "unresolved"]),
+  unresolvedPoint: z.string().min(10).max(750).nullable()
 }).refine((exchange) => exchange.criticId !== exchange.targetId, { message: "Un agent ne peut pas se contredire lui-même." });
 
 const decisionRationaleSchema = z.object({
@@ -55,20 +41,28 @@ const decisionMemoSchema = z.object({
 });
 
 export type OrionSpecialistId = z.infer<typeof contributionSchema>["agentId"];
-export type OrionSpecialistOutput = z.infer<typeof specialistOutputSchema>;
 
 export const orionGenerationSchema = z.object({
   synthesis: z.string().min(30).max(4_000),
   recommendation: z.string().min(20).max(2_000).nullable(),
-  contributions: z.array(contributionSchema).min(1).max(3),
-  debates: z.array(debateExchangeSchema).min(3).max(3),
+  contributions: z.array(contributionSchema).length(3),
+  debates: z.array(debateExchangeSchema).length(3),
   assumptions: z.array(z.string().min(5).max(500)).max(12),
   missingEvidence: z.array(z.string().min(5).max(500)).max(12),
   confidence: z.number().int().min(0).max(100),
   decisionMemo: decisionMemoSchema
+}).superRefine((cycle, context) => {
+  const expectedAgents = ["athena", "turing", "seneca"];
+  const actualAgents = [...new Set(cycle.contributions.map((item) => item.agentId))].sort();
+  if (actualAgents.join(",") !== [...expectedAgents].sort().join(",")) {
+    context.addIssue({ code: "custom", message: "Le cycle ORION exige exactement ATHENA, TURING et SENECA.", path: ["contributions"] });
+  }
+  const expectedDebates = new Set(["athena->turing", "turing->seneca", "seneca->athena"]);
+  const actualDebates = new Set(cycle.debates.map((item) => `${item.criticId}->${item.targetId}`));
+  if (actualDebates.size !== expectedDebates.size || [...expectedDebates].some((item) => !actualDebates.has(item))) {
+    context.addIssue({ code: "custom", message: "Le débat ORION doit respecter les trois confrontations croisées.", path: ["debates"] });
+  }
 });
-
-const synthesisOutputSchema = orionGenerationSchema.omit({ contributions: true, debates: true });
 
 export type OrionGeneratedCycle = z.infer<typeof orionGenerationSchema>;
 
@@ -81,11 +75,12 @@ export interface OrionAIGenerationInput {
 
 export interface OrionAIGenerationResult {
   output: OrionGeneratedCycle;
-  runtime: "ai_gateway";
+  runtime: "ai_gateway" | "continuity_fallback";
   model: string;
   generatedAt: string;
   durationMs: number;
   trace: OrionCycleTrace;
+  degraded?: { reason: "rate_limited" | "budget_exhausted" | "provider_unavailable" | "generation_failed"; message: string };
 }
 
 export interface OrionCycleTrace {
@@ -96,13 +91,6 @@ export interface OrionCycleTrace {
 
 export interface OrionGenerationRunner {
   generate(input: OrionAIGenerationInput): Promise<OrionGeneratedCycle>;
-}
-
-export interface OrionSpecialistRunner {
-  analyze(agentId: OrionSpecialistId, input: OrionAIGenerationInput): Promise<OrionSpecialistOutput>;
-  challenge(agentId: OrionSpecialistId, input: OrionAIGenerationInput, target: OrionGeneratedCycle["contributions"][number]): Promise<z.infer<typeof objectionOutputSchema>>;
-  respond(agentId: OrionSpecialistId, input: OrionAIGenerationInput, objection: { criticId: OrionSpecialistId; objection: string; citations: string[] }): Promise<z.infer<typeof responseOutputSchema>>;
-  synthesize(input: OrionAIGenerationInput, contributions: OrionGeneratedCycle["contributions"], debates: OrionGeneratedCycle["debates"]): Promise<Omit<OrionGeneratedCycle, "contributions" | "debates">>;
 }
 
 export class OrionAIRuntimeUnavailableError extends Error {
@@ -134,129 +122,25 @@ export async function probeOrionAIRuntime(
 
 export function createOrionGenerationRunner(
   model = process.env.ORION_AI_MODEL ?? DEFAULT_ORION_MODEL,
-  specialistRunner: OrionSpecialistRunner = createOrionSpecialistRunner(model)
+  injectedCouncil?: OrionGenerationRunner
 ): OrionGenerationRunner {
-  const runner = specialistRunner;
+  if (injectedCouncil) return injectedCouncil;
+  const council = new ToolLoopAgent({
+    model,
+    maxRetries: 0,
+    instructions: [
+      "Tu es ORION, orchestrateur exécutif d’ExecutiveOS.",
+      "Tu produis en une seule réponse structurée les perspectives distinctes d’ATHENA (stratégie), TURING (faisabilité) et SENECA (risques et réversibilité), leurs trois objections croisées, leurs réponses et la synthèse finale.",
+      "Tu n’inventes aucune preuve et cites uniquement les identifiants S1, S2, etc. fournis.",
+      "Chaque perspective doit apparaître exactement une fois et chaque agent doit contester l’agent suivant : ATHENA vers TURING, TURING vers SENECA, SENECA vers ATHENA.",
+      "Le statut est hold si les preuves sont insuffisantes, conditional si des conditions substantielles restent ouvertes, sinon recommend.",
+      "Tu réponds en français, de façon concise, contradictoire et directement exploitable."
+    ].join(" "),
+    output: Output.object({ schema: orionGenerationSchema })
+  });
   return {
     async generate(input) {
-      const contributions = await Promise.all(
-        (["athena", "turing", "seneca"] as const).map(async (agentId) => ({ agentId, ...await runner.analyze(agentId, input) }))
-      );
-      const targets: Record<OrionSpecialistId, OrionSpecialistId> = { athena: "turing", turing: "seneca", seneca: "athena" };
-      const objections = await Promise.all(contributions.map(async ({ agentId }) => {
-        const targetId = targets[agentId];
-        const target = contributions.find((item) => item.agentId === targetId)!;
-        return { criticId: agentId, targetId, ...await runner.challenge(agentId, input, target) };
-      }));
-      const debates = await Promise.all(objections.map(async (objection) => ({
-        criticId: objection.criticId,
-        targetId: objection.targetId,
-        objection: objection.objection,
-        objectionCitations: objection.citations,
-        ...mapDebateResponse(await runner.respond(objection.targetId, input, objection))
-      })));
-      return { ...await runner.synthesize(input, contributions, debates), contributions, debates };
-    }
-  };
-}
-
-function mapDebateResponse(response: z.infer<typeof responseOutputSchema>) {
-  return { response: response.response, responseCitations: response.citations, resolution: response.resolution, unresolvedPoint: response.unresolvedPoint };
-}
-
-const SPECIALIST_INSTRUCTIONS: Record<OrionSpecialistId, string[]> = {
-  athena: [
-    "Tu es ATHENA, Chief Strategy Officer d'ExecutiveOS.",
-    "Évalue l'alignement stratégique, les options, les arbitrages et l'avantage durable.",
-    "Ne traite la technique et les risques que lorsqu'ils modifient la décision stratégique."
-  ],
-  turing: [
-    "Tu es TURING, Chief Technology Officer d'ExecutiveOS.",
-    "Évalue la faisabilité, les dépendances, l'architecture, les critères de sortie et le chemin d'exécution.",
-    "Transforme les inconnues techniques en validations observables."
-  ],
-  seneca: [
-    "Tu es SENECA, Chief Reflection Officer d'ExecutiveOS.",
-    "Cherche les hypothèses fragiles, contradictions, biais, effets de second ordre et conditions de réversibilité.",
-    "Formule un désaccord réel lorsque les preuves ne justifient pas l'engagement."
-  ]
-};
-
-export function createOrionSpecialistRunner(model = process.env.ORION_AI_MODEL ?? DEFAULT_ORION_MODEL): OrionSpecialistRunner {
-  const createSpecialist = (agentId: OrionSpecialistId) => new ToolLoopAgent({
-    model,
-    instructions: [
-      ...SPECIALIST_INSTRUCTIONS[agentId],
-      "Tu réponds en français, de façon concise et exploitable.",
-      "Tu n'inventes aucune preuve et tu cites uniquement les identifiants S1, S2, etc. réellement fournis.",
-      "Une incertitude importante réduit ta confiance et conduit à une position conditionnelle ou challenge."
-    ].join(" "),
-    output: Output.object({ schema: specialistOutputSchema })
-  });
-  const specialists = {
-    athena: createSpecialist("athena"),
-    turing: createSpecialist("turing"),
-    seneca: createSpecialist("seneca")
-  };
-
-  const createCritic = (agentId: OrionSpecialistId) => new ToolLoopAgent({
-    model,
-    instructions: [
-      ...SPECIALIST_INSTRUCTIONS[agentId],
-      "Tu dois maintenant tester la solidité de la position d'un autre spécialiste.",
-      "Formule une objection précise qui pourrait modifier la décision, sans caricaturer sa position.",
-      "Tu cites uniquement les identifiants de preuve réellement fournis."
-    ].join(" "),
-    output: Output.object({ schema: objectionOutputSchema })
-  });
-  const critics = { athena: createCritic("athena"), turing: createCritic("turing"), seneca: createCritic("seneca") };
-
-  const createRespondent = (agentId: OrionSpecialistId) => new ToolLoopAgent({
-    model,
-    instructions: [
-      ...SPECIALIST_INSTRUCTIONS[agentId],
-      "Réponds directement à l'objection reçue : accepte-la, réfute-la avec preuve, ou reconnais ce qui reste non résolu.",
-      "N'efface jamais un désaccord réel. Un point non prouvé reste partiel ou non résolu.",
-      "Tu cites uniquement les identifiants de preuve réellement fournis."
-    ].join(" "),
-    output: Output.object({ schema: responseOutputSchema })
-  });
-  const respondents = { athena: createRespondent("athena"), turing: createRespondent("turing"), seneca: createRespondent("seneca") };
-
-  const orchestrator = new ToolLoopAgent({
-    model,
-    instructions: [
-      "Tu es ORION, orchestrateur exécutif d'ExecutiveOS.",
-      "Tu synthétises des contributions spécialisées déjà produites sans les remplacer ni masquer leurs désaccords.",
-      "Tu distingues les objections résolues, partielles et non résolues, et toute objection non résolue limite la recommandation.",
-      "Tu produis une synthèse décisionnelle concise, contradictoire et exploitable en français.",
-      "Tu n'inventes jamais de preuve : cite uniquement les identifiants fournis.",
-      "Chaque motif du mémo décisionnel doit citer au moins une preuve et identifier les agents dont il dérive.",
-      "Le statut est hold si les preuves sont insuffisantes, conditional si des conditions substantielles restent ouvertes, sinon recommend.",
-      "Explique le niveau de confiance à partir de la qualité des preuves, de la convergence et des désaccords non résolus.",
-      "Une recommandation doit rester nulle lorsque les preuves sont insuffisantes.",
-      "Toute incertitude devient une hypothèse ou une preuve manquante explicite."
-    ].join(" "),
-    output: Output.object({ schema: synthesisOutputSchema })
-  });
-
-  return {
-    async analyze(agentId, input) {
-      const { output } = await specialists[agentId].generate({ prompt: buildOrionPrompt(input) });
-      return output;
-    },
-    async challenge(agentId, input, target) {
-      const { output } = await critics[agentId].generate({ prompt: JSON.stringify({ context: JSON.parse(buildOrionPrompt(input)), targetContribution: target }) });
-      return output;
-    },
-    async respond(agentId, input, objection) {
-      const { output } = await respondents[agentId].generate({ prompt: JSON.stringify({ context: JSON.parse(buildOrionPrompt(input)), objection }) });
-      return output;
-    },
-    async synthesize(input, contributions, debates) {
-      const { output } = await orchestrator.generate({
-        prompt: JSON.stringify({ context: JSON.parse(buildOrionPrompt(input)), specialistContributions: contributions, contradictoryDebate: debates })
-      });
+      const { output } = await council.generate({ prompt: buildOrionPrompt(input) });
       return output;
     }
   };
@@ -285,6 +169,56 @@ export async function generateOrionCycle(
     generatedAt: completedAt.toISOString(),
     durationMs: Math.max(0, completedAt.getTime() - startedAt.getTime()),
     trace: buildCycleTrace(cycleId, input)
+  };
+}
+
+export function generateOrionContinuityCycle(
+  input: OrionAIGenerationInput,
+  reason: NonNullable<OrionAIGenerationResult["degraded"]>["reason"],
+  options: { now?: () => Date; model?: string } = {}
+): OrionAIGenerationResult {
+  const now = options.now ?? (() => new Date());
+  const generatedAt = now();
+  const evidenceManifest = buildCycleTrace("continuity", input).evidenceManifest;
+  const citation = evidenceManifest[0]?.citation;
+  const citations = citation ? [citation] : [];
+  const hasEvidence = citations.length > 0;
+  const objective = input.objective.trim();
+  const condition = "Valider les critères de succès et de sortie avant l’engagement irréversible.";
+  const output: OrionGeneratedCycle = {
+    synthesis: hasEvidence
+      ? "Le dossier permet de poursuivre par une décision conditionnelle, réversible et mesurée malgré l’indisponibilité temporaire du moteur IA."
+      : "Le dossier ne contient pas encore de preuve exploitable ; ORION conserve le mandat et bloque honnêtement la décision jusqu’à l’ajout d’un élément vérifiable.",
+    recommendation: hasEvidence ? `Engager « ${objective} » sous forme de pilote réversible avec un checkpoint explicite.` : null,
+    contributions: [
+      { agentId: "athena", position: hasEvidence ? "conditional" : "challenge", analysis: "ATHENA préserve l’objectif stratégique tout en limitant l’engagement à une étape mesurable et réversible.", confidence: hasEvidence ? 62 : 25, citations },
+      { agentId: "turing", position: "conditional", analysis: "TURING exige un propriétaire, un critère de succès observable et une échéance avant de poursuivre l’exécution.", confidence: hasEvidence ? 60 : 24, citations },
+      { agentId: "seneca", position: "challenge", analysis: "SENECA maintient le risque visible : la décision doit pouvoir être arrêtée si la preuve attendue n’apparaît pas au checkpoint.", confidence: hasEvidence ? 58 : 22, citations }
+    ],
+    debates: [
+      { criticId: "athena", targetId: "turing", objection: "Le dispositif d’exécution risque-t-il de retarder la validation stratégique recherchée ?", objectionCitations: citations, response: "Une instrumentation minimale protège la décision sans empêcher un pilote court et borné.", responseCitations: citations, resolution: "partial", unresolvedPoint: "Le délai exact du pilote reste à confirmer." },
+      { criticId: "turing", targetId: "seneca", objection: "Le seuil d’arrêt est-il suffisamment observable pour déclencher une révision factuelle ?", objectionCitations: citations, response: "Le seuil doit être formalisé avant lancement et contrôlé au checkpoint ORION.", responseCitations: citations, resolution: "partial", unresolvedPoint: "La valeur précise du seuil reste à définir." },
+      { criticId: "seneca", targetId: "athena", objection: "La preuve disponible suffit-elle à justifier autre chose qu’un engagement strictement réversible ?", objectionCitations: citations, response: "Non ; la recommandation reste limitée à un pilote et interdit tout déploiement irréversible.", responseCitations: citations, resolution: "resolved", unresolvedPoint: null }
+    ],
+    assumptions: ["Le pilote peut être interrompu sans coût disproportionné."],
+    missingEvidence: ["Le moteur IA était temporairement indisponible ; relancer une analyse approfondie au prochain checkpoint."],
+    confidence: hasEvidence ? 60 : 24,
+    decisionMemo: {
+      status: hasEvidence ? "conditional" : "hold",
+      rationale: [{ claim: hasEvidence ? "La preuve disponible autorise uniquement un pilote limité, mesuré et réversible." : "Aucune preuve exploitable ne permet encore une recommandation responsable.", citations, agentIds: ["athena", "turing", "seneca"] }],
+      conditions: [condition],
+      confidenceExplanation: hasEvidence ? "Confiance modérée : la continuité est assurée à partir des preuves du dossier, sans analyse IA approfondie." : "Confiance faible : aucune preuve exploitable et moteur IA temporairement indisponible."
+    }
+  };
+  const cycleId = crypto.randomUUID();
+  return {
+    output: orionGenerationSchema.parse(output),
+    runtime: "continuity_fallback",
+    model: options.model ?? process.env.ORION_AI_MODEL ?? DEFAULT_ORION_MODEL,
+    generatedAt: generatedAt.toISOString(),
+    durationMs: 0,
+    trace: buildCycleTrace(cycleId, input),
+    degraded: { reason, message: "Cycle produit en mode de continuité : AI Gateway temporairement indisponible." }
   };
 }
 

@@ -90,7 +90,7 @@ export function toExecutiveCycleRecord(input: OrionCycleRequest, result: OrionAI
     synthesis: output.synthesis,
     recommendation: completed ? output.recommendation : null,
     confidence: output.confidence,
-    missingEvidence: [...output.missingEvidence, ...(!completed ? output.decisionMemo.conditions : [])],
+    missingEvidence: [...output.missingEvidence, ...(result.degraded ? [result.degraded.message] : []), ...(!completed ? output.decisionMemo.conditions : [])],
     sourceIds: [...new Set(trace.evidenceManifest.map((item) => item.sourceId))],
     createdAt: result.generatedAt
   };
