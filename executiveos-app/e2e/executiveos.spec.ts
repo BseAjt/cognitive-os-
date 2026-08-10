@@ -119,13 +119,35 @@ test("keeps cognitive docks contained inside the mobile viewport", async ({ page
 });
 
 test("runs an actionable ORION cycle from the cycles dock", async ({ page }) => {
+  await page.route("**/api/orion/generate", async (route) => route.fulfill({
+    status: 200,
+    contentType: "application/json",
+    body: JSON.stringify({
+      runtime:"ai_gateway",model:"e2e",generatedAt:"2026-08-10T10:00:00.000Z",durationMs:20,
+      trace:{cycleId:"e2e-cycle",stages:[],evidenceManifest:[{citation:"S1",evidenceId:"demo-evidence-1-1-1",sourceId:"demo-source-1-1",sourceTitle:"Preuve pilote",confidence:90}]},
+      output:{
+        synthesis:"Les trois perspectives convergent vers un investissement progressif et mesurable.",recommendation:"Valider un investissement progressif avec un point de contrôle explicite.",confidence:84,assumptions:[],missingEvidence:[],
+        decisionMemo:{status:"conditional",rationale:[{claim:"L’investissement progressif limite le risque tout en produisant une preuve de valeur.",citations:["S1"],agentIds:["athena","turing","seneca"]}],conditions:["Mesurer le résultat au checkpoint."],confidenceExplanation:"La preuve disponible soutient une décision conditionnelle et réversible."},
+        contributions:[
+          {agentId:"athena",position:"support",analysis:"La priorité soutient directement la trajectoire stratégique du dossier.",confidence:86,citations:["S1"]},
+          {agentId:"turing",position:"conditional",analysis:"Le plan est faisable avec un responsable et un jalon explicites.",confidence:83,citations:["S1"]},
+          {agentId:"seneca",position:"challenge",analysis:"La réversibilité doit rester mesurable pendant toute l’exécution.",confidence:81,citations:["S1"]}
+        ],
+        debates:[
+          {criticId:"athena",targetId:"turing",objection:"Le dispositif opérationnel risque-t-il de retarder la valeur attendue ?",objectionCitations:["S1"],response:"Un cadrage léger suffit avant de commencer l’exécution mesurée.",responseCitations:["S1"],resolution:"resolved",unresolvedPoint:null},
+          {criticId:"turing",targetId:"seneca",objection:"Le critère de réversibilité est-il suffisamment mesurable ?",objectionCitations:["S1"],response:"Le checkpoint permettra de mesurer le signal avant extension.",responseCitations:["S1"],resolution:"partial",unresolvedPoint:"Préciser le seuil au lancement."},
+          {criticId:"seneca",targetId:"athena",objection:"La valeur stratégique justifie-t-elle déjà un engagement large ?",objectionCitations:["S1"],response:"La recommandation reste volontairement progressive et conditionnelle.",responseCitations:["S1"],resolution:"resolved",unresolvedPoint:null}
+        ]
+      }
+    })
+  }));
   await page.getByRole("button", { name: /Cycles ORION/ }).click();
   const cycles = page.getByRole("dialog", { name: "Cycles ORION" });
   await cycles.getByLabel("Mandat du prochain cycle").fill("Arbitrer le prochain investissement prioritaire");
-  await cycles.getByRole("button", { name: "Lancer un cycle ORION" }).click();
-  await expect(cycles.getByRole("status")).toContainText(/Cycle/);
+  await cycles.getByRole("button", { name: "Lancer et créer le plan" }).click();
+  await expect(cycles.getByRole("status")).toContainText("3 actions créées");
   await expect(cycles.getByText("Dernière synthèse")).toBeVisible();
-  await expect(cycles.getByRole("button", { name: "Transformer en plan d’action" })).toBeVisible();
+  await expect(cycles.getByText("Plan actif · 3 actions")).toBeVisible();
 });
 
 test("starts and executes an action through ORION instead of only changing its status", async ({ page }) => {
