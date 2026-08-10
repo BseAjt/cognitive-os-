@@ -147,7 +147,21 @@ test("runs an actionable ORION cycle from the cycles dock", async ({ page }) => 
   await cycles.getByRole("button", { name: "Lancer et créer le plan" }).click();
   await expect(cycles.getByRole("status")).toContainText("3 actions créées");
   await expect(cycles.getByText("Dernière synthèse")).toBeVisible();
-  await expect(cycles.getByText("Plan actif · 3 actions")).toBeVisible();
+  await expect(cycles.getByText("Plan historique actif · 3 actions")).toBeVisible();
+});
+
+test("explains an expired ORION session and offers resumable sign-in", async ({ page }) => {
+  await page.route("**/api/orion/generate", async (route) => route.fulfill({
+    status: 401,
+    contentType: "application/json",
+    body: JSON.stringify({ error: "unauthorized" })
+  }));
+  await page.getByRole("button", { name: /Cycles ORION/ }).click();
+  const cycles = page.getByRole("dialog", { name: "Cycles ORION" });
+  await cycles.getByLabel("Mandat du prochain cycle").fill("Arbitrer le lancement B2B");
+  await cycles.getByRole("button", { name: "Lancer et créer le plan" }).click();
+  await expect(cycles.getByRole("alert")).toContainText("session a expiré");
+  await expect(cycles.getByRole("link", { name: "Se reconnecter et reprendre" })).toHaveAttribute("href", "/sign-in?next=/");
 });
 
 test("starts and executes an action through ORION instead of only changing its status", async ({ page }) => {
