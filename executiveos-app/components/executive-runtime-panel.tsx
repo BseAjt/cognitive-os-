@@ -20,6 +20,7 @@ export function ExecutiveRuntimePanel({ mode }: { mode: "act" | "explore" }) {
   const [executingActionId, setExecutingActionId] = useState<string | null>(null);
   const [executionFeedback, setExecutionFeedback] = useState<{ tone: "success" | "warning" | "error"; text: string } | null>(null);
   const [expandedTransactionId, setExpandedTransactionId] = useState<string | null>(null);
+  const [expandedActionId, setExpandedActionId] = useState<string | null>(null);
 
   function handleStart(actionId: string) {
     setExecutingActionId(actionId);
@@ -156,9 +157,11 @@ export function ExecutiveRuntimePanel({ mode }: { mode: "act" | "explore" }) {
       <article className="rounded-[26px] border border-white/[.08] bg-[#0d192b]/88 p-5 md:p-6">
         <div className="flex items-center justify-between"><div><div className="text-[10px] font-black uppercase tracking-[.16em] text-[#9d83ff]">Task Engine</div><h2 className="mt-2 text-2xl font-semibold">Actions runtime</h2></div><span className="rounded-full border border-white/[.07] bg-white/[.03] px-3 py-1 text-xs text-[#8294af]">{activeActions.length} tâche(s)</span></div>
         <div className="mt-5 space-y-3">
-          {activeActions.map((action) => <div key={action.id} className="rounded-2xl border border-white/[.07] bg-[#091422]/85 p-4">
+          {activeActions.map((action) => {
+            const detailExpanded = expandedActionId === action.id;
+            return <div key={action.id} className="rounded-2xl border border-white/[.07] bg-[#091422]/85 p-4">
             <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
-              <div><strong className="text-base">{action.title}</strong><p className="mt-1 text-xs text-[#71839e]">Capability: {action.requiredCapability ?? "analysis"} · Owner: {action.owner}</p>{action.blockedReason && <p className="mt-2 text-xs text-[#ffbc57]">{action.blockedReason}</p>}{action.result && <p className="mt-2 text-xs text-[#7de5bd]">{action.result}</p>}</div>
+              <div className="min-w-0"><strong className="block text-base leading-6">{action.title}</strong><p className="mt-1 text-sm text-[#71839e]">Responsable : {action.owner}</p>{action.blockedReason && <p className="mt-2 text-sm leading-6 text-[#ffbc57]">{action.blockedReason}</p>}{action.result && <div className="mt-3 rounded-xl border border-emerald-800/15 bg-emerald-50/70 p-3"><p className={`${detailExpanded ? "" : "line-clamp-3"} text-sm leading-6 text-emerald-900`}>{action.result}</p><button type="button" aria-expanded={detailExpanded} onClick={() => setExpandedActionId(detailExpanded ? null : action.id)} className="mt-2 min-h-11 text-sm font-semibold text-[#0568c9]">{detailExpanded ? "Masquer le détail" : "Voir le détail"}</button></div>}</div>
               <Status status={action.status}/>
             </div>
             <div className="mt-4 h-1.5 overflow-hidden rounded-full bg-white/[.06]"><div className="h-full bg-gradient-to-r from-[#7657ff] to-[#42d59d] transition-[width] duration-300" style={{width:`${action.progress}%`}}/></div>
@@ -168,7 +171,7 @@ export function ExecutiveRuntimePanel({ mode }: { mode: "act" | "explore" }) {
               {(action.status === "todo" || action.status === "doing") && <button onClick={() => handleExecute(action.id)} disabled={executingActionId === action.id} className="rounded-lg bg-[#7c5cff] px-3 py-2 text-xs font-bold disabled:cursor-wait disabled:opacity-60">{executingActionId === action.id ? "Exécution…" : "Exécuter"}</button>}
               {action.status === "blocked" && <button onClick={() => transitionRuntimeAction(action.id, "todo")} className="rounded-lg border border-white/[.08] bg-white/[.03] px-3 py-2 text-xs font-semibold">Réouvrir</button>}
             </div>
-          </div>)}
+          </div>})}
         </div>
       </article>
 

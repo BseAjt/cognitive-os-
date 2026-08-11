@@ -71,6 +71,7 @@ button:focus-visible, a:focus-visible, input:focus-visible, textarea:focus-visib
 [class*="text-[#f4f7fb]"], [class*="text-[#e8edf6]"], [class*="text-[#d6dfed]"] { color: #202328 !important; }
 [class*="text-[#c8c0ff]"], [class*="text-[#c5baff]"], [class*="text-[#bfb2ff]"], [class*="text-[#b7a9ff]"], [class*="text-[#9d83ff]"], [class*="text-[#8d7ce4]"] { color: #075eae !important; }
 [class*="text-[#a9b7ca]"], [class*="text-[#aab7ca]"], [class*="text-[#a5b4c9]"], [class*="text-[#91a2bd]"], [class*="text-[#8393ad]"], [class*="text-[#8294af]"], [class*="text-[#7c92b2]"], [class*="text-[#71839e]"], [class*="text-[#6f819e]"], [class*="text-[#667995]"], [class*="text-[#65758f]"] { color: var(--muted) !important; }
+[class*="text-[#7de5bd]"], [class*="text-[#7ce6bb]"], [class*="text-[#8de4c3]"], [class*="text-[#9af0cf]"] { color: var(--green) !important; }
 [class*="placeholder:text-[#52647f]"]::placeholder, [class*="placeholder:text-[#65758f]"]::placeholder { color: #6f737a !important; opacity: 1; }
 [class*="bg-[#7c5cff]"], [class*="bg-[#6b49df]"] { background-color: var(--accent) !important; color: #fff !important; }
 [class*="border-[#7c5cff]"] { border-color: rgba(0,113,227,.28) !important; }
