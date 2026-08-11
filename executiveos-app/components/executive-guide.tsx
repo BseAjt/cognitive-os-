@@ -4,6 +4,13 @@ import { useEffect, useState } from "react";
 
 const GUIDE_KEY = "executiveos:ceo-guide:v1";
 const INVESTOR_GUIDE_KEY = "executiveos:investor-guide:v1";
+const DECISION_FOCUS_KEY = "executiveos:decision-focus:v1";
+const DECISION_FOCUSES = [
+  ["investment", "Décisions d’investissement", "Rendement, risque, horizon et réversibilité."],
+  ["hiring", "Recrutement exécutif", "Mandat, preuves, complémentarité et coût d’erreur."],
+  ["pricing", "Pricing & commercial", "Valeur, marge, adoption et signal client."],
+  ["other", "Autre", "Décrire librement la décision à confronter."]
+] as const;
 
 const GLOSSARY = [
   ["Dossier cognitif", "Un sujet de décision suivi de la question initiale jusqu’au résultat et aux enseignements."],
@@ -63,21 +70,23 @@ const INVESTOR_STEPS = [
 export function InvestorGuide() {
   const [open, setOpen] = useState(false);
   const [step, setStep] = useState(0);
+  const [focus, setFocus] = useState("investment");
 
   useEffect(() => {
     if (!window.localStorage.getItem(INVESTOR_GUIDE_KEY)) setOpen(true);
+    setFocus(window.localStorage.getItem(DECISION_FOCUS_KEY) ?? "investment");
     function showGuide() { setStep(0); setOpen(true); }
     window.addEventListener("executiveos:show-investor-guide", showGuide);
     return () => window.removeEventListener("executiveos:show-investor-guide", showGuide);
   }, []);
 
-  function close() { window.localStorage.setItem(INVESTOR_GUIDE_KEY, "done"); setOpen(false); }
+  function close() { window.localStorage.setItem(INVESTOR_GUIDE_KEY, "done"); window.localStorage.setItem(DECISION_FOCUS_KEY, focus); setOpen(false); }
   if (!open) return null;
   const current = INVESTOR_STEPS[step];
   return <div role="dialog" aria-modal="true" aria-labelledby="investor-guide-title" className="fixed inset-0 z-[100] grid place-items-end bg-black/45 p-0 backdrop-blur-sm sm:place-items-center sm:p-6">
     <div className="w-full rounded-t-[30px] bg-[#fffefa] p-6 text-[#1d1d1f] shadow-2xl sm:max-w-xl sm:rounded-[30px] sm:p-8">
       <div className="flex items-start justify-between gap-4"><span className="rounded-full bg-[#0568c9]/10 px-3 py-1 text-xs font-bold text-[#0568c9]">Guide de l’investisseur · {step + 1}/{INVESTOR_STEPS.length}</span><button onClick={close} aria-label="Fermer le guide investisseur" className="grid size-10 place-items-center rounded-full border border-black/10 text-xl">×</button></div>
-      <div className="mt-8 text-xs font-black uppercase tracking-[.16em] text-[#0568c9]">{current.eyebrow}</div><h2 id="investor-guide-title" className="mt-3 text-3xl font-semibold tracking-[-.035em]">{current.title}</h2><p className="mt-4 text-base leading-7 text-[#55585e]">{current.text}</p>
+      <div className="mt-8 text-xs font-black uppercase tracking-[.16em] text-[#0568c9]">{current.eyebrow}</div><h2 id="investor-guide-title" className="mt-3 text-3xl font-semibold tracking-[-.035em]">{step === 0 ? "Quel type de décisions voulez-vous mieux confronter ?" : current.title}</h2>{step === 0 ? <div className="mt-5 grid gap-3 sm:grid-cols-2">{DECISION_FOCUSES.map(([id,title,description]) => <button key={id} aria-pressed={focus === id} onClick={() => setFocus(id)} className={`rounded-2xl border p-4 text-left ${focus === id ? "border-[#0568c9] bg-[#eef6ff]" : "border-black/10 bg-white"}`}><strong className="block text-sm">{title}</strong><span className="mt-1 block text-xs leading-5 text-[#62666d]">{description}</span></button>)}</div> : <p className="mt-4 text-base leading-7 text-[#55585e]">{current.text}</p>}
       <div className="mt-8 flex items-center justify-between gap-3"><div className="flex gap-1.5" aria-hidden="true">{INVESTOR_STEPS.map((_, index) => <span key={index} className={`h-1.5 rounded-full ${index === step ? "w-8 bg-[#0568c9]" : "w-2 bg-black/15"}`}/>)}</div>{step < INVESTOR_STEPS.length - 1 ? <button onClick={() => setStep(step + 1)} className="executive-button executive-primary">Suivant →</button> : <button onClick={close} className="executive-button executive-primary">Voir mon portefeuille</button>}</div>
     </div>
   </div>;

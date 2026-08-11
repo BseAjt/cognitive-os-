@@ -14,7 +14,8 @@ import type {
   ReflectionRecord
 } from "../domain/canonical.ts";
 
-export const INVESTOR_DEMO_VERSION = "2026.08.2";
+export const INVESTOR_DEMO_VERSION = "2026.08.3-claire";
+export const INVESTOR_DEMO_PERSONA = "Claire Martin · DG fictive d’une ETI industrielle de 200 personnes";
 
 export interface InvestorDemoDataset {
   cases: CognitiveCase[];
@@ -51,11 +52,11 @@ export interface ProductEvidenceMetrics {
 }
 
 const CASES = [
-  ["demo-launch", "Lancer Nova AI en Europe", "Arbitrer un lancement B2B sur trois marchés en conciliant traction, budget et risque réglementaire.", "Un pilote France–Benelux peut valider le product-market fit avant une expansion européenne.", "execute", 10, 9, 82, 7],
-  ["demo-pricing", "Reconcevoir le pricing Enterprise", "Augmenter la valeur captée sans ralentir l'adoption des comptes stratégiques.", "Un pricing hybride plateforme + usage améliore la marge et la lisibilité.", "decide", 9, 8, 78, 6],
-  ["demo-partner", "Choisir un partenaire de distribution", "Sélectionner le partenaire qui accélère l'accès au marché tout en protégeant la donnée client.", "Un partenariat limité à deux verticales réduit le risque de dépendance.", "execute", 8, 7, 76, 7],
-  ["demo-platform", "Industrialiser la plateforme IA", "Décider du prochain investissement d'architecture avant le passage à l'échelle.", "Une couche d'observabilité et d'évaluation unifiée réduit le coût des incidents.", "learn", 8, 6, 88, 4],
-  ["demo-hiring", "Structurer l'équipe de croissance", "Prioriser les recrutements qui débloquent le revenu des deux prochains trimestres.", "Un binôme Enterprise AE + Solutions Engineer précède le recrutement marketing.", "explore", 7, 7, 69, 5]
+  ["demo-launch", "Automatiser la ligne d’assemblage", "Décider d’un investissement de 1,2 M€ sans interrompre les commandes en cours.", "Un pilote sur une ligne réduit le risque avant généralisation.", "execute", 10, 9, 82, 7],
+  ["demo-pricing", "Revaloriser les contrats de maintenance", "Augmenter les prix de 8 % tout en protégeant les comptes stratégiques.", "Une hausse segmentée rend la valeur plus lisible et limite le churn.", "decide", 9, 8, 78, 6],
+  ["demo-partner", "Signer un partenariat de distribution en Allemagne", "Accélérer l’accès au marché sans perdre la relation client.", "Une exclusivité limitée à douze mois protège les options futures.", "execute", 8, 7, 76, 7],
+  ["demo-platform", "Remplacer l’ERP de production", "Arbitrer entre migration globale et déploiement usine par usine.", "Un déploiement progressif protège la continuité industrielle.", "learn", 8, 6, 88, 4],
+  ["demo-hiring", "Recruter une directrice commerciale", "Choisir entre une candidate issue du secteur et un profil expert en transformation.", "Une mission de 90 jours avec objectifs observables réduit le risque de recrutement.", "explore", 7, 7, 69, 5]
 ] as const;
 
 const SOURCE_TOPICS = [
@@ -119,9 +120,17 @@ export function createInvestorDemoDataset(): InvestorDemoDataset {
     });
   }
 
+  const decisionExamples = [
+    ["Pilote d’automatisation approuvé", "Tester une ligne pendant huit semaines avant tout déploiement global.", "Le gain de capacité est mesurable et l’investissement reste réversible après le pilote."],
+    ["Hausse tarifaire segmentée retenue", "Appliquer +8 % aux contrats premium et préserver les clients sous engagement pluriannuel.", "La valeur de disponibilité est démontrée et le risque de churn est circonscrit."],
+    ["Partenariat allemand limité retenu", "Signer sans exclusivité nationale et avec une revue à douze mois.", "L’accès au marché s’accélère sans abandonner la maîtrise de la relation client."],
+    ["Migration ERP progressive retenue", "Commencer par l’usine la moins critique avec un critère d’arrêt explicite.", "La continuité de production prime sur une transformation plus rapide mais irréversible."],
+    ["Recrutement exécutif lancé", "Retenir le profil transformation avec une feuille de route commerciale à 90 jours.", "Les références et la capacité d’exécution observée comptent davantage que la seule connaissance sectorielle."]
+  ] as const;
   const decisions: DecisionRecord[] = cases.flatMap((cognitiveCase, index) => {
-    const base: DecisionRecord = { id: `demo-decision-${index + 1}-1`, caseId: cognitiveCase.id, recommendation: index === 0 ? "Lancer un pilote France–Benelux avec gate de réévaluation à six semaines." : `Valider l'option progressive pour ${cognitiveCase.title.toLowerCase()}.`, outcome: index === 0 ? "Pilote France–Benelux approuvé" : "Scénario progressif retenu", rationale: "Les preuves marché, finance, produit et risque convergent vers une option réversible.", confidence: 78 + index * 2, createdAt: at(15 + index) };
-    return index < 4 ? [base, { ...base, id: `demo-decision-${index + 1}-2`, outcome: "Gate de contrôle approuvé", recommendation: "Maintenir un checkpoint explicite avant généralisation.", confidence: 84, createdAt: at(20 + index) }] : [base];
+    const example = decisionExamples[index]!;
+    const base: DecisionRecord = { id: `demo-decision-${index + 1}-1`, caseId: cognitiveCase.id, recommendation: example[1], outcome: example[0], rationale: example[2], confidence: 76 + index * 3, createdAt: at(15 + index) };
+    return index < 2 ? [base, { ...base, id: `demo-decision-${index + 1}-2`, outcome: index === 0 ? "Pilote concluant, généralisation conditionnelle" : "Churn contenu après la hausse", rationale: `${example[2]} Le résultat observé a confirmé le seuil fixé.`, confidence: 86, createdAt: at(21 + index) }] : [base];
   });
 
   const actions: ActionRecord[] = cases.flatMap((cognitiveCase, caseIndex) => Array.from({ length: 6 }, (_, actionIndex) => ({
