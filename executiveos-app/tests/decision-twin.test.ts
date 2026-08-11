@@ -58,8 +58,10 @@ test("une prédiction reste indéterminée tant que l'historique est insuffisant
 });
 
 test("les faibles échantillons sont décrits sans fausse précision", () => {
-  assert.equal(evidenceLevel(3), "early_signals");
-  assert.equal(evidenceLevel(9), "emerging");
+  assert.equal(evidenceLevel(2), "early_signals");
+  assert.equal(evidenceLevel(3), "emerging");
+  assert.equal(evidenceLevel(6), "emerging");
+  assert.equal(evidenceLevel(9), "consolidating");
   assert.equal(evidenceLevel(12), "consolidating");
   assert.equal(qualitativeStrength(1), "signal faible");
   assert.equal(qualitativeStrength(2, true), "critère confirmé");

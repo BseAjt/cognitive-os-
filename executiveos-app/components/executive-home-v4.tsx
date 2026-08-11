@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import Link from "next/link";
 import { ExecutiveRuntimePanel } from "@/components/executive-runtime-panel";
 import { ExecutiveWorkspace } from "@/components/executive-workspace";
 import { ContextIngestionPanel } from "@/components/context-ingestion-panel";
@@ -104,6 +105,7 @@ export function ExecutiveHomeV4() {
       </button>
       <nav className="space-y-1">
         <button onClick={() => setShell("dossiers")} className={`w-full rounded-xl px-3 py-2.5 text-left text-sm ${shell === "dossiers" ? "bg-white/[.08] text-white" : "text-[#8393ad] hover:bg-white/[.04]"}`}>{text("Mon jumeau", "My twin")}</button>
+        <Link href="/comment-ca-marche" className="block w-full rounded-xl px-3 py-2.5 text-left text-sm text-[#8393ad] hover:bg-white/[.04]">{text("Comment ça marche", "How it works")}</Link>
         <button onClick={() => window.dispatchEvent(new CustomEvent("executiveos:show-help"))} className="w-full rounded-xl px-3 py-2.5 text-left text-sm text-[#8393ad] hover:bg-white/[.04]">{text("Aide & glossaire", "Help & glossary")}</button>
       </nav>
       {activeCase && <button onClick={() => setShell("case")} className="mt-6 rounded-2xl border border-white/[.07] bg-white/[.025] p-3.5 text-left">

@@ -15,11 +15,24 @@ export type EvidenceLevel = "not_started" | "early_signals" | "emerging" | "cons
 
 export function evidenceLevel(decisionCount: number, outcomeCount = 0): EvidenceLevel {
   if (decisionCount === 0) return "not_started";
-  if (decisionCount < 5) return "early_signals";
-  if (decisionCount < 10) return "emerging";
+  if (decisionCount < 3) return "early_signals";
+  if (decisionCount < 7) return "emerging";
   if (decisionCount < 15) return "consolidating";
   return outcomeCount >= 8 ? "calibrated" : "usable";
 }
+
+export function explainDoctrineScore(principle: DoctrinePrinciple): string {
+  const corrected = principle.status === "corrected" ? " et votre correction la plus récente" : principle.status === "confirmed" ? " et votre confirmation" : "";
+  const contradiction = principle.counterEvidence.length ? `, malgré ${principle.counterEvidence.length} contre-exemple(s)` : "";
+  return `Basé sur ${principle.evidence.length} décision(s) concordante(s)${contradiction}${corrected}.`;
+}
+
+export const SCORE_METHOD = [
+  "Les décisions explicitement confirmées ou corrigées comptent davantage que les tendances seulement déduites.",
+  "Les preuves concordantes renforcent le score ; les contre-exemples le réduisent.",
+  "La correction la plus récente de l’utilisateur prévaut toujours sur les interprétations antérieures.",
+  "Avec moins de trois décisions, le jumeau affiche une orientation limitée plutôt qu’une conclusion stabilisée."
+] as const;
 
 export function qualitativeStrength(evidenceCount: number, confirmed = false): "signal faible" | "tendance émergente" | "tendance récurrente" | "critère confirmé" {
   if (confirmed) return "critère confirmé";
@@ -120,8 +133,8 @@ export function buildDecisionTwinSnapshot(input: {
   const nextMilestone = decisionCount < 3
     ? `Importer ${3 - decisionCount} décision${3 - decisionCount > 1 ? "s" : ""} pour révéler les premiers critères récurrents.`
     : decisionCount < 10
-      ? `Ajouter ${10 - decisionCount} décision${10 - decisionCount > 1 ? "s" : ""} pour stabiliser la doctrine.`
-      : "Comparer les prédictions du jumeau aux décisions et résultats réels.";
+      ? "Doctrine émergente : chaque nouvelle décision affine les critères déjà visibles."
+      : "Comparer les orientations du jumeau aux décisions et résultats réels.";
 
   return { maturity, maturityScore, decisionCount, doctrineCoverage, calibration, nextMilestone };
 }

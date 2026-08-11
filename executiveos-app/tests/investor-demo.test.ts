@@ -11,7 +11,7 @@ test("B8.2 creates a deterministic portfolio across projects, ideas and complete
   assert.equal(first.ideas.length, 12);
   assert.equal(first.contextSources.length, 40);
   assert.equal(first.contextEvidence.length, 120);
-  assert.equal(first.decisions.length, 9);
+  assert.equal(first.decisions.length, 7);
   assert.equal(first.actions.length, 30);
   assert.equal(first.executiveCycles.length, 5);
   assert.equal(first.decisionActionPlans.length, 5);
@@ -24,7 +24,7 @@ test("B8.1 metrics are derived from traceable records rather than display consta
   assert.equal(metrics.sourcesConsolidated, dataset.contextSources.length);
   assert.equal(metrics.evidenceStructured, dataset.contextEvidence.length);
   assert.equal(metrics.traceabilityRate, 100);
-  assert.equal(metrics.decisionsSourced, 9);
+  assert.equal(metrics.decisionsSourced, 7);
   assert.equal(metrics.actionsPiloted, 30);
   assert.equal(metrics.decisionsReopened, 3);
   assert.equal(metrics.projectsInFlight, 5);
