@@ -38,11 +38,14 @@ const PRINCIPLE_RULES = [
 ] as const;
 
 export function buildDecisionDoctrine(input: { decisions: DecisionRecord[]; profiles: CognitiveProfileRecord[]; sources?: ContextSourceRecord[] }): DecisionDoctrine {
-  const feedback = new Map<string, { status: DoctrineStatus; statement?: string }>();
+  const feedback = new Map<string, { status: DoctrineStatus; statement?: string; createdAt: string }>();
   for (const source of input.sources ?? []) {
     const match = source.title.match(/^Doctrine (confirmée|corrigée):(.+)$/i);
     if (!match) continue;
-    feedback.set(match[2].trim(), { status: match[1].toLocaleLowerCase("fr") === "confirmée" ? "confirmed" : "corrected", statement: source.rawContent.trim() || undefined });
+    const principleId = match[2].trim();
+    const previous = feedback.get(principleId);
+    if (previous && previous.createdAt >= source.createdAt) continue;
+    feedback.set(principleId, { status: match[1].toLocaleLowerCase("fr") === "confirmée" ? "confirmed" : "corrected", statement: source.rawContent.trim() || undefined, createdAt: source.createdAt });
   }
   const principles = PRINCIPLE_RULES.map((rule) => {
     const evidence = input.decisions.filter((item) => rule.positive.test(`${item.outcome} ${item.recommendation} ${item.rationale}`));
