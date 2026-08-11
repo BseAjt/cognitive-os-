@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { buildDecisionDoctrine, buildDecisionTwinSnapshot, predictDecisionOrientation } from "../lib/decision-twin.ts";
+import { buildDecisionDoctrine, buildDecisionTwinSnapshot, evidenceLevel, predictDecisionOrientation, qualitativeStrength } from "../lib/decision-twin.ts";
 import type { CognitiveCase, CognitiveProfileRecord, DecisionRecord } from "../domain/canonical.ts";
 
 const cognitiveCase = (id: string, context = "Un contexte documenté suffisamment long pour entraîner la doctrine."): CognitiveCase => ({
@@ -55,4 +55,20 @@ test("une prédiction reste indéterminée tant que l'historique est insuffisant
   const prediction = predictDecisionOrientation({ cognitiveCase: cognitiveCase("new-case"), doctrine });
   assert.equal(prediction.orientation, "indéterminée");
   assert.ok(prediction.confidence <= 55);
+});
+
+test("les faibles échantillons sont décrits sans fausse précision", () => {
+  assert.equal(evidenceLevel(3), "early_signals");
+  assert.equal(evidenceLevel(9), "emerging");
+  assert.equal(evidenceLevel(12), "consolidating");
+  assert.equal(qualitativeStrength(1), "signal faible");
+  assert.equal(qualitativeStrength(2, true), "critère confirmé");
+});
+
+test("une orientation expose ses facteurs et une confiance qualitative", () => {
+  const decisions = Array.from({ length: 8 }, (_, index) => ({ ...decision(`case-${index}`), rationale: "La valeur claire, la preuve client et la capacité à livrer sont documentées." }));
+  const doctrine = buildDecisionDoctrine({ decisions, profiles: [] });
+  const prediction = predictDecisionOrientation({ cognitiveCase: cognitiveCase("new-case", "Valeur client claire, test pilote et équipe disponible."), doctrine });
+  assert.equal(prediction.confidenceLabel, "modérée");
+  assert.ok(prediction.factors.length >= 3);
 });
