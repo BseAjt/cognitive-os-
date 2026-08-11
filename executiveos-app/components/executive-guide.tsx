@@ -14,13 +14,13 @@ const GLOSSARY = [
   ["Stabilité", "La cohérence des convictions dans le temps. Un changement justifié par de nouvelles preuves est positif."],
   ["Discipline du risque", "La qualité du suivi des risques, conditions d’arrêt et points de réévaluation."],
   ["Mémoire durable", "Les faits, décisions et apprentissages conservés pour ne pas recommencer le raisonnement à zéro."],
-  ["ORION", "Le copilote de décision qui structure le contexte, confronte les options et propose une prochaine action."],
+  ["Assistant de décision", "Le copilote de décision qui structure le contexte, confronte les options et propose une prochaine action."],
 ] as const;
 
 const STEPS = [
   { eyebrow: "1 · Un sujet = un dossier", title: "Commence par la décision qui compte", text: "Crée un dossier pour une question importante : recrutement, financement, lancement produit ou priorité commerciale. Tout le contexte restera au même endroit." },
   { eyebrow: "2 · Ton point de départ", title: "Lis seulement le brief du jour", text: "La vue Aujourd’hui te montre la situation, le point d’attention et la prochaine action. Tu n’as pas besoin d’ouvrir tous les modules." },
-  { eyebrow: "3 · Ton copilote", title: "Demande un arbitrage à ORION", text: "Explique la décision à prendre comme tu le ferais à un associé. ORION structure les options, les risques et les actions sans te demander de maîtriser l’outil." },
+  { eyebrow: "3 · Ton copilote", title: "Demande un arbitrage à Assistant de décision", text: "Explique la décision à prendre comme tu le ferais à un associé. Assistant de décision structure les options, les risques et les actions sans te demander de maîtriser l’outil." },
   { eyebrow: "4 · Passage à l’action", title: "Décide, puis exécute", text: "Utilise Décider pour arbitrer et Agir pour suivre les responsabilités. Les sources, la mémoire et l’historique restent disponibles dans Plus." }
 ];
 
@@ -57,7 +57,7 @@ const INVESTOR_STEPS = [
   { eyebrow: "1 · Vue portefeuille", title: "Commence par les sociétés qui demandent ton attention", text: "La synthèse fait remonter les risques, décisions à rouvrir et engagements importants avant les détails opérationnels." },
   { eyebrow: "2 · Signaux vérifiables", title: "Distingue les faits des hypothèses", text: "Chaque recommandation reste reliée à ses sources, à son niveau de confiance et à la date où elle devra être réévaluée." },
   { eyebrow: "3 · Suivi de participation", title: "Ouvre une société pour comprendre sa trajectoire", text: "Tu retrouves les décisions du dirigeant, leur exécution et les changements de contexte sans entrer dans son pilotage quotidien." },
-  { eyebrow: "4 · Préparation des comités", title: "Transforme les alertes en questions de board", text: "ORION rassemble les écarts, risques et engagements afin de préparer une revue ou un comité d’investissement." }
+  { eyebrow: "4 · Préparation des comités", title: "Transforme les alertes en questions de board", text: "Assistant de décision rassemble les écarts, risques et engagements afin de préparer une revue ou un comité d’investissement." }
 ];
 
 export function InvestorGuide() {
@@ -96,7 +96,7 @@ export function HelpCenter({ profile }: { profile: "executive" | "investor" }) {
     return () => window.removeEventListener("executiveos:show-help", showHelp);
   }, []);
   if (!open) return null;
-  const executiveSteps = ["Crée un dossier pour une décision réelle.", "Lis le brief Aujourd’hui et son centre d’attention.", "Utilise Arbitrer avec ORION, puis formalise la décision.", "Passe dans Exécuter et consigne le résultat dans Apprendre."];
+  const executiveSteps = ["Crée un dossier pour une décision réelle.", "Lis le brief Aujourd’hui et son centre d’attention.", "Utilise Arbitrer avec Assistant de décision, puis formalise la décision.", "Passe dans Exécuter et consigne le résultat dans Apprendre."];
   const investorSteps = ["Commence par les alertes du portefeuille.", "Ouvre une participation pour vérifier sa trajectoire.", "Distingue les faits des hypothèses et contrôle la confiance.", "Transforme les écarts en questions de board ou en décision à rouvrir."];
   const steps = profile === "executive" ? executiveSteps : investorSteps;
   return <div role="dialog" aria-modal="true" aria-labelledby="help-title" className="fixed inset-0 z-[110] grid place-items-end bg-black/55 backdrop-blur-sm sm:place-items-center sm:p-6">

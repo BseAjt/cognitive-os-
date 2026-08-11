@@ -79,7 +79,7 @@ test("UAT B4: product contracts persist and expose the complete dossier loop",()
  assert.ok(runtimeSlice.includes("kernelTransactions:"));
  assert.ok(runtimeSlice.includes("agentRuns:"));
  assert.ok(workspace.includes("EXECUTIVE BRIEF"));
- assert.ok(workspace.includes("ORION · CONVERSATION DU DOSSIER"));
+ assert.ok(workspace.includes("Assistant de décision · CONVERSATION DU DOSSIER"));
  assert.ok(workspace.includes("OBJETS DU DOSSIER"));
  assert.ok(store.includes("version: 17"),"dossier state must survive reload through persistence v17");
 });

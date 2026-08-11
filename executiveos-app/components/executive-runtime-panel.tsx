@@ -31,7 +31,7 @@ export function ExecutiveRuntimePanel({ mode }: { mode: "act" | "explore" }) {
       if (!after) throw new Error("L’action a disparu du store après préparation.");
       setExecutionFeedback(after.status === "blocked"
         ? { tone: "warning", text: `${after.title} — préparation bloquée. ${after.blockedReason ?? "Consultez la trace Kernel."}` }
-        : { tone: "success", text: `${after.title} — ORION a produit le cadrage d’exécution et enregistré sa trace.` });
+        : { tone: "success", text: `${after.title} — Assistant de décision a produit le cadrage d’exécution et enregistré sa trace.` });
     } catch (error) {
       setExecutionFeedback({ tone: "error", text: error instanceof Error ? error.message : "Erreur inattendue pendant la préparation." });
     } finally {
@@ -135,7 +135,7 @@ export function ExecutiveRuntimePanel({ mode }: { mode: "act" | "explore" }) {
 
     <article className="mb-5 rounded-[26px] border border-white/[.08] bg-[#0d192b]/88 p-5 md:p-6" data-testid="kernel-observability">
       <div className="flex flex-col justify-between gap-4 md:flex-row md:items-start">
-        <div><div className="text-[10px] font-black uppercase tracking-[.16em] text-[#b7a9ff]">Executive Kernel · Observability</div><h2 className="mt-2 text-2xl font-semibold">Cycles ORION exécutés par le Kernel</h2><p className="mt-2 max-w-3xl text-sm leading-6 text-[#8294af]">Chaque cycle expose sa transaction, les étapes traversées et la raison exacte d’un éventuel blocage.</p></div>
+        <div><div className="text-[10px] font-black uppercase tracking-[.16em] text-[#b7a9ff]">Executive Kernel · Observability</div><h2 className="mt-2 text-2xl font-semibold">Cycles Assistant de décision exécutés par le Kernel</h2><p className="mt-2 max-w-3xl text-sm leading-6 text-[#8294af]">Chaque cycle expose sa transaction, les étapes traversées et la raison exacte d’un éventuel blocage.</p></div>
         <div className="flex gap-2 text-[11px]"><span className="rounded-full bg-[#42d59d]/10 px-3 py-1.5 text-[#9af0cf]">{kernelStats.completed} terminé(s)</span><span className="rounded-full bg-[#ffbc57]/10 px-3 py-1.5 text-[#ffd895]">{kernelStats.blocked} bloqué(s)</span><span className="rounded-full bg-[#ff6b7a]/10 px-3 py-1.5 text-[#ffb4bd]">{kernelStats.failed} erreur(s)</span></div>
       </div>
       <div className="mt-5 space-y-3">
@@ -149,7 +149,7 @@ export function ExecutiveRuntimePanel({ mode }: { mode: "act" | "explore" }) {
             </button>
             {expanded && <div className="mt-4 border-t border-white/[.06] pt-4"><div className="space-y-2">{trace.map((event, index) => <div key={event.id} className="grid gap-2 rounded-xl bg-white/[.025] p-3 text-xs md:grid-cols-[28px_150px_1fr]"><span className="grid size-7 place-items-center rounded-full bg-white/[.05] text-[10px] text-[#8294af]">{index + 1}</span><div><strong className="block text-[#d7def0]">{event.stage ?? event.type}</strong><span className="mt-1 block text-[10px] uppercase tracking-[.08em] text-[#647792]">{event.status}</span></div><p className="leading-5 text-[#91a2bd]">{event.detail}</p></div>)}</div></div>}
           </div>;
-        }) : <div className="rounded-2xl border border-dashed border-white/[.08] p-5 text-sm text-[#71839e]">Aucune transaction Kernel pour ce dossier. Le prochain cycle ORION apparaîtra ici automatiquement.</div>}
+        }) : <div className="rounded-2xl border border-dashed border-white/[.08] p-5 text-sm text-[#71839e]">Aucune transaction Kernel pour ce dossier. Le prochain cycle Assistant de décision apparaîtra ici automatiquement.</div>}
       </div>
     </article>
 
@@ -167,7 +167,7 @@ export function ExecutiveRuntimePanel({ mode }: { mode: "act" | "explore" }) {
             <div className="mt-4 h-1.5 overflow-hidden rounded-full bg-white/[.06]"><div className="h-full bg-gradient-to-r from-[#7657ff] to-[#42d59d] transition-[width] duration-300" style={{width:`${action.progress}%`}}/></div>
             <div className="mt-4 flex flex-wrap gap-2">
               {!action.assignedAgentId && action.status !== "done" && <button onClick={() => assignRuntimeAction(action.id)} className="rounded-lg border border-white/[.08] bg-white/[.03] px-3 py-2 text-xs font-semibold">Affecter</button>}
-              {action.status === "todo" && <button onClick={() => handleStart(action.id)} disabled={executingActionId === action.id} className="rounded-lg border border-white/[.08] bg-white/[.03] px-3 py-2 text-xs font-semibold disabled:cursor-wait disabled:opacity-60">{executingActionId === action.id ? "Préparation…" : "Démarrer avec ORION"}</button>}
+              {action.status === "todo" && <button onClick={() => handleStart(action.id)} disabled={executingActionId === action.id} className="rounded-lg border border-white/[.08] bg-white/[.03] px-3 py-2 text-xs font-semibold disabled:cursor-wait disabled:opacity-60">{executingActionId === action.id ? "Préparation…" : "Démarrer avec Assistant de décision"}</button>}
               {(action.status === "todo" || action.status === "doing") && <button onClick={() => handleExecute(action.id)} disabled={executingActionId === action.id} className="rounded-lg bg-[#7c5cff] px-3 py-2 text-xs font-bold disabled:cursor-wait disabled:opacity-60">{executingActionId === action.id ? "Exécution…" : "Exécuter"}</button>}
               {action.status === "blocked" && <button onClick={() => transitionRuntimeAction(action.id, "todo")} className="rounded-lg border border-white/[.08] bg-white/[.03] px-3 py-2 text-xs font-semibold">Réouvrir</button>}
             </div>

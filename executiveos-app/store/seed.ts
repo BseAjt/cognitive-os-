@@ -59,7 +59,7 @@ export const initialCases: CognitiveCase[] = [
 export const initialMessages: ConversationMessage[] = [
   { id: "msg-1", caseId: "executiveos", role: "assistant", text: "Bonjour. Tu reprends ExecutiveOS au moment où le runtime cognitif et l’interface convergent. Le principal enjeu est maintenant de prouver que le produit forme un système cohérent, pas une collection de modules.", createdAt: t("05", "08:40:00") },
   { id: "msg-2", caseId: "executiveos", role: "user", text: "Je veux que toutes les capacités construites depuis le début soient visibles et réellement utilisables dans une seule application.", createdAt: t("05", "08:43:00") },
-  { id: "msg-3", caseId: "executiveos", role: "assistant", text: "ORION recommande de prioriser trois preuves : continuité de contexte, décision structurée, puis transformation de la décision en actions orchestrées. La mémoire et le graphe servent de tissu commun entre ces étapes.", createdAt: t("05", "08:44:00") },
+  { id: "msg-3", caseId: "executiveos", role: "assistant", text: "Assistant de décision recommande de prioriser trois preuves : continuité de contexte, décision structurée, puis transformation de la décision en actions orchestrées. La mémoire et le graphe servent de tissu commun entre ces étapes.", createdAt: t("05", "08:44:00") },
   { id: "msg-4", caseId: "positioning", role: "assistant", text: "Le positionnement le plus robuste est celui d’un Decision Operating System : ExecutiveOS comprend le contexte, structure les arbitrages, orchestre l’exécution et apprend des résultats.", createdAt: t("05", "11:15:00") },
   { id: "msg-5", caseId: "investor-demo", role: "assistant", text: "Pour la démo, commence par Accueil, ouvre un nœud du Brain, reprends une décision, transforme-la en action puis montre comment le graphe et la mémoire se mettent à jour.", createdAt: t("06", "10:05:00") }
 ];
@@ -73,12 +73,12 @@ export const initialDecisions: DecisionRecord[] = [
 ];
 
 export const initialRuntimeActions: ActionRecord[] = [
-  { id: "act-1", caseId: "executiveos", title: "Valider le parcours Accueil → Décider → Agir → Explorer", owner: "ORION", progress: 65, status: "doing", requiredCapability: "analysis", assignedAgentId: "orion", dueAt: t("08", "18:00:00") },
-  { id: "act-2", caseId: "executiveos", title: "Vérifier l’architecture du runtime agentique", owner: "TURING", progress: 80, status: "doing", requiredCapability: "technology", assignedAgentId: "turing", dueAt: t("08", "17:00:00") },
-  { id: "act-3", caseId: "positioning", title: "Tester le pitch Decision Operating System sur trois profils dirigeants", owner: "ATHENA", progress: 35, status: "doing", requiredCapability: "strategy", assignedAgentId: "athena", dueAt: t("11", "12:00:00") },
-  { id: "act-4", caseId: "investor-demo", title: "Préparer un scénario de démonstration de cinq minutes", owner: "ORION", progress: 20, status: "todo", requiredCapability: "orchestration", assignedAgentId: "orion", dueAt: t("10", "18:00:00") },
-  { id: "act-5", caseId: "architecture", title: "Supprimer les dépendances et sources Phase 2 devenues redondantes", owner: "TURING", progress: 100, status: "done", requiredCapability: "technology", assignedAgentId: "turing", result: "Les capacités utiles ont été portées dans le runtime Next.js." },
-  { id: "act-6", caseId: "executiveos", title: "Qualifier les risques de cohérence entre données persistées et nouveaux seeds", owner: "SENECA", progress: 0, status: "todo", requiredCapability: "risk", assignedAgentId: "seneca", dueAt: t("09", "15:00:00") }
+  { id: "act-1", caseId: "executiveos", title: "Valider le parcours Accueil → Décider → Agir → Explorer", owner: "Assistant de décision", progress: 65, status: "doing", requiredCapability: "analysis", assignedAgentId: "orion", dueAt: t("08", "18:00:00") },
+  { id: "act-2", caseId: "executiveos", title: "Vérifier l’architecture du runtime agentique", owner: "Perspective de faisabilité", progress: 80, status: "doing", requiredCapability: "technology", assignedAgentId: "turing", dueAt: t("08", "17:00:00") },
+  { id: "act-3", caseId: "positioning", title: "Tester le pitch Decision Operating System sur trois profils dirigeants", owner: "Perspective stratégique", progress: 35, status: "doing", requiredCapability: "strategy", assignedAgentId: "athena", dueAt: t("11", "12:00:00") },
+  { id: "act-4", caseId: "investor-demo", title: "Préparer un scénario de démonstration de cinq minutes", owner: "Assistant de décision", progress: 20, status: "todo", requiredCapability: "orchestration", assignedAgentId: "orion", dueAt: t("10", "18:00:00") },
+  { id: "act-5", caseId: "architecture", title: "Supprimer les dépendances et sources Phase 2 devenues redondantes", owner: "Perspective de faisabilité", progress: 100, status: "done", requiredCapability: "technology", assignedAgentId: "turing", result: "Les capacités utiles ont été portées dans le runtime Next.js." },
+  { id: "act-6", caseId: "executiveos", title: "Qualifier les risques de cohérence entre données persistées et nouveaux seeds", owner: "Perspective de prudence", progress: 0, status: "todo", requiredCapability: "risk", assignedAgentId: "seneca", dueAt: t("09", "15:00:00") }
 ];
 
 export const initialEvents: CognitiveEventRecord[] = [
@@ -148,10 +148,10 @@ export const initialKnowledgeRelations: KnowledgeRelation[] = [
 
 export const initialAgentRuns: AgentRunRecord[] = [
   { id: "run-1", caseId: "executiveos", orchestratorId: "orion", selectedAgentIds: ["athena", "turing", "seneca"], contributions: [
-    { agentId: "athena", agentName: "ATHENA", focus: "Stratégie", content: "Concentrer la démo sur une boucle de décision complète plutôt que sur le catalogue de capacités.", confidence: 89 },
-    { agentId: "turing", agentName: "TURING", focus: "Architecture", content: "Utiliser le store canonique comme source de vérité afin que chaque onglet lise les mêmes données.", confidence: 94 },
-    { agentId: "seneca", agentName: "SENECA", focus: "Risques", content: "Une vue vide ou non interactive est un risque de crédibilité produit pendant la démonstration.", confidence: 92 }
-  ], synthesis: "ORION · La priorité est de démontrer une continuité réelle entre contexte, décision, action et apprentissage.", confidence: 92, createdAt: t("07", "16:40:00") }
+    { agentId: "athena", agentName: "Perspective stratégique", focus: "Stratégie", content: "Concentrer la démo sur une boucle de décision complète plutôt que sur le catalogue de capacités.", confidence: 89 },
+    { agentId: "turing", agentName: "Perspective de faisabilité", focus: "Architecture", content: "Utiliser le store canonique comme source de vérité afin que chaque onglet lise les mêmes données.", confidence: 94 },
+    { agentId: "seneca", agentName: "Perspective de prudence", focus: "Risques", content: "Une vue vide ou non interactive est un risque de crédibilité produit pendant la démonstration.", confidence: 92 }
+  ], synthesis: "Assistant de décision · La priorité est de démontrer une continuité réelle entre contexte, décision, action et apprentissage.", confidence: 92, createdAt: t("07", "16:40:00") }
 ];
 
 export const initialReasoningRevisions: ReasoningRevision[] = [

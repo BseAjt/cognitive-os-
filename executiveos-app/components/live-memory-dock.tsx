@@ -66,7 +66,7 @@ export function LiveMemoryDock() {
 
   return <aside role="dialog" aria-modal="true" aria-label="Mémoire vivante" className="fixed inset-3 z-50 max-h-[calc(100dvh-1.5rem)] w-auto overflow-auto overscroll-contain rounded-[24px] sm:inset-auto sm:bottom-20 sm:right-5 sm:max-h-[75vh] sm:w-[min(440px,calc(100vw-2rem))] border border-[#7c5cff]/35 bg-[#0b1526]/95 p-4 shadow-2xl backdrop-blur-xl">
     <div className="flex items-start justify-between gap-3">
-      <div><div className="text-[10px] font-black uppercase tracking-[.16em] text-[#a995ff]">ORION · MÉMOIRE VIVANTE</div><strong className="mt-1 block text-sm">{active.title}</strong><p className="mt-1 text-[11px] text-[#71839e]">{intelligence.knowledge.length} connaissance(s) consolidée(s) · {intelligence.links.length} dossier(s) connexe(s)</p></div>
+      <div><div className="text-[10px] font-black uppercase tracking-[.16em] text-[#a995ff]">Assistant de décision · MÉMOIRE VIVANTE</div><strong className="mt-1 block text-sm">{active.title}</strong><p className="mt-1 text-[11px] text-[#71839e]">{intelligence.knowledge.length} connaissance(s) consolidée(s) · {intelligence.links.length} dossier(s) connexe(s)</p></div>
       <button onClick={() => setOpen(false)} className="rounded-lg border border-white/10 px-2 py-1 text-xs text-[#91a2bd]">Réduire</button>
     </div>
 
@@ -76,7 +76,7 @@ export function LiveMemoryDock() {
         <strong className="mt-1 block text-sm leading-5">{item.title}</strong>
         <p className="mt-1 text-xs leading-5 text-[#a5b4c9]">{item.detail}</p>
         <p className="mt-1 text-[10px] leading-4 text-[#65758f]">Pourquoi : {item.reason}</p>
-      </div>) : <div className="rounded-2xl border border-white/[.08] bg-white/[.025] p-3 text-xs leading-5 text-[#91a2bd]">Aucun signal mémoire prioritaire. ORION continuera à consolider les apprentissages de ce dossier.</div>}
+      </div>) : <div className="rounded-2xl border border-white/[.08] bg-white/[.025] p-3 text-xs leading-5 text-[#91a2bd]">Aucun signal mémoire prioritaire. Assistant de décision continuera à consolider les apprentissages de ce dossier.</div>}
     </div>
 
     <button onClick={() => setShowGraph(!showGraph)} className="mt-3 w-full rounded-xl border border-white/[.08] bg-white/[.03] px-3 py-2 text-left text-xs font-semibold text-[#c9c0ff]">

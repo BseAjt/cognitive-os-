@@ -45,7 +45,7 @@ test("Executive Brief is visible in the dossier workspace",()=>{
  assert.ok(workspace.includes("EXECUTIVE BRIEF"));
  assert.ok(workspace.includes("buildExecutiveCaseBrief"));
  assert.ok(workspace.includes("Risques critiques"));
- assert.ok(workspace.includes("Recommandation ORION"));
+ assert.ok(workspace.includes("Recommandation Assistant de décision"));
  assert.ok(workspace.includes("B7.6 · Synthèse exécutive sourcée"));
  assert.ok(workspace.includes("brief.citedEvidence"));
 });

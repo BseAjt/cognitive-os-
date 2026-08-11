@@ -56,8 +56,8 @@ export function ImpactAnalysisV3({ cognitiveCase, frame, decisions, actions }: I
   ];
 
   const orion = selectedIndex === recommendedIndex
-    ? `ORION privilégie « ${selected.title} » : c’est actuellement le meilleur compromis entre impact, risque et réversibilité.`
-    : `Ce scénario est viable, mais ORION estime que « ${optionScores[recommendedIndex]?.title} » conserve un meilleur profil risque / apprentissage.`;
+    ? `Assistant de décision privilégie « ${selected.title} » : c’est actuellement le meilleur compromis entre impact, risque et réversibilité.`
+    : `Ce scénario est viable, mais Assistant de décision estime que « ${optionScores[recommendedIndex]?.title} » conserve un meilleur profil risque / apprentissage.`;
 
   return (
     <section className="rounded-[26px] border border-white/[.08] bg-[#0d192b]/82 p-5 md:p-6">
@@ -90,7 +90,7 @@ export function ImpactAnalysisV3({ cognitiveCase, frame, decisions, actions }: I
         </article>
 
         <article className="rounded-2xl border border-white/[.07] bg-[#091422] p-5">
-          <div className="text-[10px] font-black uppercase tracking-[.14em] text-[#9d83ff]">ORION · Analyse des dépendances</div>
+          <div className="text-[10px] font-black uppercase tracking-[.14em] text-[#9d83ff]">Assistant de décision · Analyse des dépendances</div>
           <p className="mt-3 text-sm leading-7 text-[#d3dcea]">{orion}</p>
           <div className="mt-5 space-y-2">{dependencies.map((dependency) => <div key={dependency} className="flex items-start gap-3 rounded-xl border border-white/[.06] bg-white/[.02] p-3"><span className="mt-1.5 size-1.5 shrink-0 rounded-full bg-[#7c5cff]"/><span className="text-xs leading-5 text-[#9eacbf]">{dependency}</span></div>)}</div>
           <div className="mt-5 rounded-xl border border-[#ffbc57]/12 bg-[#ffbc57]/[.035] p-4"><div className="text-[10px] font-black uppercase tracking-[.12em] text-[#ffcb77]">Point de vigilance</div><p className="mt-2 text-xs leading-5 text-[#c9bda9]">{frame.missingInformation.length ? `Ne pas considérer l’analyse comme définitive avant de compléter : ${frame.missingInformation.slice(0, 2).join(" · ")}.` : "Aucune information critique manquante détectée dans le cadre actuel."}</p></div>

@@ -84,8 +84,8 @@ export function DecisionCanvas({ cognitiveCase, frame, decisions, actions, onCre
         </div>
 
         <div className="space-y-5">
-          <CanvasSection eyebrow="ORION" title="Recommandation actuelle" tone="violet">
-            <p className="text-base leading-7 text-[#dce4f0]">{frame.recommendation ?? "ORION ne recommande pas encore une décision irréversible : des informations critiques manquent."}</p>
+          <CanvasSection eyebrow="Assistant de décision" title="Recommandation actuelle" tone="violet">
+            <p className="text-base leading-7 text-[#dce4f0]">{frame.recommendation ?? "Assistant de décision ne recommande pas encore une décision irréversible : des informations critiques manquent."}</p>
             <div className="mt-4 rounded-2xl border border-white/[.07] bg-[#0a1525] p-4"><div className="text-[10px] font-black uppercase tracking-[.14em] text-[#6f819e]">Déclencheur de revue</div><p className="mt-2 text-xs leading-5 text-[#91a2bd]">{frame.reviewTrigger}</p></div>
           </CanvasSection>
 

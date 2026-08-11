@@ -124,14 +124,14 @@ test("Phase B living brief exposes attention and next-best-action surfaces", () 
 test("execution stays operational inside dossier workspace", () => {
   assert.ok(runtime.includes("assignRuntimeAction(action.id)"));
   assert.ok(runtime.includes("handleStart(action.id)"));
-  assert.ok(runtime.includes("Démarrer avec ORION"));
+  assert.ok(runtime.includes("Démarrer avec Assistant de décision"));
   assert.ok(runtime.includes("handleExecute(action.id)"));
   assert.ok(runtime.includes("executionFeedback"));
 });
 
 test("B4.1 keeps one persistent ORION conversation per dossier", () => {
   assert.ok(workspace.includes('store.messages.filter((message) => message.caseId === active.id)'));
-  assert.ok(workspace.includes("ORION · CONVERSATION DU DOSSIER"));
+  assert.ok(workspace.includes("Assistant de décision · CONVERSATION DU DOSSIER"));
   assert.ok(workspace.includes("Historique persistant"));
   assert.ok(workspace.includes("processMessage(input)"));
   assert.ok(commands.includes('messages: [...state.messages, { id: crypto.randomUUID(), caseId, role: "user"'));

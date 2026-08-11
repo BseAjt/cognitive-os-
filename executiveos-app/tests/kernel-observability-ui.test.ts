@@ -13,7 +13,7 @@ test("B6.3.3 surfaces Kernel observability in the active dossier execution works
     "kernelTransactions",
     "kernelEvents",
     "Executive Kernel · Observability",
-    "Cycles ORION exécutés par le Kernel",
+    "Cycles Assistant de décision exécutés par le Kernel",
     "data-testid=\"kernel-observability\""
   ]) assert.ok(source.includes(contract), `missing Kernel observability contract: ${contract}`);
 });
