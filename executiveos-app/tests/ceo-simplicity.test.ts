@@ -37,10 +37,10 @@ test("help center documents both profiles and business vocabulary", () => {
   assert.match(home, /Ouvrir l’aide et le glossaire/);
 });
 
-test("executive and investor profiles are separate and persistent", () => {
-  assert.match(home, /type UserProfile = "executive" \| "investor"/);
-  assert.match(home, /executiveos:user-profile:v1/);
-  assert.match(home, /Mon portefeuille/);
+test("the product is focused on the investor decision twin", () => {
+  assert.match(home, /useState<UserProfile>\("investor"\)/);
+  assert.match(home, /Mon jumeau/);
+  assert.doesNotMatch(home, /Choisir un profil/);
   assert.match(home, /InvestorHome/);
   assert.match(guide, /Guide de l’investisseur/);
   assert.match(guide, /executiveos:investor-guide:v1/);
@@ -55,11 +55,11 @@ test("CEO home leads with three plain-language outcomes instead of product modul
   assert.match(home, /Tous les sujets/);
 });
 
-test("investor home leads with portfolio changes and the next decision", () => {
-  assert.match(home, /ExecutiveOS Investor/);
-  assert.match(home, /Seulement ce qui a changé/);
-  assert.match(home, /Participation à surveiller/);
-  assert.match(home, /Signal qui a changé/);
-  assert.match(home, /Prochain comité \/ arbitrage/);
-  assert.match(home, /Vue détaillée du portefeuille/);
+test("investor home leads with twin maturity and doctrine training", () => {
+  assert.match(home, /Votre jumeau décisionnel privé/);
+  assert.match(home, /État du jumeau/);
+  assert.match(home, /Doctrine couverte/);
+  assert.match(home, /Importer mon historique/);
+  assert.match(home, /Analyser une opportunité/);
+  assert.match(home, /Confronter à ma doctrine/);
 });

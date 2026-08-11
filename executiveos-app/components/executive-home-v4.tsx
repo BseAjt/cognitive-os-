@@ -16,6 +16,7 @@ import { buildCaseJourney, resolveEventDestination } from "@/lib/outcome-navigat
 import { runUnifiedRuntime } from "@/lib/unified-runtime";
 import { useExecutiveStore } from "@/store/executive-store";
 import { publicCopy } from "@/lib/public-copy";
+import { buildDecisionDoctrine, buildDecisionTwinSnapshot, maturityLabel, predictDecisionOrientation, type DoctrinePrinciple } from "@/lib/decision-twin";
 import type { CognitiveCase, CognitiveEventRecord } from "@/domain/canonical";
 
 type ShellView = "dossiers" | "case" | "settings";
@@ -37,20 +38,8 @@ export function ExecutiveHomeV4() {
   const [shell, setShell] = useState<ShellView>("dossiers");
   const [prompt, setPrompt] = useState("");
   const [search, setSearch] = useState("");
-  const [profile, setProfile] = useState<UserProfile>("executive");
+  const [profile] = useState<UserProfile>("investor");
   const activeCase = store.cases.find((item) => item.id === store.activeCaseId) ?? store.cases[0];
-
-  useEffect(() => {
-    const saved = window.localStorage.getItem("executiveos:user-profile:v1");
-    if (saved === "investor" || saved === "executive") setProfile(saved);
-  }, []);
-
-  function changeProfile(next: UserProfile) {
-    setProfile(next);
-    setShell("dossiers");
-    window.localStorage.setItem("executiveos:user-profile:v1", next);
-    if (next === "investor" && store.demoMode !== "investor") store.loadInvestorDemo();
-  }
 
   function openCase(id: string) {
     store.setActiveCase(id);
@@ -108,11 +97,10 @@ export function ExecutiveHomeV4() {
     <aside className="sticky top-0 hidden h-screen flex-col border-r border-white/[.07] bg-[#091321] px-4 py-5 lg:flex">
       <button onClick={() => setShell("dossiers")} className="mb-8 flex items-center gap-3 px-2 text-left">
         <span className="grid size-10 place-items-center rounded-[14px] bg-gradient-to-br from-[#9b82ff] to-[#5b39e7] text-sm font-black">EO</span>
-        <span><strong className="block text-[15px]">ExecutiveOS</strong><span className="text-[10px] uppercase tracking-[.12em] text-[#6f819e]">{profile === "executive" ? "Dirigeant" : "Investisseur"}</span></span>
+        <span><strong className="block text-[15px]">CognitiveOS</strong><span className="text-[10px] uppercase tracking-[.12em] text-[#6f819e]">Jumeau décisionnel</span></span>
       </button>
-      <div className="mb-5 grid grid-cols-2 gap-1 rounded-xl border border-white/[.07] bg-black/10 p-1" aria-label="Choisir un profil"><button aria-pressed={profile === "executive"} onClick={() => changeProfile("executive")} className={`rounded-lg px-2 py-2 text-[11px] font-semibold ${profile === "executive" ? "bg-white/10 text-white" : "text-[#71839e]"}`}>Dirigeant</button><button aria-pressed={profile === "investor"} onClick={() => changeProfile("investor")} className={`rounded-lg px-2 py-2 text-[11px] font-semibold ${profile === "investor" ? "bg-white/10 text-white" : "text-[#71839e]"}`}>Investisseur</button></div>
       <nav className="space-y-1">
-        <button onClick={() => setShell("dossiers")} className={`w-full rounded-xl px-3 py-2.5 text-left text-sm ${shell === "dossiers" ? "bg-white/[.08] text-white" : "text-[#8393ad] hover:bg-white/[.04]"}`}>{profile === "executive" ? "Mes dossiers" : "Mon portefeuille"}</button>
+        <button onClick={() => setShell("dossiers")} className={`w-full rounded-xl px-3 py-2.5 text-left text-sm ${shell === "dossiers" ? "bg-white/[.08] text-white" : "text-[#8393ad] hover:bg-white/[.04]"}`}>Mon jumeau</button>
         <button onClick={() => window.dispatchEvent(new CustomEvent("executiveos:show-help"))} className="w-full rounded-xl px-3 py-2.5 text-left text-sm text-[#8393ad] hover:bg-white/[.04]">Aide & glossaire</button>
       </nav>
       {activeCase && <button onClick={() => setShell("case")} className="mt-6 rounded-2xl border border-white/[.07] bg-white/[.025] p-3.5 text-left">
@@ -129,7 +117,7 @@ export function ExecutiveHomeV4() {
           <div className="relative flex min-w-0 flex-1 items-center gap-3 rounded-2xl border border-white/[.08] bg-[#0d192b]/90 px-4 py-3"><span className="text-[#bfb2ff]">⌕</span><input aria-label="Rechercher dans ExecutiveOS" value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Rechercher un dossier, une décision, une action…" className="min-w-0 flex-1 bg-transparent text-sm outline-none placeholder:text-[#65758f]"/>{search && <button aria-label="Effacer la recherche" onClick={() => setSearch("")} className="text-xs text-[#65758f]">Effacer</button>}
           {search.trim().length >= 2 && <div className="absolute left-0 right-0 top-[calc(100%+10px)] z-50 overflow-hidden rounded-2xl border border-white/[.08] bg-[#fffefa] p-2 shadow-2xl">{searchResults.length ? searchResults.map((result) => <button key={result.id} onClick={() => openSearchResult(result.caseId)} className="flex w-full items-start gap-3 rounded-xl p-3 text-left hover:bg-black/[.04]"><span className="mt-0.5 rounded-full bg-[#0071e3]/10 px-2 py-1 text-[9px] font-bold uppercase text-[#0066cc]">{result.kind}</span><span className="min-w-0"><strong className="block truncate text-sm">{result.title}</strong><span className="mt-1 block truncate text-xs text-[#6e6e73]">{result.detail}</span></span></button>) : <div className="p-4 text-sm text-[#6e6e73]">Aucun résultat. Essaie un autre mot-clé.</div>}</div>}</div>
           {shell === "case" && <div className="hidden min-w-0 flex-[1.1] items-center gap-3 rounded-2xl border border-white/[.08] bg-[#0d192b]/90 px-4 py-3 lg:flex"><span className="text-[#bfb2ff]">✦</span><input value={prompt} onChange={(e) => setPrompt(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter") submit(); }} placeholder="Que faut-il décider ?" className="min-w-0 flex-1 bg-transparent text-sm outline-none placeholder:text-[#65758f]"/><button onClick={submit} disabled={!prompt.trim()} className="rounded-lg bg-[#7c5cff] px-3 py-1.5 text-xs font-bold disabled:cursor-not-allowed disabled:opacity-40">Demander</button></div>}
-          <div className="flex shrink-0 items-center gap-2 lg:hidden"><button aria-label={`Profil ${profile === "executive" ? "dirigeant" : "investisseur"}. Changer de profil`} onClick={() => changeProfile(profile === "executive" ? "investor" : "executive")} className="min-h-11 rounded-2xl border border-white/[.08] bg-white/[.03] px-3 text-[10px] font-bold">{profile === "executive" ? "CEO" : "INV"}</button><button aria-label="Ouvrir l’aide et le glossaire" onClick={() => window.dispatchEvent(new CustomEvent("executiveos:show-help"))} className="grid size-11 place-items-center rounded-2xl border border-white/[.08] bg-white/[.03] text-sm font-bold">?</button><button aria-label={profile === "executive" ? "Mes dossiers" : "Mon portefeuille"} onClick={() => setShell("dossiers")} className="grid size-11 place-items-center rounded-2xl border border-white/[.08] bg-white/[.03] text-lg">⌂</button></div><div className="hidden size-11 place-items-center rounded-2xl bg-gradient-to-br from-[#d7cfff] to-[#8b73ef] text-xs font-black text-[#1b1239] sm:grid">SH</div>
+          <div className="flex shrink-0 items-center gap-2 lg:hidden"><button aria-label="Ouvrir l’aide et le glossaire" onClick={() => window.dispatchEvent(new CustomEvent("executiveos:show-help"))} className="grid size-11 place-items-center rounded-2xl border border-white/[.08] bg-white/[.03] text-sm font-bold">?</button><button aria-label="Mon jumeau" onClick={() => setShell("dossiers")} className="grid size-11 place-items-center rounded-2xl border border-white/[.08] bg-white/[.03] text-lg">⌂</button></div><div className="hidden size-11 place-items-center rounded-2xl bg-gradient-to-br from-[#d7cfff] to-[#8b73ef] text-xs font-black text-[#1b1239] sm:grid">SH</div>
         </div>
       </header>
 
@@ -202,19 +190,69 @@ function DossiersHome({ onOpen }: { onOpen: (id: string) => void }) {
 
 function InvestorHome({ onOpen }: { onOpen: (id: string) => void }) {
   const store = useExecutiveStore();
-  const reopened = store.decisionWatches.filter((item) => item.status === "reopen").length;
-  const attentionCase = [...store.cases].sort((a, b) => (b.signals.risk + b.signals.urgency) - (a.signals.risk + a.signals.urgency))[0];
-  const changedWatch = store.decisionWatches.find((item) => item.status === "reopen");
-  const nextDecision = changedWatch ? store.decisions.find((item) => item.id === changedWatch.decisionId) : store.decisions[0];
+  const [mode, setMode] = useState<"home" | "history" | "opportunity">("home");
+  const [history, setHistory] = useState("");
+  const [company, setCompany] = useState("");
+  const [question, setQuestion] = useState("");
+  const twin = useMemo(() => buildDecisionTwinSnapshot({ cases: store.cases, decisions: store.decisions, profiles: store.cognitiveProfiles }), [store.cases, store.decisions, store.cognitiveProfiles]);
+  const doctrine = useMemo(() => buildDecisionDoctrine({ decisions: store.decisions, profiles: store.cognitiveProfiles, sources: store.contextSources }), [store.decisions, store.cognitiveProfiles, store.contextSources]);
+  const recentCases = store.cases.slice(0, 4);
+
+  function importHistory() {
+    const content = history.trim();
+    if (!content) return;
+    const caseId = store.cases[0]?.id ?? store.createCase({ title: "Doctrine d’investissement", objective: "Construire la doctrine à partir des décisions passées", context: content });
+    store.ingestContextSource({ caseId, type: "note", title: "Décisions historiques", origin: "Import manuel", content });
+    setHistory(""); setMode("home");
+  }
+
+  function createOpportunity() {
+    const cleanCompany = company.trim();
+    const cleanQuestion = question.trim();
+    if (!cleanCompany || !cleanQuestion) return;
+    const id = store.createCase({ title: cleanCompany, objective: cleanQuestion, context: "Nouvelle opportunité à confronter à la doctrine d’investissement." });
+    setCompany(""); setQuestion(""); setMode("home"); onOpen(id);
+  }
+
+  function recordDoctrineFeedback(principle: DoctrinePrinciple, status: "confirmed" | "corrected", statement?: string) {
+    const caseId = principle.evidence[0]?.decisionId ? store.decisions.find((item) => item.id === principle.evidence[0].decisionId)?.caseId : store.cases[0]?.id;
+    if (!caseId) return;
+    store.ingestContextSource({ caseId, type: "note", title: `Doctrine ${status === "confirmed" ? "confirmée" : "corrigée"}:${principle.id}`, origin: "Validation utilisateur", content: statement?.trim() || principle.statement });
+  }
 
   return <section aria-labelledby="investor-home-title">
-    <div className="flex flex-col justify-between gap-5 md:flex-row md:items-end"><div><div className="text-[10px] font-black uppercase tracking-[.2em] text-[#0066cc]">ExecutiveOS Investor</div><h1 id="investor-home-title" className="mt-3 text-4xl font-semibold tracking-[-.04em] md:text-5xl">Votre portefeuille. Seulement ce qui a changé.</h1><p className="mt-3 max-w-3xl text-lg leading-8 text-[#59636f]">Une participation à surveiller, un signal à comprendre et un arbitrage à préparer.</p></div><button onClick={() => window.dispatchEvent(new CustomEvent("executiveos:show-investor-guide"))} className="min-h-12 rounded-xl border border-white/[.1] bg-white/[.7] px-5 py-3 text-sm font-bold">Comment ça marche ?</button></div>
-    {attentionCase ? <article className="mt-7 rounded-[30px] border border-[#c50014]/15 bg-[#fffefa] p-6 shadow-xl shadow-black/[.05] md:p-8"><div className="flex flex-wrap items-center justify-between gap-3"><span className="text-[10px] font-black uppercase tracking-[.18em] text-[#a00012]">Participation à surveiller</span><span className="rounded-full bg-[#c50014]/[.07] px-3 py-1 text-xs font-semibold text-[#a00012]">Risque {attentionCase.signals.risk}/10</span></div><h2 className="mt-4 text-2xl font-semibold md:text-3xl">{attentionCase.title}</h2><p className="mt-3 max-w-4xl text-base leading-7 text-[#59636f]">{attentionCase.context}</p><div className="mt-5 rounded-2xl bg-[#f2f0ea] p-4"><span className="text-[10px] font-bold uppercase tracking-[.14em] text-[#6e6e73]">Pourquoi cela compte</span><p className="mt-2 text-sm leading-6">Le niveau d’urgence est de {attentionCase.signals.urgency}/10. Assistant de décision recommande de vérifier l’hypothèse avant le prochain arbitrage.</p></div><button onClick={() => onOpen(attentionCase.id)} className="mt-5 min-h-12 rounded-full bg-[#0071e3] px-6 py-3 text-sm font-bold text-white">Examiner la participation →</button></article> : null}
-    <div className="mt-5 grid gap-4 lg:grid-cols-2"><AttentionCard eyebrow="Signal qui a changé" title={reopened ? `${reopened} décision(s) à réexaminer` : "Aucun signal critique nouveau"} text={changedWatch?.signals[0]?.detail ?? changedWatch?.summary ?? "La trajectoire observée reste cohérente avec les hypothèses enregistrées."} action={reopened ? "Voir le changement" : "Consulter le portefeuille"} onClick={() => onOpen(changedWatch?.caseId ?? attentionCase?.id ?? "")} disabled={!attentionCase}/><AttentionCard eyebrow="Prochain comité / arbitrage" title={nextDecision?.outcome ?? "Aucun arbitrage préparé"} text={nextDecision?.rationale ?? "Ajoutez une décision pour préparer le prochain échange avec l’équipe dirigeante."} action="Préparer les questions" onClick={() => onOpen(nextDecision?.caseId ?? attentionCase?.id ?? "")} disabled={!attentionCase}/></div>
-    <details className="mt-8 rounded-[24px] border border-black/10 bg-white/55 p-4"><summary className="cursor-pointer text-sm font-semibold">Vue détaillée du portefeuille</summary><div className="mt-5 rounded-[24px] bg-[#fffefa] p-2 text-[#1d1d1f] md:p-4"><InvestorDemoDashboard onOpenCase={onOpen}/></div></details>
-    <p className="mt-4 text-xs leading-5 text-[#71839e]">Données fictives de démonstration. Les informations réelles ne seront partagées qu’avec l’autorisation de chaque société.</p>
+    <div className="flex flex-col justify-between gap-5 md:flex-row md:items-end"><div><div className="text-[10px] font-black uppercase tracking-[.2em] text-[#0066cc]">Votre jumeau décisionnel privé</div><h1 id="investor-home-title" className="mt-3 max-w-4xl text-4xl font-semibold tracking-[-.04em] md:text-5xl">Une doctrine qui apprend de chacune de vos décisions.</h1><p className="mt-3 max-w-3xl text-lg leading-8 text-[#59636f]">Il mémorise vos critères, prédit votre orientation et vous challenge quand les faits contredisent vos habitudes.</p></div><button onClick={() => setMode("opportunity")} className="min-h-12 rounded-full bg-[#0071e3] px-6 py-3 text-sm font-bold text-white">Analyser une opportunité →</button></div>
+
+    <div className="mt-7 grid gap-5 xl:grid-cols-[1.35fr_.65fr]">
+      <article className="rounded-[30px] border border-[#0071e3]/20 bg-[linear-gradient(145deg,rgba(255,255,255,.98),rgba(232,241,250,.9))] p-6 md:p-8">
+        <div className="flex flex-wrap items-center justify-between gap-3"><span className="text-[10px] font-black uppercase tracking-[.18em] text-[#0066cc]">État du jumeau</span><span className="rounded-full bg-[#0071e3]/10 px-3 py-1 text-xs font-semibold text-[#0066cc]">{maturityLabel(twin.maturity)}</span></div>
+        <div className="mt-5 flex items-end gap-3"><strong className="text-5xl tracking-[-.06em]">{twin.maturityScore}%</strong><span className="pb-1 text-sm text-[#59636f]">de maturité décisionnelle</span></div>
+        <div className="mt-5 h-2 overflow-hidden rounded-full bg-black/[.08]"><div className="h-full rounded-full bg-[#0071e3]" style={{ width: `${twin.maturityScore}%` }}/></div>
+        <p className="mt-5 text-sm leading-6 text-[#303338]">{twin.nextMilestone}</p>
+        <div className="mt-6 grid gap-3 sm:grid-cols-3"><TwinMetric label="Décisions apprises" value={String(twin.decisionCount)}/><TwinMetric label="Doctrine couverte" value={`${twin.doctrineCoverage}%`}/><TwinMetric label="Calibration" value={twin.calibration === null ? "À mesurer" : `${twin.calibration}%`}/></div>
+      </article>
+      <article className="rounded-[30px] border border-black/10 bg-[#fffefa] p-6 md:p-7"><span className="text-[10px] font-black uppercase tracking-[.18em] text-[#6e6e73]">Prochaine étape</span><h2 className="mt-3 text-2xl font-semibold">Nourrir sa doctrine</h2><p className="mt-3 text-sm leading-6 text-[#59636f]">Collez des mémos ou décrivez des décisions passées : contexte, choix, raisons et résultat observé.</p><button onClick={() => setMode("history")} className="mt-6 min-h-12 w-full rounded-full border border-black/10 bg-white px-5 py-3 text-sm font-bold text-[#0066cc]">Importer mon historique</button></article>
+    </div>
+
+    <section className="mt-8 rounded-[30px] border border-black/10 bg-[#fffefa] p-6 md:p-8" aria-labelledby="doctrine-title">
+      <div className="flex flex-col justify-between gap-4 md:flex-row md:items-end"><div><span className="text-[10px] font-black uppercase tracking-[.18em] text-[#0066cc]">Doctrine observée</span><h2 id="doctrine-title" className="mt-2 text-2xl font-semibold md:text-3xl">Ce que le jumeau pense avoir compris</h2><p className="mt-2 max-w-3xl text-sm leading-6 text-[#59636f]">Chaque principe montre les décisions qui le soutiennent. Confirmez-le ou corrigez-le : votre retour devient une nouvelle source d’apprentissage.</p></div><div className="rounded-2xl border border-black/[.07] bg-white px-4 py-3 text-sm"><span className="text-[#6e6e73]">Rapport au risque</span><strong className="ml-2 capitalize">{doctrine.riskTolerance}</strong></div></div>
+      {doctrine.principles.length ? <div className="mt-6 grid gap-4 lg:grid-cols-2">{doctrine.principles.map((principle) => <DoctrineCard key={principle.id} principle={principle} onFeedback={recordDoctrineFeedback}/>)}</div> : <div className="mt-6 rounded-2xl border border-dashed border-black/15 p-6 text-sm text-[#59636f]">Importez au moins trois décisions argumentées pour faire émerger les premiers principes de votre doctrine.</div>}
+      {doctrine.biasSignals.length > 0 && <div className="mt-5 rounded-2xl border border-[#b45309]/15 bg-[#fff7ed] p-4"><span className="text-[10px] font-black uppercase tracking-[.14em] text-[#9a4d09]">Angles morts à surveiller</span><div className="mt-2 flex flex-wrap gap-2">{doctrine.biasSignals.map((signal) => <span key={signal} className="rounded-full bg-white px-3 py-1.5 text-xs text-[#6f3b0b]">{signal}</span>)}</div></div>}
+    </section>
+
+    <div className="mt-8 flex items-center justify-between gap-4"><div><h2 className="text-2xl font-semibold">Décisions et opportunités</h2><p className="mt-1 text-sm text-[#59636f]">Chaque dossier améliore la compréhension de votre doctrine.</p></div></div>
+    <div className="mt-4 grid gap-4 lg:grid-cols-2">{recentCases.map((item) => { const prediction = predictDecisionOrientation({ cognitiveCase: item, doctrine }); return <button key={item.id} onClick={() => onOpen(item.id)} className="rounded-[24px] border border-black/10 bg-[#fffefa] p-5 text-left shadow-lg shadow-black/[.04]"><div className="flex items-center justify-between gap-3"><span className="text-[10px] font-black uppercase tracking-[.14em] text-[#0066cc]">{stateLabel(item.state)}</span><span className="text-xs text-[#6e6e73]">Prédiction {prediction.confidence}%</span></div><h3 className="mt-3 text-xl font-semibold">{item.title}</h3><p className="mt-2 line-clamp-2 text-sm leading-6 text-[#59636f]">{item.objective}</p><div className="mt-4 rounded-xl bg-[#f2f7fc] p-3 text-xs text-[#303338]"><strong className="capitalize">Orientation {prediction.orientation}</strong><span className="mt-1 block text-[#59636f]">{prediction.reasons.join(" · ")}{prediction.missing.length ? ` · À documenter : ${prediction.missing.join(", ")}` : ""}</span></div><span className="mt-4 block text-sm font-semibold text-[#0066cc]">Confronter à ma doctrine →</span></button>; })}</div>
+
+    {mode !== "home" && <div role="dialog" aria-modal="true" aria-labelledby="twin-dialog-title" className="fixed inset-0 z-[80] flex items-end bg-black/60 backdrop-blur-sm sm:items-center sm:justify-center sm:p-6"><form onSubmit={(event) => { event.preventDefault(); mode === "history" ? importHistory() : createOpportunity(); }} className="w-full rounded-t-[28px] bg-[#fffefa] p-6 text-[#1d1d1f] shadow-2xl sm:max-w-2xl sm:rounded-[28px] md:p-8"><div className="flex items-start justify-between gap-4"><div><div className="text-[10px] font-black uppercase tracking-[.16em] text-[#0066cc]">{mode === "history" ? "Entraîner le jumeau" : "Nouvelle analyse"}</div><h2 id="twin-dialog-title" className="mt-2 text-2xl font-semibold">{mode === "history" ? "Importer des décisions passées" : "Quelle opportunité évaluer ?"}</h2></div><button type="button" onClick={() => setMode("home")} className="grid size-10 place-items-center rounded-full border border-black/10">×</button></div>{mode === "history" ? <label className="mt-6 block"><span className="text-sm font-semibold">Décisions, raisons et résultats</span><textarea autoFocus value={history} onChange={(event) => setHistory(event.target.value)} placeholder="Ex. Nous avons investi dans… parce que… Le résultat observé six mois plus tard…" className="mt-2 min-h-52 w-full rounded-2xl border border-black/10 bg-white p-4 text-sm leading-6 outline-none focus:border-[#0071e3]"/></label> : <div className="mt-6 space-y-4"><FieldLight label="Entreprise ou opportunité" value={company} onChange={setCompany} placeholder="Ex. Acme AI — Série A"/><FieldLight label="Question à trancher" value={question} onChange={setQuestion} placeholder="Ex. Devons-nous poursuivre la due diligence ?"/></div>}<button disabled={mode === "history" ? !history.trim() : !company.trim() || !question.trim()} className="mt-6 min-h-12 w-full rounded-full bg-[#0071e3] px-5 py-3 text-sm font-bold text-white disabled:opacity-40">{mode === "history" ? "Apprendre de cet historique" : "Créer l’analyse"}</button></form></div>}
   </section>;
 }
+
+function TwinMetric({ label, value }: { label: string; value: string }) { return <div className="rounded-2xl border border-black/[.07] bg-white/70 p-4"><span className="text-[10px] font-bold uppercase tracking-[.12em] text-[#6e6e73]">{label}</span><strong className="mt-2 block text-xl">{value}</strong></div>; }
+function DoctrineCard({ principle, onFeedback }: { principle: DoctrinePrinciple; onFeedback: (principle: DoctrinePrinciple, status: "confirmed" | "corrected", statement?: string) => void }) {
+  const [editing, setEditing] = useState(false); const [statement, setStatement] = useState(principle.statement);
+  return <article className="rounded-[22px] border border-black/[.08] bg-white p-5"><div className="flex items-start justify-between gap-3"><div><span className="text-[10px] font-black uppercase tracking-[.14em] text-[#0066cc]">{principle.label}</span><p className="mt-2 text-base font-semibold leading-6">{principle.statement}</p></div><span className="shrink-0 rounded-full bg-[#eef5fb] px-2.5 py-1 text-xs font-semibold text-[#0066cc]">{principle.confidence}%</span></div><details className="mt-4 rounded-xl bg-[#f6f6f3] p-3"><summary className="cursor-pointer text-xs font-semibold">Voir les preuves ({principle.evidence.length})</summary><div className="mt-3 space-y-2">{principle.evidence.map((item) => <div key={item.decisionId} className="border-l-2 border-[#0071e3]/30 pl-3"><strong className="block text-xs">{item.outcome}</strong><span className="mt-1 block text-xs leading-5 text-[#59636f]">{item.rationale}</span></div>)}</div></details>{editing ? <div className="mt-4"><textarea value={statement} onChange={(event) => setStatement(event.target.value)} className="min-h-24 w-full rounded-xl border border-black/10 p-3 text-sm outline-none focus:border-[#0071e3]"/><div className="mt-2 flex gap-2"><button onClick={() => { onFeedback(principle, "corrected", statement); setEditing(false); }} className="rounded-full bg-[#0071e3] px-4 py-2 text-xs font-bold text-white">Enregistrer la correction</button><button onClick={() => setEditing(false)} className="px-3 py-2 text-xs text-[#59636f]">Annuler</button></div></div> : <div className="mt-4 flex gap-2"><button onClick={() => onFeedback(principle, "confirmed")} disabled={principle.status === "confirmed"} className="rounded-full border border-black/10 px-4 py-2 text-xs font-semibold text-[#0066cc] disabled:bg-[#eaf6ee] disabled:text-[#287a46]">{principle.status === "confirmed" ? "Confirmé ✓" : "Cela me ressemble"}</button><button onClick={() => setEditing(true)} className="rounded-full border border-black/10 px-4 py-2 text-xs font-semibold text-[#59636f]">Corriger</button></div>}</article>;
+}
+function FieldLight({ label, value, onChange, placeholder }: { label: string; value: string; onChange: (value: string) => void; placeholder: string }) { return <label className="block"><span className="text-sm font-semibold">{label}</span><input value={value} onChange={(event) => onChange(event.target.value)} placeholder={placeholder} className="mt-2 min-h-12 w-full rounded-2xl border border-black/10 bg-white px-4 text-sm outline-none focus:border-[#0071e3]"/></label>; }
 
 function AttentionCard({ eyebrow, title, text, action, onClick, disabled = false }: { eyebrow: string; title: string; text: string; action: string; onClick: () => void; disabled?: boolean }) {
   return <article className="rounded-[26px] border border-black/10 bg-[#fffefa] p-5 shadow-lg shadow-black/[.04] md:p-6"><span className="text-[10px] font-black uppercase tracking-[.16em] text-[#0066cc]">{eyebrow}</span><h2 className="mt-3 text-xl font-semibold tracking-[-.02em]">{title}</h2><p className="mt-3 text-sm leading-6 text-[#59636f]">{text}</p><button disabled={disabled} onClick={onClick} className="mt-5 min-h-11 rounded-full border border-black/10 bg-white px-5 py-2.5 text-sm font-semibold text-[#0066cc] disabled:opacity-40">{action} →</button></article>;
