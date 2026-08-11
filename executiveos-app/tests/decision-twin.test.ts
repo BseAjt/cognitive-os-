@@ -39,6 +39,17 @@ test("la doctrine expose ses preuves et intègre une correction utilisateur", ()
   assert.equal(clarity?.evidence.length, 1);
 });
 
+test("la doctrine conserve la correction utilisateur la plus récente", () => {
+  const sources = [
+    { title: "Doctrine confirmée:clarity", rawContent: "Ancienne formulation", createdAt: "2026-08-10T08:00:00.000Z" },
+    { title: "Doctrine corrigée:clarity", rawContent: "Formulation la plus récente", createdAt: "2026-08-11T08:00:00.000Z" }
+  ] as import("../domain/canonical.ts").ContextSourceRecord[];
+  const doctrine = buildDecisionDoctrine({ decisions: [{ ...decision("case-1"), rationale: "La valeur doit être claire." }], profiles: [], sources });
+  const clarity = doctrine.principles.find((item) => item.id === "clarity");
+  assert.equal(clarity?.status, "corrected");
+  assert.equal(clarity?.statement, "Formulation la plus récente");
+});
+
 test("une prédiction reste indéterminée tant que l'historique est insuffisant", () => {
   const doctrine = buildDecisionDoctrine({ decisions: [decision("case-1")], profiles: [] });
   const prediction = predictDecisionOrientation({ cognitiveCase: cognitiveCase("new-case"), doctrine });
