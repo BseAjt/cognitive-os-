@@ -11,6 +11,23 @@ export interface DecisionTwinSnapshot {
   nextMilestone: string;
 }
 
+export type EvidenceLevel = "not_started" | "early_signals" | "emerging" | "consolidating" | "usable" | "calibrated";
+
+export function evidenceLevel(decisionCount: number, outcomeCount = 0): EvidenceLevel {
+  if (decisionCount === 0) return "not_started";
+  if (decisionCount < 5) return "early_signals";
+  if (decisionCount < 10) return "emerging";
+  if (decisionCount < 15) return "consolidating";
+  return outcomeCount >= 8 ? "calibrated" : "usable";
+}
+
+export function qualitativeStrength(evidenceCount: number, confirmed = false): "signal faible" | "tendance émergente" | "tendance récurrente" | "critère confirmé" {
+  if (confirmed) return "critère confirmé";
+  if (evidenceCount >= 6) return "tendance récurrente";
+  if (evidenceCount >= 3) return "tendance émergente";
+  return "signal faible";
+}
+
 export type DoctrineStatus = "inferred" | "confirmed" | "corrected";
 
 export interface DoctrinePrinciple {
@@ -30,11 +47,12 @@ export interface DecisionDoctrine {
   evidenceCount: number;
 }
 
-const PRINCIPLE_RULES = [
-  { id: "clarity", label: "Clarté de la valeur", statement: "Vous privilégiez les opportunités dont la valeur est immédiatement compréhensible.", positive: /valeur|clair|lisib|compréh|démonstr|simple|objectif/i, negative: /complex|ambigu|flou/i },
-  { id: "execution", label: "Capacité d’exécution", statement: "Vous accordez un poids fort à la capacité de transformer une conviction en exécution mesurable.", positive: /exécut|action|déploi|opération|mainten|livr|runtime/i, negative: /sans exécution|non branch|incomplet/i },
-  { id: "differentiation", label: "Différenciation", statement: "Vous recherchez une thèse distinctive avant d’engager davantage de ressources.", positive: /différen|positionn|catégorie|avantage|unique|thèse/i, negative: /générique|banal|copie/i },
-  { id: "evidence", label: "Preuve avant conviction", statement: "Vous augmentez votre conviction lorsque les hypothèses sont reliées à des preuves observables.", positive: /preuve|test|valid|donnée|résultat|contexte|source/i, negative: /intuition seule|sans preuve|non vérifi/i }
+export const PRINCIPLE_RULES = [
+  { id: "risk", label: "Votre manière de prendre des risques", statement: "Vous avancez lorsque le gain potentiel justifie clairement l’exposition.", positive: /risque|exposition|réversib|gain potentiel|downside/i, negative: /risque ignoré|irréversible sans/i },
+  { id: "clarity", label: "Valeur attendue", statement: "Vous privilégiez les options dont le bénéfice concret est facile à expliquer.", positive: /valeur|clair|lisib|compréh|démonstr|simple|objectif|bénéfice/i, negative: /complex|ambigu|flou/i },
+  { id: "execution", label: "Capacité à livrer", statement: "Vous vérifiez que le temps, l’équipe et les moyens permettent réellement d’exécuter.", positive: /exécut|action|déploi|opération|mainten|livr|temps|équipe|moyens/i, negative: /sans exécution|non branch|incomplet|aucune capacité/i },
+  { id: "differentiation", label: "Avantage distinctif", statement: "Vous favorisez les options qui apportent une différence visible et difficile à reproduire.", positive: /différen|positionn|catégorie|avantage|unique|thèse|reproduire/i, negative: /générique|banal|copie/i },
+  { id: "evidence", label: "Niveau de preuve attendu", statement: "Avant de vous engager, vous cherchez des signaux concrets plutôt qu’une promesse seule.", positive: /preuve|test|valid|donnée|résultat|contexte|source|client|pilote/i, negative: /intuition seule|sans preuve|non vérifi|promesse seule/i }
 ] as const;
 
 export function buildDecisionDoctrine(input: { decisions: DecisionRecord[]; profiles: CognitiveProfileRecord[]; sources?: ContextSourceRecord[] }): DecisionDoctrine {
@@ -71,13 +89,19 @@ export function buildDecisionDoctrine(input: { decisions: DecisionRecord[]; prof
   };
 }
 
-export function predictDecisionOrientation(input: { cognitiveCase: CognitiveCase; doctrine: DecisionDoctrine }): { orientation: "favorable" | "réservée" | "indéterminée"; confidence: number; reasons: string[]; missing: string[] } {
+export interface OrientationFactor { id: string; label: string; importance: "forte" | "moyenne"; situation: "confirmée" | "absente" | "incertaine"; effect: "positif" | "négatif" | "neutre" }
+
+export function predictDecisionOrientation(input: { cognitiveCase: CognitiveCase; doctrine: DecisionDoctrine }): { orientation: "favorable" | "réservée" | "indéterminée"; confidence: number; confidenceLabel: "limitée" | "modérée" | "étayée"; reasons: string[]; missing: string[]; factors: OrientationFactor[] } {
   const text = `${input.cognitiveCase.title} ${input.cognitiveCase.objective} ${input.cognitiveCase.context}`;
   const matched = PRINCIPLE_RULES.filter((rule) => rule.positive.test(text)).map((rule) => input.doctrine.principles.find((item) => item.id === rule.id)).filter((item): item is DoctrinePrinciple => Boolean(item));
   const missing = input.doctrine.principles.filter((item) => !matched.some((match) => match.id === item.id)).slice(0, 2).map((item) => item.label);
-  if (input.doctrine.evidenceCount < 3 || matched.length === 0) return { orientation: "indéterminée", confidence: Math.min(55, 25 + input.doctrine.evidenceCount * 8), reasons: ["Historique encore insuffisant pour reproduire votre arbitrage."], missing };
+  const factors: OrientationFactor[] = input.doctrine.principles.map((item) => {
+    const isMatched = matched.some((match) => match.id === item.id);
+    return { id: item.id, label: item.label, importance: item.status === "confirmed" || item.evidence.length >= 3 ? "forte" : "moyenne", situation: isMatched ? "confirmée" : "incertaine", effect: isMatched ? "positif" : "neutre" };
+  });
+  if (input.doctrine.evidenceCount < 3 || matched.length === 0) return { orientation: "indéterminée", confidence: Math.min(55, 25 + input.doctrine.evidenceCount * 8), confidenceLabel: "limitée", reasons: ["Historique encore insuffisant pour reproduire votre arbitrage."], missing, factors };
   const confidence = Math.min(90, Math.round(matched.reduce((sum, item) => sum + item.confidence, 0) / matched.length));
-  return { orientation: input.cognitiveCase.signals.risk >= 8 ? "réservée" : "favorable", confidence, reasons: matched.slice(0, 2).map((item) => item.label), missing };
+  return { orientation: input.cognitiveCase.signals.risk >= 8 ? "réservée" : "favorable", confidence, confidenceLabel: input.doctrine.evidenceCount >= 15 ? "étayée" : input.doctrine.evidenceCount >= 8 ? "modérée" : "limitée", reasons: matched.slice(0, 2).map((item) => item.label), missing, factors };
 }
 
 export function buildDecisionTwinSnapshot(input: {
