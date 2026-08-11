@@ -4,6 +4,8 @@ async function openCleanWorkspace(page: Page) {
   await page.addInitScript(() => window.localStorage.clear());
   await page.goto("/");
   await expect(page.getByRole("heading", { name: /Une doctrine qui apprend/ })).toBeVisible();
+  const closeGuide = page.getByRole("button", { name: "Fermer le guide investisseur" });
+  if (await closeGuide.isVisible()) await closeGuide.click();
 }
 
 test.beforeEach(async ({ page }) => { await openCleanWorkspace(page); });
