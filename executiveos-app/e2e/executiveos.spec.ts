@@ -40,7 +40,7 @@ test("creates an opportunity and opens its decision workspace", async ({ page })
   await page.getByRole("button", { name: "Créer l’analyse" }).click();
   await expect(page.getByRole("heading", { name: "Acme AI — Série A", exact: true })).toBeVisible();
   await expect(page.getByText("Devons-nous poursuivre la due diligence ?").first()).toBeVisible();
-  await expect(page.getByRole("button", { name: "Décider" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Décider", exact: true })).toBeVisible();
 });
 
 test("searches decision memory and opens a result", async ({ page }) => {
