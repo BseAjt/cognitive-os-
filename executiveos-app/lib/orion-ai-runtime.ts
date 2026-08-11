@@ -130,6 +130,8 @@ export function createOrionGenerationRunner(
     maxRetries: 0,
     instructions: [
       "Tu es ORION, orchestrateur exécutif d’ExecutiveOS.",
+      "Les identités des agents sont strictement internes : aucun nom d’agent (ORION, ATHENA, TURING, SENECA ou autre) ne doit apparaître dans les textes destinés à l’utilisateur.",
+      "Dans les contenus visibles, parle uniquement de perspective stratégique, perspective de faisabilité, perspective de prudence, analyse croisée et synthèse de décision.",
       "Tu produis en une seule réponse structurée les perspectives distinctes d’ATHENA (stratégie), TURING (faisabilité) et SENECA (risques et réversibilité), leurs trois objections croisées, leurs réponses et la synthèse finale.",
       "Tu n’inventes aucune preuve et cites uniquement les identifiants S1, S2, etc. fournis.",
       "Chaque perspective doit apparaître exactement une fois et chaque agent doit contester l’agent suivant : ATHENA vers TURING, TURING vers SENECA, SENECA vers ATHENA.",
@@ -188,16 +190,16 @@ export function generateOrionContinuityCycle(
   const output: OrionGeneratedCycle = {
     synthesis: hasEvidence
       ? "Le dossier permet de poursuivre par une décision conditionnelle, réversible et mesurée malgré l’indisponibilité temporaire du moteur IA."
-      : "Le dossier ne contient pas encore de preuve exploitable ; ORION conserve le mandat et bloque honnêtement la décision jusqu’à l’ajout d’un élément vérifiable.",
+      : "Le dossier ne contient pas encore de preuve exploitable ; l’analyse conserve le mandat et bloque honnêtement la décision jusqu’à l’ajout d’un élément vérifiable.",
     recommendation: hasEvidence ? `Engager « ${objective} » sous forme de pilote réversible avec un checkpoint explicite.` : null,
     contributions: [
-      { agentId: "athena", position: hasEvidence ? "conditional" : "challenge", analysis: "ATHENA préserve l’objectif stratégique tout en limitant l’engagement à une étape mesurable et réversible.", confidence: hasEvidence ? 62 : 25, citations },
-      { agentId: "turing", position: "conditional", analysis: "TURING exige un propriétaire, un critère de succès observable et une échéance avant de poursuivre l’exécution.", confidence: hasEvidence ? 60 : 24, citations },
-      { agentId: "seneca", position: "challenge", analysis: "SENECA maintient le risque visible : la décision doit pouvoir être arrêtée si la preuve attendue n’apparaît pas au checkpoint.", confidence: hasEvidence ? 58 : 22, citations }
+      { agentId: "athena", position: hasEvidence ? "conditional" : "challenge", analysis: "La perspective stratégique préserve l’objectif tout en limitant l’engagement à une étape mesurable et réversible.", confidence: hasEvidence ? 62 : 25, citations },
+      { agentId: "turing", position: "conditional", analysis: "La perspective de faisabilité exige un propriétaire, un critère de succès observable et une échéance avant de poursuivre l’exécution.", confidence: hasEvidence ? 60 : 24, citations },
+      { agentId: "seneca", position: "challenge", analysis: "La perspective de prudence maintient le risque visible : la décision doit pouvoir être arrêtée si la preuve attendue n’apparaît pas au checkpoint.", confidence: hasEvidence ? 58 : 22, citations }
     ],
     debates: [
       { criticId: "athena", targetId: "turing", objection: "Le dispositif d’exécution risque-t-il de retarder la validation stratégique recherchée ?", objectionCitations: citations, response: "Une instrumentation minimale protège la décision sans empêcher un pilote court et borné.", responseCitations: citations, resolution: "partial", unresolvedPoint: "Le délai exact du pilote reste à confirmer." },
-      { criticId: "turing", targetId: "seneca", objection: "Le seuil d’arrêt est-il suffisamment observable pour déclencher une révision factuelle ?", objectionCitations: citations, response: "Le seuil doit être formalisé avant lancement et contrôlé au checkpoint ORION.", responseCitations: citations, resolution: "partial", unresolvedPoint: "La valeur précise du seuil reste à définir." },
+      { criticId: "turing", targetId: "seneca", objection: "Le seuil d’arrêt est-il suffisamment observable pour déclencher une révision factuelle ?", objectionCitations: citations, response: "Le seuil doit être formalisé avant lancement et contrôlé au point de réévaluation.", responseCitations: citations, resolution: "partial", unresolvedPoint: "La valeur précise du seuil reste à définir." },
       { criticId: "seneca", targetId: "athena", objection: "La preuve disponible suffit-elle à justifier autre chose qu’un engagement strictement réversible ?", objectionCitations: citations, response: "Non ; la recommandation reste limitée à un pilote et interdit tout déploiement irréversible.", responseCitations: citations, resolution: "resolved", unresolvedPoint: null }
     ],
     assumptions: ["Le pilote peut être interrompu sans coût disproportionné."],

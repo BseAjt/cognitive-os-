@@ -37,7 +37,7 @@ export function ExecutiveTwinHome() {
         <main className="mx-auto max-w-[1540px] p-4 md:p-7 xl:p-9">
           {lastPrompt && (
             <div className="mb-5 flex items-center justify-between gap-4 rounded-2xl border border-[#7c5cff]/25 bg-[#7c5cff]/8 px-4 py-3 text-sm">
-              <span className="text-[#d9d3ff]">ORION prépare : <strong>{lastPrompt}</strong></span>
+              <span className="text-[#d9d3ff]">Assistant de décision prépare : <strong>{lastPrompt}</strong></span>
               <button onClick={() => setLastPrompt("")} className="text-[#8fa0ba] hover:text-white">×</button>
             </div>
           )}
@@ -71,7 +71,7 @@ function Sidebar({ view, onView }: { view: View; onView: (view: View) => void })
       </nav>
 
       <div className="mt-auto rounded-2xl border border-white/[.07] bg-white/[.025] p-3.5">
-        <div className="flex items-center gap-2 text-xs text-[#a5b4c9]"><span className="size-2 rounded-full bg-[#42d59d] shadow-[0_0_14px_rgba(66,213,157,.65)]" /> ORION en ligne</div>
+        <div className="flex items-center gap-2 text-xs text-[#a5b4c9]"><span className="size-2 rounded-full bg-[#42d59d] shadow-[0_0_14px_rgba(66,213,157,.65)]" /> Assistant de décision en ligne</div>
         <p className="mt-2 text-[11px] leading-5 text-[#667995]">Mémoire, raisonnement et contexte synchronisés.</p>
       </div>
     </aside>
@@ -189,7 +189,7 @@ function ActionView() {
 }
 
 function SettingsView() {
-  return <WorkspaceTitle eyebrow="Paramètres" title="Préférences ExecutiveOS" description="Les réglages d’espace, de confidentialité et de comportement d’ORION seront regroupés ici."><div className="rounded-2xl border border-white/[.08] bg-[#0d192b] p-6 text-sm text-[#8496af]">UX1 pose le shell et la navigation. Les préférences détaillées seront branchées sur les services existants lors d’une itération dédiée.</div></WorkspaceTitle>;
+  return <WorkspaceTitle eyebrow="Paramètres" title="Préférences ExecutiveOS" description="Les réglages d’espace, de confidentialité et de comportement d’Assistant de décision seront regroupés ici."><div className="rounded-2xl border border-white/[.08] bg-[#0d192b] p-6 text-sm text-[#8496af]">UX1 pose le shell et la navigation. Les préférences détaillées seront branchées sur les services existants lors d’une itération dédiée.</div></WorkspaceTitle>;
 }
 
 function WorkspaceTitle({ eyebrow, title, description, children }: { eyebrow: string; title: string; description: string; children: React.ReactNode }) {

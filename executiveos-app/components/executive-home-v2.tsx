@@ -26,7 +26,7 @@ export function ExecutiveHomeV2() {
   const submit = () => {
     const clean = prompt.trim();
     if (!clean) return;
-    setOrion(`ORION prépare « ${clean} » à partir de ton contexte actuel.`);
+    setOrion(`Assistant de décision prépare « ${clean} » à partir de ton contexte actuel.`);
     setPrompt("");
   };
 
@@ -34,7 +34,7 @@ export function ExecutiveHomeV2() {
     <aside className="sticky top-0 hidden h-screen flex-col border-r border-white/[.07] bg-[#091321] px-4 py-5 md:flex">
       <button onClick={() => setView("home")} className="mb-8 flex items-center gap-3 px-2 text-left"><span className="grid size-10 place-items-center rounded-[14px] bg-gradient-to-br from-[#9b82ff] to-[#5b39e7] text-sm font-black">EO</span><span><strong className="block text-[15px]">ExecutiveOS</strong><span className="text-[10px] uppercase tracking-[.12em] text-[#6f819e]">Cognitive OS</span></span></button>
       <nav className="space-y-1">{nav.map(item => <button key={item.id} onClick={() => setView(item.id)} className={`flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left text-sm ${view === item.id ? "bg-white/[.08] text-white" : "text-[#8393ad] hover:bg-white/[.04]"}`}><span className="grid size-7 place-items-center text-xs">{item.icon}</span>{item.label}</button>)}</nav>
-      <div className="mt-auto rounded-2xl border border-white/[.07] bg-white/[.025] p-3.5"><div className="flex items-center gap-2 text-xs text-[#a5b4c9]"><span className="size-2 rounded-full bg-[#42d59d]"/> ORION en ligne</div><p className="mt-2 text-[11px] leading-5 text-[#667995]">Mémoire, raisonnement et contexte synchronisés.</p></div>
+      <div className="mt-auto rounded-2xl border border-white/[.07] bg-white/[.025] p-3.5"><div className="flex items-center gap-2 text-xs text-[#a5b4c9]"><span className="size-2 rounded-full bg-[#42d59d]"/> Assistant de décision en ligne</div><p className="mt-2 text-[11px] leading-5 text-[#667995]">Mémoire, raisonnement et contexte synchronisés.</p></div>
     </aside>
     <div className="min-w-0">
       <header className="sticky top-0 z-30 border-b border-white/[.07] bg-[#07111f]/88 px-4 py-3 backdrop-blur-2xl md:px-7"><div className="mx-auto flex max-w-[1540px] items-center gap-3"><div className="flex min-w-0 flex-1 items-center gap-3 rounded-2xl border border-white/[.08] bg-[#0d192b]/90 px-4 py-3"><span className="text-[#bfb2ff]">✦</span><input value={prompt} onChange={e => setPrompt(e.target.value)} onKeyDown={e => { if (e.key === "Enter") submit(); }} placeholder="Que souhaites-tu accomplir aujourd’hui ?" className="min-w-0 flex-1 bg-transparent text-sm outline-none placeholder:text-[#65758f]"/></div><div className="grid size-11 place-items-center rounded-2xl bg-gradient-to-br from-[#d7cfff] to-[#8b73ef] text-xs font-black text-[#1b1239]">SH</div></div></header>
@@ -44,7 +44,7 @@ export function ExecutiveHomeV2() {
         {view === "understand" && <Simple title="Tout le contexte utile, sans le bruit." text="Mémoire, faits, hypothèses et raisonnement sont consolidés ici."/>}
         {view === "act" && <Simple title="Exécuter ce qui compte maintenant." text="Les actions issues des décisions seront pilotées ici."/>}
         {view === "explore" && <Simple title="Explorer les connexions qui changent la compréhension." text="Le Knowledge Graph devient une navigation de contexte, pas un outil technique."/>}
-        {view === "settings" && <Simple title="Configurer ExecutiveOS." text="Sources, préférences, sécurité et comportements d’ORION."/>}
+        {view === "settings" && <Simple title="Configurer ExecutiveOS." text="Sources, préférences, sécurité et comportements d’Assistant de décision."/>}
       </main>
     </div>
   </div>;
@@ -65,7 +65,7 @@ function Home({ briefing, counts, onView, orion }: { briefing: typeof executiveT
 
     <section className="grid gap-5 xl:grid-cols-[1.55fr_.72fr]">
       <article className="relative overflow-hidden rounded-[28px] border border-white/[.08] bg-[linear-gradient(145deg,rgba(19,31,51,.98),rgba(9,19,33,.98))] p-6 md:p-8"><span className="rounded-full bg-[#7c5cff]/13 px-2.5 py-1 text-[10px] font-black tracking-[.15em] text-[#baaaff]">REPRENDRE</span><h2 className="mt-5 text-3xl font-semibold tracking-[-.03em] md:text-5xl">Tu travaillais sur ExecutiveOS UX.</h2><p className="mt-4 max-w-3xl text-base leading-7 text-[#94a6c0]">Depuis, plusieurs éléments ont évolué. ExecutiveOS les a regroupés pour que tu puisses reprendre sans reconstruire le contexte.</p><div className="mt-7 flex flex-wrap gap-3"><button onClick={() => onView("decision")} className="rounded-xl bg-[#7c5cff] px-5 py-3 text-sm font-bold">Continuer</button><button onClick={() => onView("understand")} className="rounded-xl border border-white/[.09] bg-white/[.035] px-5 py-3 text-sm text-[#bdc9da]">Voir le contexte complet</button></div></article>
-      <article className="rounded-[28px] border border-white/[.08] bg-[#0d192b]/88 p-6"><div className="text-[10px] font-black uppercase tracking-[.18em] text-[#9d83ff]">ORION</div><p className="mt-4 text-lg font-medium leading-8 text-[#dfe6f2]">{orion}</p><div className="mt-6 border-t border-white/[.07] pt-5"><div className="text-[10px] font-black uppercase tracking-[.16em] text-[#6f819e]">Synthèse du changement</div><p className="mt-2 text-sm leading-6 text-[#91a2bd]">La trajectoire UX avance, le déploiement principal est stable, mais le doublon Vercel reste le seul signal technique à nettoyer.</p></div></article>
+      <article className="rounded-[28px] border border-white/[.08] bg-[#0d192b]/88 p-6"><div className="text-[10px] font-black uppercase tracking-[.18em] text-[#9d83ff]">Assistant de décision</div><p className="mt-4 text-lg font-medium leading-8 text-[#dfe6f2]">{orion}</p><div className="mt-6 border-t border-white/[.07] pt-5"><div className="text-[10px] font-black uppercase tracking-[.16em] text-[#6f819e]">Synthèse du changement</div><p className="mt-2 text-sm leading-6 text-[#91a2bd]">La trajectoire UX avance, le déploiement principal est stable, mais le doublon Vercel reste le seul signal technique à nettoyer.</p></div></article>
     </section>
 
     <section className="mt-5 rounded-[26px] border border-white/[.08] bg-[#0d192b]/78 p-6">

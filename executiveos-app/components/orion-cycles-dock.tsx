@@ -95,10 +95,10 @@ export function OrionCyclesDock() {
         setCommandState(continuity
           ? `AI Gateway limité · cycle de continuité persisté · décision prise · plan activé · ${outcome.actions.length} actions créées.`
           : `Décision prise · plan activé · ${outcome.actions.length} actions créées.`);
-      } else setCommandState("Cycle bloqué : ORION indique les preuves à fournir avant décision.");
+      } else setCommandState("Cycle bloqué : Assistant de décision indique les preuves à fournir avant décision.");
     } catch (value) {
       if (value instanceof OrionAuthenticationRequiredError) rememberPendingOrionCycle(active.id, requestedObjective);
-      setCommandState(value instanceof Error ? value.message : "Cycle ORION impossible.");
+      setCommandState(value instanceof Error ? value.message : "Cycle Assistant de décision impossible.");
     } finally { setRunning(false); }
   }
 
@@ -115,23 +115,23 @@ export function OrionCyclesDock() {
   if (!active) return null;
   if (!open) return <button
     onClick={() => setOpen(true)}
-    aria-label={`Ouvrir Cycles ORION · ${cycles.length}`}
+    aria-label={`Ouvrir Cycles Assistant de décision · ${cycles.length}`}
     className="group fixed bottom-[calc(1rem+env(safe-area-inset-bottom))] left-4 z-40 flex h-12 items-center gap-2 rounded-full border border-black/[.09] bg-[#fffefa]/95 pl-2 pr-3 text-xs font-semibold text-[#242426] shadow-[0_10px_30px_rgba(35,35,40,.14)] backdrop-blur-xl transition hover:-translate-y-0.5 hover:border-[#0071e3]/30 lg:bottom-4"
   >
     <span aria-hidden="true" className="grid size-8 place-items-center rounded-full bg-[#e8f3ff] text-base text-[#0066cc] transition group-hover:bg-[#d8ebff]">↻</span>
-    <span>ORION</span>
+    <span>Assistant de décision</span>
     <span className="grid min-w-5 place-items-center rounded-full bg-[#f0f0ee] px-1.5 py-0.5 text-[10px] tabular-nums text-[#5e5e62]">{cycles.length}</span>
   </button>;
 
-  return <aside role="dialog" aria-modal="true" aria-label="Cycles ORION" className="fixed inset-3 z-50 max-h-[calc(100dvh-1.5rem)] w-auto overflow-auto overscroll-contain rounded-[24px] sm:inset-auto sm:bottom-5 sm:left-5 sm:max-h-[84vh] sm:w-[min(640px,calc(100vw-2rem))] border border-[#42d59d]/30 bg-[#081823]/95 p-4 shadow-2xl backdrop-blur-xl">
+  return <aside role="dialog" aria-modal="true" aria-label="Cycles Assistant de décision" className="fixed inset-3 z-50 max-h-[calc(100dvh-1.5rem)] w-auto overflow-auto overscroll-contain rounded-[24px] sm:inset-auto sm:bottom-5 sm:left-5 sm:max-h-[84vh] sm:w-[min(640px,calc(100vw-2rem))] border border-[#42d59d]/30 bg-[#081823]/95 p-4 shadow-2xl backdrop-blur-xl">
     <div className="flex items-start justify-between gap-3">
-      <div><div className="text-[10px] font-black uppercase tracking-[.16em] text-[#75d6b5]">B6.2 · TIMELINE COGNITIVE</div><strong className="mt-1 block text-sm">Cycles ORION · {active.title}</strong><p className="mt-1 text-[11px] text-[#71839e]">{cycles.length} cycle(s) · {diffs.length} révision(s) · {points.length} point(s) temporel(s).</p></div>
+      <div><div className="text-[10px] font-black uppercase tracking-[.16em] text-[#75d6b5]">B6.2 · TIMELINE COGNITIVE</div><strong className="mt-1 block text-sm">Cycles Assistant de décision · {active.title}</strong><p className="mt-1 text-[11px] text-[#71839e]">{cycles.length} cycle(s) · {diffs.length} révision(s) · {points.length} point(s) temporel(s).</p></div>
       <button onClick={() => setOpen(false)} className="rounded-lg border border-white/10 px-2 py-1 text-xs text-[#91a2bd]">Réduire</button>
     </div>
 
     <section className="mt-4 rounded-2xl border border-[#42d59d]/30 bg-[#42d59d]/[.06] p-4">
       <div className="flex flex-wrap items-start justify-between gap-3">
-        <div><div className="text-[10px] font-black uppercase tracking-[.14em] text-[#75d6b5]">Commander ORION</div><strong className="mt-1 block text-sm">Faire avancer ce dossier maintenant</strong><p className="mt-1 text-[11px] leading-5 text-[#91a2bd]">Définissez l’arbitrage : ORION convoque les perspectives, produit une recommandation et peut la transformer en plan.</p></div>
+        <div><div className="text-[10px] font-black uppercase tracking-[.14em] text-[#75d6b5]">Commander Assistant de décision</div><strong className="mt-1 block text-sm">Faire avancer ce dossier maintenant</strong><p className="mt-1 text-[11px] leading-5 text-[#91a2bd]">Définissez l’arbitrage : Assistant de décision convoque les perspectives, produit une recommandation et peut la transformer en plan.</p></div>
         <span className="rounded-full border border-white/10 px-2.5 py-1 text-[10px] text-[#9de7cd]">{executiveCycles.length} cycle(s) exécutif(s)</span>
       </div>
       <label htmlFor="orion-cycle-objective" className="mt-4 block text-[10px] font-bold uppercase tracking-[.12em] text-[#71839e]">Mandat du prochain cycle</label>
@@ -142,7 +142,7 @@ export function OrionCyclesDock() {
         {activePlan && <span className="rounded-xl border border-[#42d59d]/20 bg-[#42d59d]/10 px-4 py-3 text-sm font-semibold text-[#9de7cd]">Plan historique actif · {activePlan.actionIds.length} actions</span>}
       </div>
       {latestExecutiveCycle && <div className="mt-3 rounded-xl border border-white/[.07] bg-[#07131d]/75 p-3"><div className="flex flex-wrap items-center justify-between gap-2"><strong className="text-xs">Dernière synthèse</strong><span className="text-[10px] uppercase text-[#71839e]">{latestExecutiveCycle.status} · {latestExecutiveCycle.confidence}%</span></div><p className="mt-2 text-xs leading-5 text-[#b8c6d8]">{latestExecutiveCycle.synthesis}</p>{latestExecutiveCycle.recommendation && <p className="mt-2 text-xs font-semibold leading-5 text-[#8de4c3]">{latestExecutiveCycle.recommendation}</p>}</div>}
-      {running&&<p role="status" className="mt-3 text-xs leading-5 text-[#9de7cd]">ATHENA, TURING et SENECA analysent, débattent et répondent avant l’arbitrage ORION.</p>}
+      {running&&<p role="status" className="mt-3 text-xs leading-5 text-[#9de7cd]">Perspective stratégique, Perspective de faisabilité et Perspective de prudence analysent, débattent et répondent avant l’arbitrage Assistant de décision.</p>}
       {!running&&commandState && <div role={commandState.includes("session a expiré") ? "alert" : "status"} className="mt-3 flex flex-wrap items-center gap-3 text-xs leading-5 text-[#9de7cd]"><span>{commandState}</span>{commandState.includes("session a expiré")&&<a href="/sign-in?next=/" className="rounded-lg border border-[#9de7cd]/35 px-3 py-1.5 font-bold">Se reconnecter et reprendre</a>}</div>}
     </section>
 

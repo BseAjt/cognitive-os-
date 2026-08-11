@@ -41,6 +41,12 @@ const MANDATES: Record<OrionSpecialistId, string> = {
   seneca: "Risques, objections et réversibilité"
 };
 
+const PUBLIC_PERSPECTIVE_LABELS: Record<OrionSpecialistId, string> = {
+  athena: "Perspective stratégique",
+  turing: "Perspective de faisabilité",
+  seneca: "Perspective de prudence"
+};
+
 export async function requestOrionExecutiveCycle(input: OrionCycleRequest, agents: AgentContract[]): Promise<ExecutiveCycleRecord> {
   const response = await fetch("/api/orion/generate", {
     method: "POST",
@@ -62,7 +68,6 @@ export function toExecutiveCycleRecord(input: OrionCycleRequest, result: OrionAI
   const { output, trace } = result;
   const completed = output.decisionMemo.status !== "hold" && Boolean(output.recommendation);
   const evidenceByCitation = new Map(trace.evidenceManifest.map((item) => [item.citation, item]));
-  const agentsById = new Map(agents.map((agent) => [agent.id, agent]));
   return {
     id: trace.cycleId,
     caseId: input.cognitiveCase.id,
@@ -71,7 +76,7 @@ export function toExecutiveCycleRecord(input: OrionCycleRequest, result: OrionAI
     selectedAgentIds: output.contributions.map((item) => item.agentId),
     contributions: output.contributions.map((item) => ({
       agentId: item.agentId,
-      agentName: agentsById.get(item.agentId)?.name ?? item.agentId.toUpperCase(),
+      agentName: PUBLIC_PERSPECTIVE_LABELS[item.agentId],
       mandate: MANDATES[item.agentId],
       position: item.position,
       analysis: item.analysis,
@@ -82,7 +87,7 @@ export function toExecutiveCycleRecord(input: OrionCycleRequest, result: OrionAI
     divergences: output.debates
       .filter((item) => item.resolution !== "resolved")
       .map((item) => ({
-        topic: `${item.criticId.toUpperCase()} ↔ ${item.targetId.toUpperCase()}`,
+        topic: `${PUBLIC_PERSPECTIVE_LABELS[item.criticId]} ↔ ${PUBLIC_PERSPECTIVE_LABELS[item.targetId]}`,
         agentIds: [item.criticId, item.targetId],
         description: item.objection,
         resolution: item.unresolvedPoint ?? item.response

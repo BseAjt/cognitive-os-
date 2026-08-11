@@ -64,9 +64,9 @@ export function OrionDecisionCopilotV3({ cognitiveCase, frame, decisions, action
     <section className="rounded-[26px] border border-[#7c5cff]/20 bg-[linear-gradient(145deg,rgba(25,20,55,.75),rgba(9,20,34,.96))] p-5 md:p-6">
       <div className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
         <div>
-          <div className="text-[10px] font-black uppercase tracking-[.18em] text-[#b8a9ff]">ORION Decision Copilot · UX3.5</div>
+          <div className="text-[10px] font-black uppercase tracking-[.18em] text-[#b8a9ff]">Assistant de décision Decision Copilot · UX3.5</div>
           <h2 className="mt-2 text-2xl font-semibold">Interroger la décision, pas seulement les données.</h2>
-          <p className="mt-2 max-w-3xl text-sm leading-6 text-[#8fa0b8]">ORION synthétise le Reasoning Flow, la Timeline, l’Impact Analysis et l’exécution pour t’aider à arbitrer.</p>
+          <p className="mt-2 max-w-3xl text-sm leading-6 text-[#8fa0b8]">Assistant de décision synthétise le Reasoning Flow, la Timeline, l’Impact Analysis et l’exécution pour t’aider à arbitrer.</p>
         </div>
         <div className="rounded-full border border-[#7c5cff]/20 bg-[#7c5cff]/10 px-3 py-1.5 text-xs text-[#c9c0ff]">Confiance {frame.confidence ?? cognitiveCase.signals.confidence}%</div>
       </div>
@@ -81,7 +81,7 @@ export function OrionDecisionCopilotV3({ cognitiveCase, frame, decisions, action
 
       <div className="mt-5 grid gap-4 xl:grid-cols-[1.15fr_.85fr]">
         <article className="rounded-2xl border border-white/[.08] bg-[#091422]/85 p-5">
-          <div className="text-[10px] font-black uppercase tracking-[.14em] text-[#9d83ff]">Réponse ORION</div>
+          <div className="text-[10px] font-black uppercase tracking-[.14em] text-[#9d83ff]">Réponse Assistant de décision</div>
           <h3 className="mt-2 text-xl font-semibold">{response.title}</h3>
           <p className="mt-3 text-sm leading-7 text-[#b6c1d1]">{response.summary}</p>
           <div className="mt-4 space-y-2">
@@ -108,7 +108,7 @@ export function OrionDecisionCopilotV3({ cognitiveCase, frame, decisions, action
 function buildMissingResponse(missing: string[]) {
   return {
     title: missing.length ? `${missing.length} éléments empêchent encore une décision robuste` : "Le contexte est suffisamment complet",
-    summary: missing.length ? "ORION recommande de réduire l’incertitude avant d’augmenter le niveau d’engagement." : "Aucune information critique n’est actuellement signalée comme manquante.",
+    summary: missing.length ? "Assistant de décision recommande de réduire l’incertitude avant d’augmenter le niveau d’engagement." : "Aucune information critique n’est actuellement signalée comme manquante.",
     items: missing.length ? missing.slice(0, 5) : ["Les critères principaux sont renseignés.", "Le prochain enjeu est la qualité de l’arbitrage, pas la collecte d’information."]
   };
 }
@@ -131,7 +131,7 @@ function buildChangesResponse(steps: string[], latest?: string) {
 
 function buildNextResponse(nextAction: string, recommendation: string | null) {
   return {
-    title: "ORION recommande une prochaine étape explicite",
+    title: "Assistant de décision recommande une prochaine étape explicite",
     summary: recommendation ?? "La meilleure action consiste actuellement à réduire l’incertitude avant de verrouiller une décision.",
     items: [nextAction, "Rejouer la Decision Timeline après exécution.", "Réévaluer l’Impact Analysis si un signal important change."]
   };

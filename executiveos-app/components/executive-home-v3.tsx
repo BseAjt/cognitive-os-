@@ -70,7 +70,7 @@ export function ExecutiveHomeV3() {
       <aside className="sticky top-0 hidden h-screen flex-col border-r border-white/[.07] bg-[#091321] px-4 py-5 md:flex">
         <button onClick={() => setView("home")} className="mb-8 flex items-center gap-3 px-2 text-left"><span className="grid size-10 place-items-center rounded-[14px] bg-gradient-to-br from-[#9b82ff] to-[#5b39e7] text-sm font-black">EO</span><span><strong className="block text-[15px]">ExecutiveOS</strong><span className="text-[10px] uppercase tracking-[.12em] text-[#6f819e]">Cognitive OS</span></span></button>
         <nav className="space-y-1">{NAV.map(item => <button key={item.id} onClick={() => setView(item.id)} className={`flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left text-sm ${view === item.id ? "bg-white/[.08] text-white" : "text-[#8393ad] hover:bg-white/[.04]"}`}><span className="grid size-7 place-items-center text-xs">{item.icon}</span>{item.label}</button>)}</nav>
-        <div className="mt-auto rounded-2xl border border-white/[.07] bg-white/[.025] p-3.5"><div className="flex items-center gap-2 text-xs text-[#a5b4c9]"><span className="size-2 rounded-full bg-[#42d59d]"/> ORION en ligne</div><p className="mt-2 text-[11px] leading-5 text-[#667995]">Contexte synchronisé · score recalculé.</p></div>
+        <div className="mt-auto rounded-2xl border border-white/[.07] bg-white/[.025] p-3.5"><div className="flex items-center gap-2 text-xs text-[#a5b4c9]"><span className="size-2 rounded-full bg-[#42d59d]"/> Assistant de décision en ligne</div><p className="mt-2 text-[11px] leading-5 text-[#667995]">Contexte synchronisé · score recalculé.</p></div>
       </aside>
 
       <div className="min-w-0">
@@ -82,7 +82,7 @@ export function ExecutiveHomeV3() {
           {view === "understand" && <Simple title="Comprendre avant d’arbitrer." text="Mémoire, hypothèses, preuves et évolutions du raisonnement sont regroupées ici." />}
           {view === "act" && <Simple title="Exécuter ce qui débloque le système." text="Les actions sont ordonnées selon leur effet sur les décisions et objectifs en cours." />}
           {view === "explore" && <Simple title="Explorer sans perdre le fil." text="Les nouvelles connexions restent reliées aux sujets, décisions et objectifs qui leur donnent du sens." />}
-          {view === "settings" && <Simple title="Configurer ExecutiveOS." text="Sources, sécurité, comportements d’ORION et préférences de travail." />}
+          {view === "settings" && <Simple title="Configurer ExecutiveOS." text="Sources, sécurité, comportements d’Assistant de décision et préférences de travail." />}
         </main>
       </div>
     </div>
@@ -112,7 +112,7 @@ function Home({ score, previousScore, components, priorities, briefing, onView }
         <div className="text-[10px] font-black uppercase tracking-[.18em] text-[#9d83ff]">Pourquoi le score a changé</div>
         <div className="mt-4 grid gap-3 md:grid-cols-3"><Reason tone="good" title="Déploiement stabilisé" detail="Le build Vercel de référence est au vert." delta="+3"/><Reason tone="good" title="Continuité améliorée" detail="UX2.1 et UX2.2 réduisent la perte de contexte." delta="+2"/><Reason tone="watch" title="Décisions ouvertes" detail={`${briefing.openDecisions} arbitrage(s) réduisent la clarté exécutive.`} delta="−1"/></div>
       </article>
-      <article className="rounded-[26px] border border-white/[.08] bg-[#0d192b]/78 p-6"><div className="text-[10px] font-black uppercase tracking-[.18em] text-[#8fb7ff]">ORION</div><h2 className="mt-3 text-xl font-semibold">Recommandation</h2><p className="mt-3 text-sm leading-7 text-[#91a2bd]">Valide d’abord la trajectoire UX2. C’est la priorité avec le meilleur effet combiné sur la progression, les dépendances et la réduction d’incertitude.</p><button onClick={() => onView("decision")} className="mt-5 rounded-xl bg-[#7c5cff] px-4 py-2.5 text-sm font-bold">Ouvrir la décision →</button></article>
+      <article className="rounded-[26px] border border-white/[.08] bg-[#0d192b]/78 p-6"><div className="text-[10px] font-black uppercase tracking-[.18em] text-[#8fb7ff]">Assistant de décision</div><h2 className="mt-3 text-xl font-semibold">Recommandation</h2><p className="mt-3 text-sm leading-7 text-[#91a2bd]">Valide d’abord la trajectoire UX2. C’est la priorité avec le meilleur effet combiné sur la progression, les dépendances et la réduction d’incertitude.</p><button onClick={() => onView("decision")} className="mt-5 rounded-xl bg-[#7c5cff] px-4 py-2.5 text-sm font-bold">Ouvrir la décision →</button></article>
     </section>
   </>;
 }

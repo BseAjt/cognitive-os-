@@ -13,6 +13,7 @@ import { buildExecutiveCaseBrief } from "@/lib/executive-brief";
 import { caseScore } from "@/lib/scheduler";
 import { runUnifiedRuntime } from "@/lib/unified-runtime";
 import { useExecutiveStore } from "@/store/executive-store";
+import { publicCopy } from "@/lib/public-copy";
 import type { DossierObjectRecord } from "@/domain/canonical";
 
 export function ExecutiveWorkspace() {
@@ -58,7 +59,7 @@ export function ExecutiveWorkspace() {
       memories: store.memories.filter((memory) => memory.caseId === active.id),
       knowledgeRecords: store.knowledgeRecords.filter((record) => record.caseId === active.id),
       recallSummary: store.contextSyntheses.find((item) => item.caseId === active.id)?.summary
-        ? `${recall.summary}\n\nCONTEXTE SOURCÉ\n${store.contextSyntheses.find((item) => item.caseId === active.id)?.summary}`
+        ? `${publicCopy(recall.summary)}\n\nCONTEXTE SOURCÉ\n${store.contextSyntheses.find((item) => item.caseId === active.id)?.summary}`
         : recall.summary
     });
     store.applyRuntimeCycle({ caseId: active.id, userText: clean, result });
@@ -88,18 +89,18 @@ export function ExecutiveWorkspace() {
           <BriefCard label="Prochaine action" value={brief.nextAction}/>
           <BriefCard label="Dernier apprentissage" value={brief.latestLearning}/>
         </div>
-        <div className="mt-3 rounded-2xl border border-white/10 bg-white/[.025] p-4"><div className="flex flex-wrap items-center justify-between gap-2"><span className="text-[10px] font-black uppercase tracking-[.12em] text-[#42d59d]">B7.6 · Synthèse exécutive sourcée</span><span className="text-[10px] uppercase text-[#71839e]">Watch {brief.watchStatus}</span></div><p className="mt-2 text-sm leading-6 text-[#d6dfed]">{brief.executiveSummary}</p>{brief.citedEvidence.length>0&&<div className="mt-3 grid gap-2 md:grid-cols-3">{brief.citedEvidence.map((item)=><div key={`${item.citation}:${item.claim}`} className="rounded-xl border border-white/[.07] bg-[#091422] p-3"><span className="rounded bg-[#7c5cff]/20 px-2 py-1 text-[10px] font-black text-[#c8c0ff]">{item.citation}</span><p className="mt-2 text-xs leading-5 text-[#a9b7ca]">{item.claim}</p><span className="mt-1 block text-[10px] text-[#667995]">{item.sourceTitle}</span></div>)}</div>}</div>
+        <div className="mt-3 rounded-2xl border border-white/10 bg-white/[.025] p-4"><div className="flex flex-wrap items-center justify-between gap-2"><span className="text-[10px] font-black uppercase tracking-[.12em] text-[#42d59d]">B7.6 · Synthèse exécutive sourcée</span><span className="text-[10px] uppercase text-[#71839e]">Watch {brief.watchStatus}</span></div><p className="mt-2 text-sm leading-6 text-[#d6dfed]">{publicCopy(brief.executiveSummary)}</p>{brief.citedEvidence.length>0&&<div className="mt-3 grid gap-2 md:grid-cols-3">{brief.citedEvidence.map((item)=><div key={`${item.citation}:${item.claim}`} className="rounded-xl border border-white/[.07] bg-[#091422] p-3"><span className="rounded bg-[#7c5cff]/20 px-2 py-1 text-[10px] font-black text-[#c8c0ff]">{item.citation}</span><p className="mt-2 text-xs leading-5 text-[#a9b7ca]">{item.claim}</p><span className="mt-1 block text-[10px] text-[#667995]">{item.sourceTitle}</span></div>)}</div>}</div>
         <div className="mt-3 grid gap-3 lg:grid-cols-3">
           <BriefList label="Blocages" values={brief.blockers} empty="Aucun blocage actif"/>
           <BriefList label="Risques critiques" values={brief.criticalRisks} empty="Aucun risque critique identifié"/>
-          <div className="rounded-2xl border border-[#7c5cff]/25 bg-[#7c5cff]/10 p-4"><span className="text-[10px] font-black uppercase tracking-[.12em] text-[#b7a9ff]">Recommandation ORION</span><strong className="mt-2 block text-sm leading-6">{brief.recommendation}</strong></div>
+          <div className="rounded-2xl border border-[#7c5cff]/25 bg-[#7c5cff]/10 p-4"><span className="text-[10px] font-black uppercase tracking-[.12em] text-[#b7a9ff]">Recommandation Assistant de décision</span><strong className="mt-2 block text-sm leading-6">{publicCopy(brief.recommendation)}</strong></div>
         </div>
       </article>
 
       <article className="executive-card p-5">
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div>
-            <div className="text-xs font-black tracking-[.14em] text-[#8d7ce4]">ORION · CONVERSATION DU DOSSIER</div>
+            <div className="text-xs font-black tracking-[.14em] text-[#8d7ce4]">Assistant de décision · CONVERSATION DU DOSSIER</div>
             <p className="mt-1 text-xs text-[#71839e]">Historique persistant · {messages.length} message(s) · contexte {active.title}</p>
           </div>
           <span className="rounded-full border border-[#7c5cff]/30 bg-[#7c5cff]/10 px-3 py-1 text-xs text-[#c5baff]">Recall {recall.confidence}%</span>
@@ -109,13 +110,13 @@ export function ExecutiveWorkspace() {
           {messages.length ? messages.map((message) => (
             <div key={message.id} className={`mb-4 flex ${message.role === "user" ? "justify-end" : "justify-start"}`}>
               <div className={`max-w-[86%] whitespace-pre-wrap rounded-2xl px-4 py-3 text-sm leading-7 ${message.role === "user" ? "bg-[#6b49df] text-white" : "border border-white/10 bg-[#16243c] text-[#e8edf6]"}`}>
-                <div className="mb-1 text-[10px] font-black uppercase tracking-[.12em] opacity-60">{message.role === "user" ? "Vous" : "ORION"}</div>
-                {message.text}
+                <div className="mb-1 text-[10px] font-black uppercase tracking-[.12em] opacity-60">{message.role === "user" ? "Vous" : "Assistant de décision"}</div>
+                {publicCopy(message.text)}
               </div>
             </div>
           )) : (
             <div className="grid min-h-[330px] place-items-center text-center text-[#91a2bd]">
-              <div><strong className="block text-white">Ce dossier n’a pas encore de conversation.</strong><span className="mt-2 block text-sm">Pose la première question à ORION. Elle restera attachée à ce dossier.</span></div>
+              <div><strong className="block text-white">Ce dossier n’a pas encore de conversation.</strong><span className="mt-2 block text-sm">Pose la première question à Assistant de décision. Elle restera attachée à ce dossier.</span></div>
             </div>
           )}
         </div>
@@ -133,7 +134,7 @@ export function ExecutiveWorkspace() {
             placeholder={`Continuer le dossier “${active.title}”…`}
             className="min-h-24 flex-1 resize-none rounded-2xl border border-white/10 bg-[#0d1727] p-4 text-sm outline-none placeholder:text-[#52647f]"
           />
-          <button onClick={() => processMessage(input)} className="executive-button executive-primary self-end px-6 py-4">Envoyer à ORION</button>
+          <button onClick={() => processMessage(input)} className="executive-button executive-primary self-end px-6 py-4">Envoyer à Assistant de décision</button>
         </div>
       </article>
 
@@ -150,7 +151,7 @@ export function ExecutiveWorkspace() {
               return <DossierObjectGroup key={type} type={type} records={records} />;
             })}
           </div>
-        ) : <p className="mt-4 rounded-2xl border border-white/10 bg-white/[.025] p-4 text-sm text-[#91a2bd]">Les questions, hypothèses, risques, décisions et actions apparaîtront ici dès le prochain échange avec ORION.</p>}
+        ) : <p className="mt-4 rounded-2xl border border-white/10 bg-white/[.025] p-4 text-sm text-[#91a2bd]">Les questions, hypothèses, risques, décisions et actions apparaîtront ici dès le prochain échange avec Assistant de décision.</p>}
       </article>
 
       <article className="executive-card p-5">
@@ -159,8 +160,8 @@ export function ExecutiveWorkspace() {
           <span className="rounded-full border border-white/10 bg-white/[.025] px-3 py-1 text-xs text-[#a9b7ca]">{recall.openActions.length} action(s) ouverte(s)</span>
         </div>
         <div className="mt-4 grid gap-3 lg:grid-cols-[1.35fr_.65fr]">
-          <p className="whitespace-pre-line rounded-2xl border border-white/10 bg-white/[.025] p-4 text-sm leading-6 text-[#d6dfed]">{recall.summary}</p>
-          <div className="rounded-2xl border border-white/10 bg-white/[.025] p-4"><span className="text-xs text-[#91a2bd]">Prochaine meilleure action</span><strong className="mt-2 block text-sm leading-6">{lastNextAction || recall.nextBestAction}</strong></div>
+          <p className="whitespace-pre-line rounded-2xl border border-white/10 bg-white/[.025] p-4 text-sm leading-6 text-[#d6dfed]">{publicCopy(recall.summary)}</p>
+          <div className="rounded-2xl border border-white/10 bg-white/[.025] p-4"><span className="text-xs text-[#91a2bd]">Prochaine meilleure action</span><strong className="mt-2 block text-sm leading-6">{publicCopy(lastNextAction || recall.nextBestAction)}</strong></div>
         </div>
       </article>
 
