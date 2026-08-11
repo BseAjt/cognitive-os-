@@ -5,10 +5,15 @@ import test from "node:test";
 const home = readFileSync(new URL("../components/executive-home-v4.tsx", import.meta.url), "utf8");
 const guide = readFileSync(new URL("../components/executive-guide.tsx", import.meta.url), "utf8");
 
-test("CEO navigation exposes four plain-language primary steps", () => {
-  for (const label of ["Aujourd’hui", "Arbitrer", "Exécuter", "Apprendre"]) assert.match(home, new RegExp(label));
+test("decision journey exposes only three plain-language primary steps", () => {
+  for (const label of ["Synthèse", "Décider", "Suivre"]) assert.match(home, new RegExp(label));
   assert.match(home, /ADVANCED_SECTIONS/);
-  assert.match(home, /Plus ···/);
+  assert.match(home, />Plus</);
+});
+
+test("floating expert docks are removed from the primary page", () => {
+  const page = readFileSync(new URL("../app/page.tsx", import.meta.url), "utf8");
+  assert.doesNotMatch(page, /LiveMemoryDock|OrionCyclesDock/);
 });
 
 test("startup CEO guide is persistent, replayable and mobile accessible", () => {

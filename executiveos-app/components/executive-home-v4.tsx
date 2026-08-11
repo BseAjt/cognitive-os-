@@ -22,14 +22,13 @@ type UserProfile = "executive" | "investor";
 type WorkspaceSection = "overview" | "context" | "strategy" | "analysis" | "execution" | "learning" | "history";
 
 const WORKSPACE_SECTIONS: Array<{ id: WorkspaceSection; label: string; help: string }> = [
-  { id: "overview", label: "Aujourd’hui", help: "Le résumé utile pour savoir où concentrer ton attention maintenant." },
-  { id: "analysis", label: "Arbitrer", help: "Échanger avec ORION, comparer les options et formaliser une décision." },
-  { id: "execution", label: "Exécuter", help: "Transformer la décision en responsabilités, échéances et résultats." },
-  { id: "learning", label: "Apprendre", help: "Capitaliser ce qui a fonctionné et réutiliser les enseignements." }
+  { id: "overview", label: "Synthèse", help: "La situation, le risque et la recommandation en un regard." },
+  { id: "analysis", label: "Décider", help: "Poser une question à ORION, comparer les options et arrêter un choix." },
+  { id: "execution", label: "Suivre", help: "Voir la prochaine action, son responsable et les blocages." }
 ];
 
 const ADVANCED_SECTIONS: Array<{ id: WorkspaceSection; label: string }> = [
-  { id: "context", label: "Sources & contexte" }, { id: "strategy", label: "Strategy Studio" }, { id: "history", label: "Historique" }
+  { id: "context", label: "Sources" }, { id: "strategy", label: "Scénarios" }, { id: "learning", label: "Enseignements" }, { id: "history", label: "Historique" }
 ];
 
 export function ExecutiveHomeV4() {
@@ -113,16 +112,14 @@ export function ExecutiveHomeV4() {
       <div className="mb-5 grid grid-cols-2 gap-1 rounded-xl border border-white/[.07] bg-black/10 p-1" aria-label="Choisir un profil"><button aria-pressed={profile === "executive"} onClick={() => changeProfile("executive")} className={`rounded-lg px-2 py-2 text-[11px] font-semibold ${profile === "executive" ? "bg-white/10 text-white" : "text-[#71839e]"}`}>Dirigeant</button><button aria-pressed={profile === "investor"} onClick={() => changeProfile("investor")} className={`rounded-lg px-2 py-2 text-[11px] font-semibold ${profile === "investor" ? "bg-white/10 text-white" : "text-[#71839e]"}`}>Investisseur</button></div>
       <nav className="space-y-1">
         <button onClick={() => setShell("dossiers")} className={`w-full rounded-xl px-3 py-2.5 text-left text-sm ${shell === "dossiers" ? "bg-white/[.08] text-white" : "text-[#8393ad] hover:bg-white/[.04]"}`}>{profile === "executive" ? "Mes dossiers" : "Mon portefeuille"}</button>
-        <button onClick={() => window.dispatchEvent(new CustomEvent(profile === "executive" ? "executiveos:show-guide" : "executiveos:show-investor-guide"))} className="w-full rounded-xl px-3 py-2.5 text-left text-sm text-[#8393ad] hover:bg-white/[.04]">Guide de démarrage</button>
         <button onClick={() => window.dispatchEvent(new CustomEvent("executiveos:show-help"))} className="w-full rounded-xl px-3 py-2.5 text-left text-sm text-[#8393ad] hover:bg-white/[.04]">Aide & glossaire</button>
-        <button onClick={() => setShell("settings")} className={`w-full rounded-xl px-3 py-2.5 text-left text-sm ${shell === "settings" ? "bg-white/[.08] text-white" : "text-[#8393ad] hover:bg-white/[.04]"}`}>Paramètres</button>
       </nav>
       {activeCase && <button onClick={() => setShell("case")} className="mt-6 rounded-2xl border border-white/[.07] bg-white/[.025] p-3.5 text-left">
         <span className="text-[10px] uppercase tracking-[.12em] text-[#6f819e]">Dossier actif</span>
         <strong className="mt-2 block text-sm">{activeCase.title}</strong>
         <span className="mt-2 block text-[11px] text-[#8294af]">Reprendre →</span>
       </button>}
-      <div className="mt-auto rounded-2xl border border-white/[.07] bg-white/[.025] p-3.5"><div className="flex items-center gap-2 text-xs text-[#a5b4c9]"><span className="size-2 rounded-full bg-[#42d59d]"/> ORION disponible</div><p className="mt-2 text-[11px] leading-5 text-[#667995]">{store.cases.length} dossier(s) · {store.actions.filter((a) => a.status !== "done").length} action(s) ouverte(s).</p></div>
+      <button onClick={() => setShell("settings")} className="mt-auto w-full rounded-xl px-3 py-2.5 text-left text-sm text-[#8393ad] hover:bg-white/[.04]">Paramètres</button>
     </aside>
 
     <div className="min-w-0">
@@ -130,7 +127,7 @@ export function ExecutiveHomeV4() {
         <div className="mx-auto flex max-w-[1540px] items-center gap-3">
           <div className="relative flex min-w-0 flex-1 items-center gap-3 rounded-2xl border border-white/[.08] bg-[#0d192b]/90 px-4 py-3"><span className="text-[#bfb2ff]">⌕</span><input aria-label="Rechercher dans ExecutiveOS" value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Rechercher un dossier, une décision, une action…" className="min-w-0 flex-1 bg-transparent text-sm outline-none placeholder:text-[#65758f]"/>{search && <button aria-label="Effacer la recherche" onClick={() => setSearch("")} className="text-xs text-[#65758f]">Effacer</button>}
           {search.trim().length >= 2 && <div className="absolute left-0 right-0 top-[calc(100%+10px)] z-50 overflow-hidden rounded-2xl border border-white/[.08] bg-[#fffefa] p-2 shadow-2xl">{searchResults.length ? searchResults.map((result) => <button key={result.id} onClick={() => openSearchResult(result.caseId)} className="flex w-full items-start gap-3 rounded-xl p-3 text-left hover:bg-black/[.04]"><span className="mt-0.5 rounded-full bg-[#0071e3]/10 px-2 py-1 text-[9px] font-bold uppercase text-[#0066cc]">{result.kind}</span><span className="min-w-0"><strong className="block truncate text-sm">{result.title}</strong><span className="mt-1 block truncate text-xs text-[#6e6e73]">{result.detail}</span></span></button>) : <div className="p-4 text-sm text-[#6e6e73]">Aucun résultat. Essaie un autre mot-clé.</div>}</div>}</div>
-          <div className="hidden min-w-0 flex-[1.25] items-center gap-3 rounded-2xl border border-white/[.08] bg-[#0d192b]/90 px-4 py-3 lg:flex"><span className="text-[#bfb2ff]">✦</span><input value={prompt} onChange={(e) => setPrompt(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter") submit(); }} placeholder={activeCase ? `Demander à ORION pour “${activeCase.title}”…` : "Crée d’abord un dossier"} className="min-w-0 flex-1 bg-transparent text-sm outline-none placeholder:text-[#65758f]"/><button onClick={submit} disabled={!prompt.trim()} className="rounded-lg bg-[#7c5cff] px-3 py-1.5 text-xs font-bold disabled:cursor-not-allowed disabled:opacity-40">ORION</button></div>
+          {shell === "case" && <div className="hidden min-w-0 flex-[1.1] items-center gap-3 rounded-2xl border border-white/[.08] bg-[#0d192b]/90 px-4 py-3 lg:flex"><span className="text-[#bfb2ff]">✦</span><input value={prompt} onChange={(e) => setPrompt(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter") submit(); }} placeholder="Que faut-il décider ?" className="min-w-0 flex-1 bg-transparent text-sm outline-none placeholder:text-[#65758f]"/><button onClick={submit} disabled={!prompt.trim()} className="rounded-lg bg-[#7c5cff] px-3 py-1.5 text-xs font-bold disabled:cursor-not-allowed disabled:opacity-40">Demander</button></div>}
           <div className="flex shrink-0 items-center gap-2 lg:hidden"><button aria-label={`Profil ${profile === "executive" ? "dirigeant" : "investisseur"}. Changer de profil`} onClick={() => changeProfile(profile === "executive" ? "investor" : "executive")} className="min-h-11 rounded-2xl border border-white/[.08] bg-white/[.03] px-3 text-[10px] font-bold">{profile === "executive" ? "CEO" : "INV"}</button><button aria-label="Ouvrir l’aide et le glossaire" onClick={() => window.dispatchEvent(new CustomEvent("executiveos:show-help"))} className="grid size-11 place-items-center rounded-2xl border border-white/[.08] bg-white/[.03] text-sm font-bold">?</button><button aria-label={profile === "executive" ? "Mes dossiers" : "Mon portefeuille"} onClick={() => setShell("dossiers")} className="grid size-11 place-items-center rounded-2xl border border-white/[.08] bg-white/[.03] text-lg">⌂</button></div><div className="hidden size-11 place-items-center rounded-2xl bg-gradient-to-br from-[#d7cfff] to-[#8b73ef] text-xs font-black text-[#1b1239] sm:grid">SH</div>
         </div>
       </header>
@@ -278,7 +275,7 @@ function CaseWorkspace({ cognitiveCase, onBack }: { cognitiveCase: CognitiveCase
         {!editing && <button onClick={() => setEditing(true)} className="rounded-xl border border-white/[.08] bg-white/[.03] px-4 py-2 text-xs font-semibold">Modifier le dossier</button>}
       </div>
       </div>
-      <div className="flex flex-wrap items-stretch gap-px border-y border-white/[.08] bg-black/[.06]">{WORKSPACE_SECTIONS.map((item, index) => <button key={item.id} aria-pressed={activeSection === item.id} onClick={() => goTo(item.id)} className={`min-w-[46%] flex-1 px-4 py-3 text-left text-xs font-semibold transition sm:min-w-0 ${activeSection === item.id ? "bg-[#0071e3] text-white" : "bg-[#fffefa]/75 text-[#6e6e73] hover:bg-white"}`}><span className="mr-2 opacity-60">{index + 1}</span>{item.label} <InfoTip label={item.help}/></button>)}<details className="relative min-w-full bg-[#fffefa]/75 sm:min-w-0"><summary className="cursor-pointer list-none px-4 py-3 text-xs font-semibold text-[#6e6e73]">Plus ···</summary><div className="absolute right-0 z-30 mt-1 min-w-56 rounded-2xl border border-black/10 bg-[#fffefa] p-2 shadow-xl">{ADVANCED_SECTIONS.map((item) => <button key={item.id} onClick={() => goTo(item.id)} className="block w-full rounded-xl px-3 py-2.5 text-left text-xs font-semibold hover:bg-black/[.04]">{item.label}</button>)}</div></details></div>
+      <div className="grid grid-cols-4 gap-px border-y border-white/[.08] bg-black/[.06]">{WORKSPACE_SECTIONS.map((item) => <button key={item.id} aria-pressed={activeSection === item.id} onClick={() => goTo(item.id)} className={`px-3 py-3 text-center text-xs font-semibold transition ${activeSection === item.id ? "bg-[#0071e3] text-white" : "bg-[#fffefa]/75 text-[#6e6e73] hover:bg-white"}`}>{item.label}</button>)}<details className="relative bg-[#fffefa]/75"><summary className="cursor-pointer list-none px-3 py-3 text-center text-xs font-semibold text-[#6e6e73]">Plus</summary><div className="absolute right-0 z-30 mt-1 min-w-52 rounded-2xl border border-black/10 bg-[#fffefa] p-2 shadow-xl">{ADVANCED_SECTIONS.map((item) => <button key={item.id} onClick={() => goTo(item.id)} className="block w-full rounded-xl px-3 py-2.5 text-left text-xs font-semibold hover:bg-black/[.04]">{item.label}</button>)}</div></details></div>
     </div>
 
     <div id="workspace-content" className="scroll-mt-28 pt-6">
@@ -301,7 +298,7 @@ function WorkspaceView({ eyebrow, title, description, children }: { eyebrow: str
 }
 
 function CommandSurface({ brief, journey, onNavigate, caseId }: { brief: ReturnType<typeof buildExecutiveCaseBrief>; journey: ReturnType<typeof buildCaseJourney>; onNavigate: (section: WorkspaceSection) => void; caseId: string }) {
-  return <div className="grid gap-5 xl:grid-cols-[minmax(0,1.45fr)_minmax(320px,.55fr)]">
+  return <div className="space-y-5">
     <div className="space-y-5">
       <article className="rounded-[28px] border border-[#0071e3]/20 bg-[linear-gradient(145deg,rgba(255,255,255,.98),rgba(232,241,250,.82))] p-6 md:p-8">
         <div className="flex flex-wrap items-center justify-between gap-3"><div className="text-[10px] font-black uppercase tracking-[.18em] text-[#0066cc]">Brief vivant · maintenant</div><span className="rounded-full bg-white/70 px-3 py-1 text-[10px] font-semibold text-[#6e6e73]">{stateLabel(brief.state)}</span></div>
@@ -309,13 +306,9 @@ function CommandSurface({ brief, journey, onNavigate, caseId }: { brief: ReturnT
         <p className="mt-4 max-w-4xl text-sm leading-7 text-[#59636f]">{brief.recommendation}</p>
         <div className="mt-6 flex flex-wrap gap-3"><button onClick={() => onNavigate(brief.blockers.length ? "execution" : journey.latestDecision ? "execution" : "analysis")} className="rounded-full bg-[#0071e3] px-5 py-3 text-sm font-bold text-white">Continuer depuis ici →</button><button onClick={() => onNavigate("analysis")} className="rounded-full border border-black/10 bg-white/70 px-5 py-3 text-sm font-semibold">Demander un arbitrage à ORION</button></div>
       </article>
-      <div className="grid gap-4 md:grid-cols-3"><SignalCard label="Décision active" value={brief.latestDecision} meta={brief.decisionConfidence ? `${brief.decisionConfidence}% de confiance` : "À formaliser"} onClick={() => onNavigate("analysis")}/><SignalCard label="Prochaine action" value={brief.nextAction} meta={brief.blockers.length ? `${brief.blockers.length} blocage(s)` : "Prête à avancer"} onClick={() => onNavigate("execution")}/><SignalCard label="Dernier apprentissage" value={brief.latestLearning} meta="Mémoire consolidée" onClick={() => onNavigate("learning")}/></div>
-      <CollaborationPanel caseId={caseId}/>
+      <div className="grid gap-4 md:grid-cols-3"><SignalCard label="Décision" value={brief.latestDecision} meta={brief.decisionConfidence ? `${brief.decisionConfidence}% de confiance` : "À décider"} onClick={() => onNavigate("analysis")}/><SignalCard label="Action" value={brief.nextAction} meta={brief.blockers.length ? `${brief.blockers.length} blocage(s)` : "Prête à avancer"} onClick={() => onNavigate("execution")}/><SignalCard label="Risque" value={brief.criticalRisks[0] ?? "Aucun risque critique"} meta={brief.health === "critical" ? "À traiter maintenant" : "Sous contrôle"} onClick={() => onNavigate(brief.health === "critical" ? "analysis" : "overview")}/></div>
     </div>
-    <aside className="space-y-5">
-      <Panel title="Centre d’attention">{brief.proactiveAlerts.length ? brief.proactiveAlerts.map((alert) => <button key={alert} onClick={() => onNavigate(alert.startsWith("Blocage") ? "execution" : "analysis")} className="block w-full rounded-2xl border border-[#d70015]/10 bg-[#d70015]/[.035] p-4 text-left text-sm leading-6 hover:border-[#d70015]/30">{alert}<span className="mt-2 block text-[10px] font-bold uppercase text-[#d70015]">Traiter →</span></button>) : <div className="rounded-2xl bg-[#248a3d]/[.06] p-4 text-sm leading-6 text-[#248a3d]">Aucune tension critique. Le dossier peut avancer sur sa prochaine action.</div>}</Panel>
-      <Panel title="Depuis ta dernière visite">{brief.sinceLastSession.length ? brief.sinceLastSession.map((change) => <div key={change} className="flex gap-3 rounded-xl bg-white/60 p-3 text-sm"><span className="text-[#248a3d]">●</span><span>{change}</span></div>) : <p className="text-sm leading-6 text-[#71839e]">Aucun changement majeur. Tu reprends exactement au même point.</p>}<button onClick={() => onNavigate("history")} className="w-full rounded-xl border border-black/10 bg-white/70 px-4 py-3 text-sm font-semibold">Voir la trajectoire complète</button></Panel>
-    </aside>
+    <details className="rounded-2xl border border-black/10 bg-white/55 p-4"><summary className="cursor-pointer text-sm font-semibold">Outils de collaboration</summary><div className="mt-4"><CollaborationPanel caseId={caseId}/></div></details>
   </div>;
 }
 

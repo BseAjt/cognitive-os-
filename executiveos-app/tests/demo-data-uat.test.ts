@@ -73,9 +73,9 @@ for (const label of ["Mes dossiers", "Paramètres"]) {
 
 test("primary navigation no longer exposes engine tabs", () => {
   assert.ok(!home.includes('label: "Comprendre"'));
-  assert.ok(!home.includes('label: "Décider"'));
   assert.ok(!home.includes('label: "Agir"'));
   assert.ok(!home.includes('label: "Explorer"'));
+  for (const label of ["Synthèse", "Décider", "Suivre"]) assert.ok(home.includes(`label: "${label}"`));
 });
 
 test("Phase B renders one contextual command surface instead of stacked engines", () => {
@@ -117,8 +117,8 @@ test("Phase B global search spans useful cognitive records", () => {
 test("Phase B living brief exposes attention and next-best-action surfaces", () => {
   assert.ok(home.includes("buildExecutiveCaseBrief"));
   assert.ok(home.includes("Brief vivant · maintenant"));
-  assert.ok(home.includes("Centre d’attention"));
-  assert.ok(home.includes("Depuis ta dernière visite"));
+  assert.ok(home.includes('label="Risque"'));
+  assert.ok(home.includes('label="Action"'));
 });
 
 test("execution stays operational inside dossier workspace", () => {

@@ -1,6 +1,4 @@
 import { ExecutiveHomeV4 } from "@/components/executive-home-v4";
-import { LiveMemoryDock } from "@/components/live-memory-dock";
-import { OrionCyclesDock } from "@/components/orion-cycles-dock";
 import { CloudWorkspaceGate } from "@/components/cloud-workspace-gate";
 import { createClient } from "@/lib/supabase/server";
 
@@ -16,7 +14,5 @@ export default async function HomePage() {
   }
   return <CloudWorkspaceGate user={user ? {id:user.id,email:user.email??""} : null} membership={membership as never}>
     <ExecutiveHomeV4 />
-    <LiveMemoryDock />
-    <OrionCyclesDock />
   </CloudWorkspaceGate>;
 }
