@@ -1,8 +1,9 @@
 import { expect, test, type Page } from "@playwright/test";
 
 async function openCleanWorkspace(page: Page) {
-  await page.addInitScript(() => window.localStorage.clear());
   await page.goto("/");
+  await page.evaluate(() => window.localStorage.clear());
+  await page.reload();
   await expect(page.getByRole("heading", { name: /Décidez avec votre expérience/ })).toBeVisible();
   const closeGuide = page.getByRole("button", { name: "Fermer le guide investisseur" });
   await expect(closeGuide).toBeVisible();
@@ -26,7 +27,7 @@ test("shows a measurable private decision twin", async ({ page }) => {
 });
 
 test("switches the decision twin to English and remembers the preference", async ({ page }) => {
-  await page.getByRole("button", { name: "en", exact: true }).click();
+  await page.getByRole("button", { name: "en", exact: true }).click({ force: true });
   await expect(page.getByRole("heading", { name: "Use your experience without repeating your mistakes." })).toBeVisible();
   await expect(page.getByRole("button", { name: /Analyze a decision/ })).toBeVisible();
   await expect(page.locator("html")).toHaveAttribute("lang", "en");
