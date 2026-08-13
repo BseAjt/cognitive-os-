@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { createClient } from "@/lib/supabase/client";
 
 export function CloudSignIn({
   configured,
@@ -19,24 +20,27 @@ export function CloudSignIn({
     setMessage("");
 
     try {
-      const response = await fetch("/api/auth/magic-link", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          email: email.trim().toLowerCase(),
-          next: nextPath,
-        }),
+      const client = createClient();
+      if (!client) {
+        setMessage("Le service de connexion n’est pas configuré sur cet environnement.");
+        return;
+      }
+      const callback = new URL("/auth/callback", window.location.origin);
+      callback.searchParams.set("next", nextPath);
+      const { error } = await client.auth.signInWithOtp({
+        email: email.trim().toLowerCase(),
+        options: {
+          emailRedirectTo: callback.toString(),
+          shouldCreateUser: true,
+        },
       });
-      const result = (await response.json().catch(() => ({}))) as { error?: string };
 
-      if (response.ok) {
-        setMessage("Lien sécurisé envoyé. Ouvre le dernier e-mail reçu pour retrouver ton espace personnel.");
-      } else if (response.status === 429 || result.error === "over_email_send_rate_limit") {
+      if (!error) {
+        setMessage("Lien sécurisé envoyé. Ouvre le dernier e-mail reçu dans ce navigateur pour retrouver ton espace personnel.");
+      } else if (error.status === 429 || error.code === "over_email_send_rate_limit") {
         setMessage("Un lien vient déjà d’être envoyé. Attends quelques secondes, puis utilise le dernier e-mail reçu.");
-      } else if (response.status === 503) {
-        setMessage("Le cloud n’est pas configuré sur cet environnement.");
       } else {
-        setMessage(`Connexion impossible (${result.error ?? "erreur inconnue"}). Réessaie dans quelques instants.`);
+        setMessage(`Connexion impossible (${error.code ?? "erreur inconnue"}). Réessaie dans quelques instants.`);
       }
     } catch {
       setMessage("Connexion impossible (réseau indisponible). Réessaie dans quelques instants.");
