@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useExecutiveStore } from "@/store/executive-store";
+import { decisionAssessmentQuestions, scoreDecisionAssessment, type AssessmentAnswer } from "@/lib/decision-thinking-profile";
 
 type Mode = "guided" | "demo";
 
@@ -22,11 +23,14 @@ export function ProductOnboarding({ email }: { email: string }) {
   const [objective, setObjective] = useState("");
   const [mode, setMode] = useState<Mode>("guided");
   const [decisionFocus, setDecisionFocus] = useState("investment");
+  const [assessmentStep, setAssessmentStep] = useState(0);
+  const [assessmentAnswers, setAssessmentAnswers] = useState<AssessmentAnswer[]>([]);
   const [pending, setPending] = useState(false);
   const [error, setError] = useState("");
   const canSubmit =
     organizationName.trim().length >= 2 &&
     displayName.trim().length >= 2 &&
+    assessmentAnswers.length === decisionAssessmentQuestions.length &&
     (mode === "demo" ||
       (caseTitle.trim().length >= 3 && objective.trim().length >= 5));
 
@@ -39,7 +43,7 @@ export function ProductOnboarding({ email }: { email: string }) {
       const response = await fetch("/api/onboarding", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ organizationName, displayName }),
+        body: JSON.stringify({ organizationName, displayName, assessmentAnswers }),
       });
       const body = await response.json().catch(() => null);
       if (!response.ok || !body?.organization || !body?.member)
@@ -146,9 +150,22 @@ export function ProductOnboarding({ email }: { email: string }) {
               ))}
             </div>
           </section>
+          <AssessmentSection
+            step={assessmentStep}
+            answers={assessmentAnswers}
+            choose={(questionId, optionId) => {
+              setAssessmentAnswers((current) => [
+                ...current.filter((answer) => answer.questionId !== questionId),
+                { questionId, optionId },
+              ]);
+              if (assessmentStep < decisionAssessmentQuestions.length - 1)
+                setAssessmentStep(assessmentStep + 1);
+            }}
+            go={setAssessmentStep}
+          />
           <section>
             <p className="mb-4 text-sm font-semibold">
-              3 · Comment veux-tu commencer ?
+              4 · Comment veux-tu commencer ?
             </p>
             <div className="grid gap-3 sm:grid-cols-2">
               <ModeCard
@@ -167,7 +184,7 @@ export function ProductOnboarding({ email }: { email: string }) {
           </section>
           {mode === "guided" && (
             <section className="grid gap-4 rounded-3xl bg-black/[.035] p-5">
-              <p className="text-sm font-semibold">3 · Ta première décision</p>
+              <p className="text-sm font-semibold">5 · Ta première décision</p>
               <label className="grid gap-2 text-sm font-medium">
                 Sujet du dossier
                 <input
@@ -223,6 +240,50 @@ export function ProductOnboarding({ email }: { email: string }) {
         </div>
       </form>
     </main>
+  );
+}
+
+function AssessmentSection({
+  step,
+  answers,
+  choose,
+  go,
+}: {
+  step: number;
+  answers: AssessmentAnswer[];
+  choose: (questionId: string, optionId: string) => void;
+  go: (step: number) => void;
+}) {
+  const question = decisionAssessmentQuestions[step];
+  const selected = answers.find((answer) => answer.questionId === question.id)?.optionId;
+  return (
+    <section className="grid gap-5 rounded-3xl bg-black/[.035] p-5">
+      <div className="flex items-center justify-between gap-3">
+        <div>
+          <p className="text-sm font-semibold">3 · Votre manière de décider</p>
+          <p className="mt-1 text-sm leading-6 text-[#6e6e73]">Répondez selon votre premier réflexe, pas selon la réponse idéale.</p>
+        </div>
+        <span className="text-xs font-bold text-[#0066cc]">{step + 1}/10</span>
+      </div>
+      <div className="h-1.5 overflow-hidden rounded-full bg-black/[.07]">
+        <div className="h-full rounded-full bg-[#0071e3]" style={{ width: `${((step + 1) / 10) * 100}%` }} />
+      </div>
+      <fieldset>
+        <legend className="text-base font-semibold leading-6">{question.prompt}</legend>
+        <div className="mt-4 grid gap-2">
+          {question.options.map((option) => (
+            <button key={option.id} type="button" aria-pressed={selected === option.id} onClick={() => choose(question.id, option.id)} className={`rounded-2xl border p-4 text-left text-sm leading-5 ${selected === option.id ? "border-[#0071e3] bg-[#eef6ff]" : "border-black/[.09] bg-white"}`}>
+              {option.label}
+            </button>
+          ))}
+        </div>
+      </fieldset>
+      <div className="flex justify-between">
+        <button type="button" disabled={step === 0} onClick={() => go(step - 1)} className="text-xs font-semibold text-[#59636f] disabled:opacity-30">← Précédent</button>
+        <button type="button" disabled={!selected || step === 9} onClick={() => go(step + 1)} className="text-xs font-semibold text-[#0066cc] disabled:opacity-30">Suivant →</button>
+      </div>
+      <p className="text-xs leading-5 text-[#6e6e73]">Cette hypothèse sera corrigée par vos décisions et vos retours. Elle ne constitue ni un diagnostic psychologique ni une évaluation de vos capacités.</p>
+    </section>
   );
 }
 
