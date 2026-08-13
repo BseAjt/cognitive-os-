@@ -12,6 +12,14 @@ export function CloudWorkspaceGate({user,membership,children}:{user:{id:string;e
   const loadInvestorDemo=useExecutiveStore((state)=>state.loadInvestorDemo);
 
   useEffect(()=>{
+    if(user)return;
+    if(window.sessionStorage.getItem("executiveos:demo-session")==="active"){
+      loadInvestorDemo();
+      setDemoOpen(true);
+    }
+  },[loadInvestorDemo,user]);
+
+  useEffect(()=>{
     const organization=membership?.organizations;
     if(!membership || !organization)return;
     activate({
@@ -37,7 +45,7 @@ export function CloudWorkspaceGate({user,membership,children}:{user:{id:string;e
         <div className="mt-8 grid gap-4 sm:grid-cols-2">
           <button
             type="button"
-            onClick={()=>{loadInvestorDemo();setDemoOpen(true);}}
+            onClick={()=>{window.sessionStorage.setItem("executiveos:demo-session","active");loadInvestorDemo();setDemoOpen(true);}}
             className="rounded-3xl border border-black/10 bg-[#fff8e7] p-6 text-left transition hover:-translate-y-0.5 hover:shadow-lg"
           >
             <span className="block text-xs font-black uppercase tracking-[.16em] text-[#9a4d09]">Découvrir</span>
