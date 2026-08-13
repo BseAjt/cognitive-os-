@@ -7,6 +7,7 @@ import {
   type AssessmentAnswer,
   type ThinkingDimension,
 } from "@/lib/decision-thinking-profile";
+import { useExecutiveStore } from "@/store/executive-store";
 
 type DiscStyle = "D" | "I" | "S" | "C";
 const LOCAL_PROFILE_KEY = "executiveos:decision-profile:v1";
@@ -46,6 +47,13 @@ export function DecisionProfilePanel({ demo = false }: { demo?: boolean }) {
   const [answers, setAnswers] = useState<AssessmentAnswer[]>([]);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
+  const [activeAxis, setActiveAxis] = useState<ThinkingDimension | null>(null);
+  const [axisAnswer, setAxisAnswer] = useState("");
+  const [axisStatus, setAxisStatus] = useState("");
+  const activeCaseId = useExecutiveStore((state) => state.activeCaseId);
+  const cases = useExecutiveStore((state) => state.cases);
+  const ingestContextSource = useExecutiveStore((state) => state.ingestContextSource);
+  const activeCase = cases.find((item) => item.id === activeCaseId) ?? cases[0];
 
   useEffect(() => {
     if (demo) {
@@ -110,6 +118,26 @@ export function DecisionProfilePanel({ demo = false }: { demo?: boolean }) {
       { questionId, optionId },
     ]);
     if (step < decisionAssessmentQuestions.length - 1) setStep(step + 1);
+  }
+
+  function saveAxis(kind: "answered" | "already_considered") {
+    if (!activeAxis || !activeCase) return;
+    const copy = dimensionCopy[activeAxis];
+    const content = kind === "already_considered"
+      ? `AXE DÉJÀ PRIS EN COMPTE\nQuestion : ${copy.question}`
+      : axisAnswer.trim();
+    if (!content) return;
+    ingestContextSource({
+      caseId: activeCase.id,
+      type: "note",
+      title: `Axe complémentaire:${activeAxis}`,
+      origin: demo ? "Interaction de démonstration" : "Réponse utilisateur",
+      content,
+    });
+    window.dispatchEvent(new Event("executiveos:sync"));
+    setAxisStatus(kind === "already_considered" ? "Axe marqué comme déjà pris en compte." : "Réponse ajoutée à l’analyse du dossier.");
+    setAxisAnswer("");
+    setActiveAxis(null);
   }
 
   async function save() {
@@ -187,12 +215,47 @@ export function DecisionProfilePanel({ demo = false }: { demo?: boolean }) {
           <div className="rounded-2xl border border-[#b45309]/20 bg-[#fff7ed] p-5">
             <span className="text-[10px] font-black uppercase tracking-[.14em] text-[#9a4d09]">Axes que l’outil ajoutera en priorité</span>
             <div className="mt-3 grid gap-3">
-              {complements.map(([key]) => (
-                <div key={key} className="rounded-xl bg-white p-3">
-                  <strong className="text-sm">{dimensionCopy[key].label}</strong>
-                  <p className="mt-1 text-xs leading-5 text-[#6f3b0b]">{dimensionCopy[key].question}</p>
-                </div>
-              ))}
+              {complements.map(([key]) => {
+                const open = activeAxis === key;
+                return (
+                  <div key={key} className={`rounded-xl border bg-white p-3 transition ${open ? "border-[#b45309]/40 shadow-sm" : "border-transparent"}`}>
+                    <button
+                      type="button"
+                      aria-expanded={open}
+                      onClick={() => { setActiveAxis(open ? null : key); setAxisAnswer(""); setAxisStatus(""); }}
+                      className="flex w-full items-start justify-between gap-4 text-left"
+                    >
+                      <span>
+                        <strong className="text-sm">{dimensionCopy[key].label}</strong>
+                        <span className="mt-1 block text-xs leading-5 text-[#6f3b0b]">{dimensionCopy[key].question}</span>
+                      </span>
+                      <span className="shrink-0 text-lg font-semibold text-[#9a4d09]" aria-hidden="true">{open ? "−" : "+"}</span>
+                    </button>
+                    {open && (
+                      <div className="mt-3 border-t border-[#b45309]/10 pt-3">
+                        <p className="text-xs text-[#6f3b0b]">
+                          Dossier concerné : <strong>{activeCase?.title ?? "Aucun dossier actif"}</strong>
+                        </p>
+                        <textarea
+                          value={axisAnswer}
+                          onChange={(event) => setAxisAnswer(event.target.value)}
+                          rows={3}
+                          placeholder="Écrivez votre réponse concrète…"
+                          className="mt-3 w-full resize-none rounded-xl border border-black/10 bg-[#fffefa] p-3 text-sm outline-none focus:border-[#b45309]"
+                        />
+                        <div className="mt-3 flex flex-wrap gap-2">
+                          <button type="button" disabled={!axisAnswer.trim() || !activeCase} onClick={() => saveAxis("answered")} className="rounded-full bg-[#9a4d09] px-4 py-2 text-xs font-bold text-white disabled:opacity-40">
+                            Ajouter à l’analyse
+                          </button>
+                          <button type="button" disabled={!activeCase} onClick={() => saveAxis("already_considered")} className="rounded-full border border-[#b45309]/20 bg-white px-4 py-2 text-xs font-bold text-[#9a4d09] disabled:opacity-40">
+                            Déjà pris en compte
+                          </button>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
             </div>
           </div>
         </div>
@@ -231,6 +294,7 @@ export function DecisionProfilePanel({ demo = false }: { demo?: boolean }) {
           </div>
         </div>
       )}
+      {axisStatus && <p role="status" className="mt-4 rounded-xl bg-[#effaf2] px-4 py-3 text-sm text-[#287a46]">{axisStatus}</p>}
       {error && <p role="alert" className="mt-4 text-sm text-red-700">{error}</p>}
     </section>
   );
