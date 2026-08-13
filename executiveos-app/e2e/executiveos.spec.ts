@@ -19,6 +19,17 @@ test("exposes the AI runtime readiness contract", async ({ request }) => {
   await expect(response.json()).resolves.toEqual(expect.objectContaining({ runtime: "ai_gateway", configured: expect.any(Boolean) }));
 });
 
+
+test("turns a complementary axis into decision context", async ({ page }) => {
+  const axis = page.getByRole("button", { name: /Contradiction utile/ });
+  await expect(axis).toBeVisible();
+  await axis.click();
+  await expect(page.getByText(/Dossier concerné/)).toBeVisible();
+  await page.getByPlaceholder("Écrivez votre réponse concrète…").fill("Le principal argument contraire est que le coût d’intégration dépasse le gain attendu.");
+  await page.getByRole("button", { name: "Ajouter à l’analyse" }).click();
+  await expect(page.getByText("Réponse ajoutée à l’analyse du dossier.")).toBeVisible();
+});
+
 test("shows a measurable private decision twin", async ({ page }) => {
   await expect(page.getByText("Doctrine de démonstration — données fictives")).toBeVisible();
   await expect(page.getByText("Qualité de l’historique")).toBeVisible();
