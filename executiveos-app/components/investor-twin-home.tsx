@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { useLanguage } from "@/components/language-provider";
+import { DecisionProfilePanel } from "@/components/decision-profile-panel";
 import {
   buildDecisionDoctrine,
   buildDecisionTwinSnapshot,
@@ -259,6 +260,8 @@ export function InvestorTwinHome({ onOpen }: { onOpen: (id: string) => void }) {
           {text("Analyser une décision →", "Analyze a decision →")}
         </button>
       </div>
+
+      <DecisionProfilePanel />
 
       <div className="mt-7 grid gap-5 xl:grid-cols-[1.35fr_.65fr]">
         <article className="rounded-[30px] border border-[#0071e3]/20 bg-[linear-gradient(145deg,rgba(255,255,255,.98),rgba(232,241,250,.9))] p-6 md:p-8">
