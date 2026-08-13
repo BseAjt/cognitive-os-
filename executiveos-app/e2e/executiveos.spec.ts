@@ -5,6 +5,7 @@ async function openCleanWorkspace(page: Page) {
   await page.evaluate(() => window.localStorage.clear());
   await page.reload();
   await expect(page.getByRole("heading", { name: /Décidez avec votre expérience/ })).toBeVisible();
+  await page.getByRole("button", { name: /Explorer la démo/ }).click();
   const closeGuide = page.getByRole("button", { name: "Fermer le guide investisseur" });
   await expect(closeGuide).toBeVisible();
   await closeGuide.click();

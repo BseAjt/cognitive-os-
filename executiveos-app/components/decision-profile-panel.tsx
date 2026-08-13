@@ -38,7 +38,7 @@ const dimensionCopy: Record<ThinkingDimension, { label: string; question: string
   dissent: { label: "Contradiction utile", question: "Quel argument solide défendrait une personne en désaccord ?" },
 };
 
-export function DecisionProfilePanel() {
+export function DecisionProfilePanel({ demo = false }: { demo?: boolean }) {
   const [profile, setProfile] = useState<StoredProfile | null>(null);
   const [loading, setLoading] = useState(true);
   const [editing, setEditing] = useState(false);
@@ -48,6 +48,18 @@ export function DecisionProfilePanel() {
   const [error, setError] = useState("");
 
   useEffect(() => {
+    if (demo) {
+      setProfile({
+        disc_primary: "D",
+        disc_secondary: "C",
+        dimension_scores: { speed: 92, evidence: 68, risk: 52, stakeholders: 44, execution: 88, opportunityCost: 81, reversibility: 31, longTerm: 47, dissent: 28 },
+        assessment_answers: [],
+        confidence: "demo",
+        evidence_count: 24,
+      });
+      setLoading(false);
+      return;
+    }
     const useLocalProfile = () => {
       try {
         const stored = window.localStorage.getItem(LOCAL_PROFILE_KEY);
@@ -80,7 +92,7 @@ export function DecisionProfilePanel() {
       })
       .catch(useLocalProfile)
       .finally(() => setLoading(false));
-  }, []);
+  }, [demo]);
 
   const ranked = useMemo(() => {
     if (!profile?.dimension_scores) return [];
@@ -149,15 +161,15 @@ export function DecisionProfilePanel() {
     <section className="mt-7 rounded-[30px] border border-[#6d28d9]/20 bg-[linear-gradient(145deg,#faf7ff,#fffefa)] p-6 md:p-8" aria-labelledby="decision-profile-title">
       <div className="flex flex-col justify-between gap-4 md:flex-row md:items-start">
         <div>
-          <span className="text-[10px] font-black uppercase tracking-[.18em] text-[#6d28d9]">Votre manière de décider</span>
+          <span className="text-[10px] font-black uppercase tracking-[.18em] text-[#6d28d9]">{demo ? "Exemple de profil décisionnel" : "Votre manière de décider"}</span>
           <h2 id="decision-profile-title" className="mt-2 text-2xl font-semibold md:text-3xl">
             {profile ? `${styleCopy[profile.disc_primary].title} · complément ${profile.disc_secondary}` : "Découvrez vos réflexes — et ce qu’ils laissent de côté"}
           </h2>
           <p className="mt-2 max-w-3xl text-sm leading-6 text-[#59636f]">
-            {profile ? styleCopy[profile.disc_primary].reflex : "10 situations concrètes permettent d’adapter l’aide à votre façon de réfléchir. Ce n’est pas un diagnostic psychologique."}
+            {profile ? `${styleCopy[profile.disc_primary].reflex}${demo ? " Exemple fictif : connectez-vous pour construire votre propre profil." : ""}` : "10 situations concrètes permettent d’adapter l’aide à votre façon de réfléchir. Ce n’est pas un diagnostic psychologique."}
           </p>
         </div>
-        {profile && !editing && (
+        {profile && !editing && !demo && (
           <button onClick={() => setEditing(true)} className="shrink-0 rounded-full border border-[#6d28d9]/20 bg-white px-4 py-2 text-xs font-bold text-[#6d28d9]">
             Recalibrer mon profil
           </button>
