@@ -75,11 +75,11 @@ export function CloudSignIn({
           </form>
         ) : (
           <div className="mt-6 rounded-2xl bg-amber-50 p-4 text-sm leading-6 text-amber-900">
-            Le cloud n’est pas encore configuré sur cet environnement. Le mode local reste disponible.
+            Le service de connexion n’est pas encore configuré sur cet environnement. La démonstration reste accessible avec des données fictives.
           </div>
         )}
         {message && <p role="status" className="mt-4 text-sm text-[#3a3a3c]">{message}</p>}
-        <a href="/" className="mt-6 inline-block text-sm font-medium text-[#007aff]">Continuer en mode local</a>
+        <a href="/" className="mt-6 inline-block text-sm font-medium text-[#007aff]">Découvrir la démo</a>
       </section>
     </main>
   );
