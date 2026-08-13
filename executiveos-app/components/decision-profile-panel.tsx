@@ -3,11 +3,13 @@
 import { useEffect, useMemo, useState } from "react";
 import {
   decisionAssessmentQuestions,
+  scoreDecisionAssessment,
   type AssessmentAnswer,
   type ThinkingDimension,
 } from "@/lib/decision-thinking-profile";
 
 type DiscStyle = "D" | "I" | "S" | "C";
+const LOCAL_PROFILE_KEY = "executiveos:decision-profile:v1";
 type StoredProfile = {
   disc_primary: DiscStyle;
   disc_secondary: DiscStyle;
@@ -46,17 +48,37 @@ export function DecisionProfilePanel() {
   const [error, setError] = useState("");
 
   useEffect(() => {
+    const useLocalProfile = () => {
+      try {
+        const stored = window.localStorage.getItem(LOCAL_PROFILE_KEY);
+        const localProfile = stored ? JSON.parse(stored) as StoredProfile : null;
+        setProfile(localProfile);
+        if (localProfile?.assessment_answers) setAnswers(localProfile.assessment_answers);
+        setEditing(!localProfile);
+        setError("");
+      } catch {
+        setProfile(null);
+        setEditing(true);
+        setError("");
+      }
+    };
+
     fetch("/api/decision-profile", { cache: "no-store" })
       .then(async (response) => {
+        if ([401, 404, 503].includes(response.status)) {
+          useLocalProfile();
+          return null;
+        }
         if (!response.ok) throw new Error("read_failed");
         return response.json();
       })
       .then((body) => {
+        if (!body) return;
         setProfile(body.profile);
         if (body.profile?.assessment_answers) setAnswers(body.profile.assessment_answers);
         setEditing(!body.profile);
       })
-      .catch(() => setError("Le profil n’a pas pu être chargé."))
+      .catch(useLocalProfile)
       .finally(() => setLoading(false));
   }, []);
 
@@ -82,18 +104,40 @@ export function DecisionProfilePanel() {
     if (answers.length !== decisionAssessmentQuestions.length || saving) return;
     setSaving(true);
     setError("");
+    const saveLocally = () => {
+      const scored = scoreDecisionAssessment(answers);
+      const localProfile: StoredProfile = {
+        disc_primary: scored.discPrimary,
+        disc_secondary: scored.discSecondary,
+        dimension_scores: scored.dimensions,
+        assessment_answers: answers,
+        confidence: scored.confidence,
+        evidence_count: scored.evidenceCount,
+      };
+      window.localStorage.setItem(LOCAL_PROFILE_KEY, JSON.stringify(localProfile));
+      setProfile(localProfile);
+      setEditing(false);
+    };
     try {
       const response = await fetch("/api/decision-profile", {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ answers }),
       });
+      if ([401, 404, 503].includes(response.status)) {
+        saveLocally();
+        return;
+      }
       const body = await response.json();
       if (!response.ok || !body.profile) throw new Error("save_failed");
       setProfile(body.profile);
       setEditing(false);
     } catch {
-      setError("Le profil n’a pas pu être enregistré.");
+      try {
+        saveLocally();
+      } catch {
+        setError("Le profil n’a pas pu être enregistré.");
+      }
     } finally {
       setSaving(false);
     }
