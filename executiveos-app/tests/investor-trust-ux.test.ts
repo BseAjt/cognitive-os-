@@ -21,5 +21,7 @@ test("the UI exposes qualitative evidence and explainable orientation", () => {
   assert.match(source, /Premiers signaux/);
   assert.match(source, /Orientation probable/);
   assert.match(source, /Comment cette analyse est produite/);
+  assert.match(source, /Ce que vous n’avez peut-être pas encore examiné/);
+  assert.match(source, /Question décisive/);
   assert.doesNotMatch(source, /maturityScore}%/);
 });

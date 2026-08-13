@@ -17,6 +17,7 @@ import {
   type ExtractedDecision,
 } from "@/lib/bulk-decision-import";
 import { INVESTOR_DEMO_PERSONA } from "@/lib/investor-demo";
+import { buildComplementReport, parseComplementFeedback, serializeComplementFeedback, type BlindSpot, type ComplementFeedback, type FeedbackKind } from "@/lib/decision-complement-engine";
 import { useExecutiveStore } from "@/store/executive-store";
 
 type Mode = "home" | "history" | "opportunity";
@@ -211,6 +212,13 @@ export function InvestorTwinHome({ onOpen }: { onOpen: (id: string) => void }) {
       content: statement?.trim() || principle.statement,
     });
   }
+  function recordComplementFeedback(caseId: string, spot: BlindSpot, kind: FeedbackKind) {
+    store.ingestContextSource({ caseId, type: "note", title: `Complément décisionnel:${spot.axis}`, origin: "Correction utilisateur", content: serializeComplementFeedback({ axis: spot.axis, kind, createdAt: new Date().toISOString() }) });
+  }
+  const complementFeedback = store.contextSources
+    .filter((source) => source.title.startsWith("Complément décisionnel:"))
+    .map((source) => parseComplementFeedback(source.rawContent))
+    .filter((item): item is ComplementFeedback => Boolean(item));
 
   return (
     <section aria-labelledby="investor-home-title">
@@ -378,6 +386,8 @@ export function InvestorTwinHome({ onOpen }: { onOpen: (id: string) => void }) {
             item={item}
             doctrine={doctrine}
             isDemo={isDemo}
+            feedback={complementFeedback}
+            onFeedback={(spot, kind) => recordComplementFeedback(item.id, spot, kind)}
             onOpen={() => onOpen(item.id)}
           />
         ))}
@@ -696,11 +706,15 @@ function OpportunityCard({
   item,
   doctrine,
   isDemo,
+  feedback,
+  onFeedback,
   onOpen,
 }: {
   item: import("@/domain/canonical").CognitiveCase;
   doctrine: ReturnType<typeof buildDecisionDoctrine>;
   isDemo: boolean;
+  feedback: ComplementFeedback[];
+  onFeedback: (spot: BlindSpot, kind: FeedbackKind) => void;
   onOpen: () => void;
 }) {
   const { language, text } = useLanguage();
@@ -708,6 +722,7 @@ function OpportunityCard({
     cognitiveCase: item,
     doctrine,
   });
+  const complement = buildComplementReport({ text: `${item.title} ${item.objective} ${item.context}`, feedback });
   return (
     <article className="rounded-[24px] border border-black/10 bg-[#fffefa] p-5">
       <div className="flex justify-between gap-3">
@@ -772,6 +787,20 @@ function OpportunityCard({
           ))}
         </div>
       </details>
+      <section className="mt-3 rounded-xl bg-[#fff7ed] p-3">
+        <strong className="text-xs text-[#9a4d09]">Ce que vous n’avez peut-être pas encore examiné</strong>
+        <div className="mt-2 space-y-3">{complement.complements.map((spot) => (
+          <div key={spot.axis} className="text-xs">
+            <b>{spot.label}</b><p className="mt-1 leading-5 text-[#59636f]">{spot.question}</p>
+            <div className="mt-1 flex flex-wrap gap-2">
+              <button onClick={() => onFeedback(spot, "useful")} className="text-[#0066cc]">Cet axe est utile</button>
+              <button onClick={() => onFeedback(spot, "already_considered")} className="text-[#59636f]">J’y avais déjà pensé</button>
+              <button onClick={() => onFeedback(spot, "changed_decision")} className="text-[#287a46]">Cela change ma décision</button>
+            </div>
+          </div>
+        ))}</div>
+      </section>
+      <div className="mt-3 rounded-xl border border-black/[.07] p-3 text-xs"><b>Question décisive</b><p className="mt-1 leading-5">{complement.decisiveQuestion}</p><p className="mt-2 text-[#59636f]">Prochaine vérification : {complement.nextCheck}</p></div>
       <button
         onClick={onOpen}
         className="mt-4 text-sm font-semibold text-[#0066cc]"

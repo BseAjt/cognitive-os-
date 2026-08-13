@@ -20,6 +20,13 @@ test("B10 offers a real first dossier and an investor demo",()=>{
   assert.match(onboarding,/loadInvestorDemo/);
 });
 
+test("onboarding captures a nuanced DISC decision profile",()=>{
+  assert.match(onboarding,/Votre manière de décider/);
+  assert.match(onboarding,/premier réflexe/);
+  assert.match(api,/user_decision_profiles/);
+  assert.match(schema,/decision_profile_self_read/);
+});
+
 test("B10 authenticates onboarding and limits all user supplied values",()=>{
   assert.match(api,/auth\.getUser/);
   assert.match(api,/length>80/);
