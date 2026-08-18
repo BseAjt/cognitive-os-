@@ -46,6 +46,10 @@ export function ProductOnboarding({ email }: { email: string }) {
         body: JSON.stringify({ organizationName, displayName, assessmentAnswers }),
       });
       const body = await response.json().catch(() => null);
+      if (response.status === 409 && body?.error === "already_initialized") {
+        router.refresh();
+        return;
+      }
       if (!response.ok || !body?.organization || !body?.member)
         throw new Error("onboarding_failed");
       activate({ organization: body.organization, member: body.member });

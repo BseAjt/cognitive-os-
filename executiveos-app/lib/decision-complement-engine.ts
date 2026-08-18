@@ -44,12 +44,12 @@ export function extractPastDecisions(text:string,limit=5):ExtractedPastDecision[
 
 const dimensionAxis:Partial<Record<ThinkingDimension,DecisionAxis>>={evidence:"evidence",risk:"risk",stakeholders:"stakeholders",execution:"execution",opportunityCost:"opportunityCost",reversibility:"reversibility",longTerm:"longTerm",dissent:"dissent"};
 
-export function rankBlindSpots(input:{text:string;category?:DecisionCategory;profile?:DecisionThinkingProfile;feedback?:ComplementFeedback[];limit?:number}):BlindSpot[]{
+export function rankBlindSpots(input:{text:string;category?:DecisionCategory;profile?:Pick<DecisionThinkingProfile,"dimensions">;feedback?:ComplementFeedback[];limit?:number}):BlindSpot[]{
   const category=input.category??classifyDecisionCategory(input.text);const present=detectDecisionAxes(input.text);const feedback=input.feedback??[];
   return decisionAxisMatrices[category].filter((item)=>!present.includes(item.axis)).map((item)=>{const dimension=Object.entries(dimensionAxis).find(([,axis])=>axis===item.axis)?.[0] as ThinkingDimension|undefined;const mastery=dimension&&input.profile?input.profile.dimensions[dimension]:50;const corrections=feedback.filter((entry)=>entry.axis===item.axis);const adjustment=corrections.reduce((sum,entry)=>sum+({useful:10,changed_decision:18,more_important:14,already_considered:-18,less_important:-12,incorrect:-20}[entry.kind]),0);const score=Math.max(0,Math.min(100,item.importance*24+(100-mastery)*.32+adjustment));return{axis:item.axis,label:item.label,score:Math.round(score),reason:`Cet axe est absent du dossier et compte ${item.importance===3?"fortement":"sensiblement"} pour une décision de type ${category}.`,question:item.question};}).sort((a,b)=>b.score-a.score).slice(0,input.limit??3);
 }
 
-export function buildComplementReport(input:{text:string;category?:DecisionCategory;profile?:DecisionThinkingProfile;feedback?:ComplementFeedback[]}):DecisionComplementReport{
+export function buildComplementReport(input:{text:string;category?:DecisionCategory;profile?:Pick<DecisionThinkingProfile,"dimensions">;feedback?:ComplementFeedback[]}):DecisionComplementReport{
   const category=input.category??classifyDecisionCategory(input.text);const present=detectDecisionAxes(input.text);const matrix=decisionAxisMatrices[category];const complements=rankBlindSpots({...input,category,limit:3});
   return{alreadyCovered:matrix.filter((item)=>present.includes(item.axis)).slice(0,3),complements,contraryPerspective:complements.find((item)=>item.axis==="dissent")?.question??"Dans quelles conditions l’option opposée deviendrait-elle préférable ?",decisiveQuestion:complements[0]?.question??"Quelle information pourrait réellement changer votre décision ?",nextCheck:complements[0]?`Obtenir une preuve sur « ${complements[0].label} » avant tout engagement irréversible.`:"Vérifier une hypothèse critique avec une source indépendante."};
 }

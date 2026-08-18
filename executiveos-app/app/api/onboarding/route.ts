@@ -14,11 +14,15 @@ export async function POST(request:Request){
   if(error)return json({error:error.code==="P0001"?"already_initialized":"creation_failed"},error.code==="P0001"?409:500);
   const row=Array.isArray(data)?data[0]:data;
   if(!row)return json({error:"creation_failed"},500);
+  let profileWarning:string|undefined;
   if(validateAssessmentAnswers(input?.assessmentAnswers??[])){
     const profile=scoreDecisionAssessment(input!.assessmentAnswers!);
     const {error:profileError}=await client.from("user_decision_profiles").upsert({organization_id:row.organization_id,user_id:user.id,disc_primary:profile.discPrimary,disc_secondary:profile.discSecondary,disc_adapted:profile.discPrimary,disc_scores:profile.discScores,dimension_scores:profile.dimensions,confidence:profile.confidence,evidence_count:profile.evidenceCount,assessment_answers:input!.assessmentAnswers,source:"self_assessment",updated_at:new Date().toISOString()},{onConflict:"organization_id,user_id"});
-    if(profileError)return json({error:"profile_creation_failed"},500);
+    if(profileError){
+      profileWarning="profile_creation_deferred";
+      console.error("[api/onboarding] decision profile creation deferred",{organizationId:row.organization_id,userId:user.id,errorCode:profileError.code});
+    }
   }
   const now=row.organization_created_at;
-  return json({organization:{id:row.organization_id,name:row.organization_name,slug:row.organization_slug,plan:row.organization_plan,createdAt:now,updatedAt:now},member:{id:row.member_id,organizationId:row.organization_id,userId:user.id,displayName:displayName,email:user.email??"",role:"owner",status:"active",joinedAt:row.member_joined_at}});
+  return json({organization:{id:row.organization_id,name:row.organization_name,slug:row.organization_slug,plan:row.organization_plan,createdAt:now,updatedAt:now},member:{id:row.member_id,organizationId:row.organization_id,userId:user.id,displayName:displayName,email:user.email??"",role:"owner",status:"active",joinedAt:row.member_joined_at},warning:profileWarning});
 }

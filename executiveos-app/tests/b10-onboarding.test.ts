@@ -25,6 +25,9 @@ test("onboarding captures a nuanced DISC decision profile",()=>{
   assert.match(onboarding,/premier réflexe/);
   assert.match(api,/user_decision_profiles/);
   assert.match(schema,/decision_profile_self_read/);
+  assert.match(api,/profile_creation_deferred/);
+  assert.doesNotMatch(api,/profileError\)return json\(\{error:"profile_creation_failed"\}/);
+  assert.match(onboarding,/response\.status === 409/);
 });
 
 test("B10 authenticates onboarding and limits all user supplied values",()=>{
