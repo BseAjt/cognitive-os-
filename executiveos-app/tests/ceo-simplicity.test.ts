@@ -9,6 +9,10 @@ test("decision journey exposes only three plain-language primary steps", () => {
   for (const label of ["Synthèse", "Décider", "Suivre"]) assert.match(home, new RegExp(label));
   assert.match(home, /ADVANCED_SECTIONS/);
   assert.match(home, />Plus</);
+  const twin = readFileSync(new URL("../components/investor-twin-home.tsx", import.meta.url), "utf8");
+  assert.match(twin, /Parcours principal/);
+  assert.match(twin, /#synthese/);
+  assert.match(twin, /#suivre/);
 });
 
 test("floating expert docks are removed from the primary page", () => {

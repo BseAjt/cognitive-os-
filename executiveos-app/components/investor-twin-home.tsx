@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { useLanguage } from "@/components/language-provider";
-import { DecisionProfilePanel } from "@/components/decision-profile-panel";
+import { DecisionProfilePanel, type StoredDecisionProfile } from "@/components/decision-profile-panel";
 import {
   buildDecisionDoctrine,
   buildDecisionTwinSnapshot,
@@ -41,6 +41,7 @@ export function InvestorTwinHome({ onOpen }: { onOpen: (id: string) => void }) {
   const [commitment, setCommitment] = useState<
     "explore" | "engage" | "dismiss"
   >("explore");
+  const [decisionProfile, setDecisionProfile] = useState<StoredDecisionProfile | null>(null);
 
   useEffect(() => {
     if (store.demoMode === "workspace") store.loadInvestorDemo();
@@ -261,9 +262,15 @@ export function InvestorTwinHome({ onOpen }: { onOpen: (id: string) => void }) {
         </button>
       </div>
 
-      <DecisionProfilePanel demo={isDemo} />
+      <nav aria-label={text("Parcours principal", "Primary journey")} className="mt-7 grid gap-3 sm:grid-cols-3">
+        <a href="#synthese" className="rounded-2xl border border-black/10 bg-[#fffefa] p-4 text-left"><span className="text-[10px] font-black uppercase tracking-[.14em] text-[#0066cc]">1 · {text("Synthèse", "Summary")}</span><strong className="mt-2 block text-sm">{text("Voir ce que le jumeau a compris", "See what the twin learned")}</strong></a>
+        <button onClick={() => setMode("opportunity")} className="rounded-2xl border border-[#0071e3]/20 bg-[#eef6ff] p-4 text-left"><span className="text-[10px] font-black uppercase tracking-[.14em] text-[#0066cc]">2 · {text("Décider", "Decide")}</span><strong className="mt-2 block text-sm">{text("Confronter une décision", "Challenge a decision")}</strong></button>
+        <a href="#suivre" className="rounded-2xl border border-black/10 bg-[#fffefa] p-4 text-left"><span className="text-[10px] font-black uppercase tracking-[.14em] text-[#0066cc]">3 · {text("Suivre", "Track")}</span><strong className="mt-2 block text-sm">{text("Reprendre les décisions en cours", "Resume current decisions")}</strong></a>
+      </nav>
 
-      <div className="mt-7 grid gap-5 xl:grid-cols-[1.35fr_.65fr]">
+      <DecisionProfilePanel demo={isDemo} onProfileChange={setDecisionProfile} />
+
+      <div id="synthese" className="mt-7 grid scroll-mt-28 gap-5 xl:grid-cols-[1.35fr_.65fr]">
         <article className="rounded-[30px] border border-[#0071e3]/20 bg-[linear-gradient(145deg,rgba(255,255,255,.98),rgba(232,241,250,.9))] p-6 md:p-8">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <span className="text-[10px] font-black uppercase tracking-[.18em] text-[#0066cc]">
@@ -371,7 +378,7 @@ export function InvestorTwinHome({ onOpen }: { onOpen: (id: string) => void }) {
         )}
       </section>
 
-      <div className="mt-8">
+      <div id="suivre" className="mt-8 scroll-mt-28">
         <h2 className="text-2xl font-semibold">
           {text("Décisions et opportunités", "Decisions and opportunities")}
         </h2>
@@ -390,6 +397,7 @@ export function InvestorTwinHome({ onOpen }: { onOpen: (id: string) => void }) {
             doctrine={doctrine}
             isDemo={isDemo}
             feedback={complementFeedback}
+            profile={decisionProfile ? { dimensions: decisionProfile.dimension_scores } : undefined}
             onFeedback={(spot, kind) => recordComplementFeedback(item.id, spot, kind)}
             onOpen={() => onOpen(item.id)}
           />
@@ -710,6 +718,7 @@ function OpportunityCard({
   doctrine,
   isDemo,
   feedback,
+  profile,
   onFeedback,
   onOpen,
 }: {
@@ -717,6 +726,7 @@ function OpportunityCard({
   doctrine: ReturnType<typeof buildDecisionDoctrine>;
   isDemo: boolean;
   feedback: ComplementFeedback[];
+  profile?: Pick<import("@/lib/decision-thinking-profile").DecisionThinkingProfile, "dimensions">;
   onFeedback: (spot: BlindSpot, kind: FeedbackKind) => void;
   onOpen: () => void;
 }) {
@@ -725,7 +735,7 @@ function OpportunityCard({
     cognitiveCase: item,
     doctrine,
   });
-  const complement = buildComplementReport({ text: `${item.title} ${item.objective} ${item.context}`, feedback });
+  const complement = buildComplementReport({ text: `${item.title} ${item.objective} ${item.context}`, profile, feedback });
   return (
     <article className="rounded-[24px] border border-black/10 bg-[#fffefa] p-5">
       <div className="flex justify-between gap-3">

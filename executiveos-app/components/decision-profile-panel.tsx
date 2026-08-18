@@ -11,7 +11,7 @@ import { useExecutiveStore } from "@/store/executive-store";
 
 type DiscStyle = "D" | "I" | "S" | "C";
 const LOCAL_PROFILE_KEY = "executiveos:decision-profile:v1";
-type StoredProfile = {
+export type StoredDecisionProfile = {
   disc_primary: DiscStyle;
   disc_secondary: DiscStyle;
   dimension_scores: Record<ThinkingDimension, number>;
@@ -39,8 +39,8 @@ const dimensionCopy: Record<ThinkingDimension, { label: string; question: string
   dissent: { label: "Contradiction utile", question: "Quel argument solide défendrait une personne en désaccord ?" },
 };
 
-export function DecisionProfilePanel({ demo = false }: { demo?: boolean }) {
-  const [profile, setProfile] = useState<StoredProfile | null>(null);
+export function DecisionProfilePanel({ demo = false, onProfileChange }: { demo?: boolean; onProfileChange?: (profile: StoredDecisionProfile | null) => void }) {
+  const [profile, setProfile] = useState<StoredDecisionProfile | null>(null);
   const [loading, setLoading] = useState(true);
   const [editing, setEditing] = useState(false);
   const [step, setStep] = useState(0);
@@ -71,7 +71,7 @@ export function DecisionProfilePanel({ demo = false }: { demo?: boolean }) {
     const useLocalProfile = () => {
       try {
         const stored = window.localStorage.getItem(LOCAL_PROFILE_KEY);
-        const localProfile = stored ? JSON.parse(stored) as StoredProfile : null;
+        const localProfile = stored ? JSON.parse(stored) as StoredDecisionProfile : null;
         setProfile(localProfile);
         if (localProfile?.assessment_answers) setAnswers(localProfile.assessment_answers);
         setEditing(!localProfile);
@@ -101,6 +101,10 @@ export function DecisionProfilePanel({ demo = false }: { demo?: boolean }) {
       .catch(useLocalProfile)
       .finally(() => setLoading(false));
   }, [demo]);
+
+  useEffect(() => {
+    onProfileChange?.(profile);
+  }, [onProfileChange, profile]);
 
   const ranked = useMemo(() => {
     if (!profile?.dimension_scores) return [];
@@ -146,7 +150,7 @@ export function DecisionProfilePanel({ demo = false }: { demo?: boolean }) {
     setError("");
     const saveLocally = () => {
       const scored = scoreDecisionAssessment(answers);
-      const localProfile: StoredProfile = {
+      const localProfile: StoredDecisionProfile = {
         disc_primary: scored.discPrimary,
         disc_secondary: scored.discSecondary,
         dimension_scores: scored.dimensions,
