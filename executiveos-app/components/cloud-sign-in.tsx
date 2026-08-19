@@ -1,14 +1,16 @@
 "use client";
 
 import { useState } from "react";
-import { createClient } from "@/lib/supabase/client";
+import { createMagicLinkClient } from "@/lib/supabase/client";
 
 export function CloudSignIn({
   configured,
   nextPath = "/",
+  initialError,
 }: {
   configured: boolean;
   nextPath?: string;
+  initialError?: string;
 }) {
   const [email, setEmail] = useState("");
   const [message, setMessage] = useState("");
@@ -20,12 +22,12 @@ export function CloudSignIn({
     setMessage("");
 
     try {
-      const client = createClient();
+      const client = createMagicLinkClient();
       if (!client) {
         setMessage("Le service de connexion n’est pas configuré sur cet environnement.");
         return;
       }
-      const callback = new URL("/auth/callback", window.location.origin);
+      const callback = new URL("/auth/complete", window.location.origin);
       callback.searchParams.set("next", nextPath);
       const { error } = await client.auth.signInWithOtp({
         email: email.trim().toLowerCase(),
@@ -83,6 +85,11 @@ export function CloudSignIn({
           </div>
         )}
         {message && <p role="status" className="mt-4 text-sm text-[#3a3a3c]">{message}</p>}
+        {!message && initialError === "session_exchange_failed" && (
+          <p role="alert" className="mt-4 rounded-2xl bg-red-50 p-4 text-sm leading-6 text-red-800">
+            Ce lien ancien ou expiré ne peut plus ouvrir la session. Demande un nouveau lien ci-dessus ; il fonctionnera aussi depuis Mail ou Gmail.
+          </p>
+        )}
         <a href="/" className="mt-6 inline-block text-sm font-medium text-[#007aff]">Découvrir la démo</a>
       </section>
     </main>
