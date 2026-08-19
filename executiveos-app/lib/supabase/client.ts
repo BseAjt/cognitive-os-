@@ -21,6 +21,9 @@ export function createMagicLinkClient() {
 
   if (!url || !key) return null;
   return createBrowserClient(url, key, {
+    // The root layout creates the regular PKCE client before this page mounts.
+    // Do not reuse that singleton: this client must inspect the implicit hash.
+    isSingleton: false,
     auth: {
       flowType: "implicit",
       detectSessionInUrl: true,
