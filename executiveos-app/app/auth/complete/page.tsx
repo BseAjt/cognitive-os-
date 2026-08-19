@@ -20,7 +20,23 @@ export default function CompleteSessionPage() {
 
     let active = true;
     const complete = async () => {
-      const { data } = await client.auth.getSession();
+      let { data } = await client.auth.getSession();
+
+      // Safari can mount the layout client before Supabase's automatic URL
+      // detection completes. Recover directly from the fragment as a safe,
+      // idempotent fallback; fragments are never sent to our server.
+      if (!data.session && window.location.hash) {
+        const fragment = new URLSearchParams(window.location.hash.slice(1));
+        const accessToken = fragment.get("access_token");
+        const refreshToken = fragment.get("refresh_token");
+        if (accessToken && refreshToken) {
+          const result = await client.auth.setSession({
+            access_token: accessToken,
+            refresh_token: refreshToken,
+          });
+          data = result.data;
+        }
+      }
       if (active && data.session) window.location.replace(next);
     };
     const { data: listener } = client.auth.onAuthStateChange((event, session) => {
