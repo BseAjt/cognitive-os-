@@ -9,8 +9,11 @@ test("magic links survive email applications and browser context changes", async
 
   assert.match(client, /flowType: "implicit"/);
   assert.match(client, /detectSessionInUrl: true/);
+  assert.match(client, /isSingleton: false/);
   assert.match(signIn, /\/auth\/complete/);
   assert.match(confirm, /getSession\(\)/);
+  assert.match(confirm, /window\.location\.hash/);
+  assert.match(confirm, /setSession/);
   assert.match(confirm, /onAuthStateChange/);
   assert.match(confirm, /window\.location\.replace/);
 });
