@@ -12,6 +12,7 @@ test("magic links survive email applications and browser context changes", async
   assert.match(client, /isSingleton: false/);
   assert.match(signIn, /\/auth\/complete/);
   assert.match(confirm, /getSession\(\)/);
+  assert.match(confirm, /exchangeCodeForSession/);
   assert.match(confirm, /window\.location\.hash/);
   assert.match(confirm, /setSession/);
   assert.match(confirm, /onAuthStateChange/);
