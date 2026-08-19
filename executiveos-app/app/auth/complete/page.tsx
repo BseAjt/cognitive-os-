@@ -22,6 +22,15 @@ export default function CompleteSessionPage() {
     const complete = async () => {
       let { data } = await client.auth.getSession();
 
+      // @supabase/ssr intentionally generates a PKCE link even when the
+      // confirmation client also supports implicit fragments. Exchange the
+      // returned code in this browser, where the original verifier is stored.
+      const code = new URLSearchParams(window.location.search).get("code");
+      if (!data.session && code) {
+        const result = await client.auth.exchangeCodeForSession(code);
+        data = result.data;
+      }
+
       // Safari can mount the layout client before Supabase's automatic URL
       // detection completes. Recover directly from the fragment as a safe,
       // idempotent fallback; fragments are never sent to our server.
